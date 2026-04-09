@@ -66,9 +66,9 @@
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;">
     <div style="background:var(--panel);border:3px solid var(--green);padding:2rem;max-width:400px;width:100%;position:relative;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--green);margin-bottom:1.5rem;text-align:center;">あたらしい冒険者</div>
-      <div style="text-align:center;font-size:3rem;margin-bottom:1rem;animation:bob 1s ease-in-out infinite alternate;">🐕</div>
+      <div id="newCharIcon" style="width:90px;height:90px;margin:0 auto 1.2rem;background:linear-gradient(135deg,var(--teal),var(--pink));border:3px solid rgba(0,229,255,.4);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;color:#fff;animation:bob 1s ease-in-out infinite alternate;">？</div>
       <div class="form-lbl">なまえを入れてね</div>
-      <input class="pinput" id="newName" type="text" placeholder="例：たろう" style="width:100%;margin-bottom:.8rem;" maxlength="10">
+      <input class="pinput" id="newName" type="text" placeholder="例：たろう" style="width:100%;margin-bottom:.8rem;" maxlength="10" oninput="updateNewCharIcon()">
       <div class="form-lbl">教室</div>
       <select class="fselect" id="newClass" style="margin-bottom:1.2rem;">
         <option>ルネック勝川（月）</option>
