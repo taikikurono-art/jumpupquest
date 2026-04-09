@@ -77,18 +77,18 @@ window.addEventListener('load',()=>{
 
 // ======== JOB DATA ========
 const JOBS={
-  rookie:     {name:'ルーキー',       genre:'入門',          emoji:'🐕', color:'#ffb7a0', level:'Lv.1〜3',  desc:'体操の世界に踏み出したばかりの冒険者！まずは基本の動きをしっかり覚えよう。'},
-  challenger: {name:'チャレンジャー',  genre:'初級',          emoji:'🐻', color:'#ffe066', level:'Lv.4〜7',  desc:'基本をマスターした挑戦者。ここから6つのジョブへ進化できるぞ！'},
-  ninja:      {name:'ニンジャ',        genre:'反射',          emoji:'🦊', color:'#bb33ff', level:'Lv.8〜11', desc:'素早い反射神経と瞬発力を持つ忍者。瞬間的な動きの切れ味が武器！'},
-  airrider:   {name:'エア・ライダー',  genre:'跳躍',          emoji:'🐰', color:'#00ccee', level:'Lv.8〜11', desc:'軽やかに空を舞う跳躍の達人。高さとスピードで誰よりも高く飛び上がれ！'},
-  coremaster: {name:'コア・マスター',  genre:'バランス',       emoji:'🐱', color:'#33cc55', level:'Lv.8〜11', desc:'体幹の強さとバランス感覚に優れた達人。倒立や静止技が完璧に決まる！'},
-  performer:  {name:'パフォーマー',    genre:'美しさ',         emoji:'🦢', color:'#ff7722', level:'Lv.8〜11', desc:'美しい動きと表現力を持つアーティスト。ポーズや演技の美しさで観客を魅了する！'},
-  waterflow:  {name:'ウォーター・フロー',genre:'柔軟',         emoji:'🦦', color:'#6655ff', level:'Lv.8〜11', desc:'水のように柔らかく流れる動きが特技。しなやかさと流れる美しさが武器！'},
-  striker:    {name:'ストライカー',    genre:'パワー',         emoji:'🦍', color:'#ff3333', level:'Lv.8〜11', desc:'力強いジャンプと爆発的なパワーを持つ戦士。空中技や高さのある技が得意！'},
-  tracerunner:{name:'トレース・ランナー',genre:'パルクール',   emoji:'🐒', color:'#ff5588', level:'Lv.12〜',  desc:'反射×バランスを極めた者がなれる超高速の体術師！壁も障害物も自由自在に駆け抜けろ。'},
-  airmaster:  {name:'エアマスター',    genre:'アクロバット',   emoji:'🦅', color:'#00ffaa', level:'Lv.12〜',  desc:'パワー×跳躍を極めた者だけがなれる究極の空中術師！宙返りや高難度技をマスターしている。'},
-  illusionist:{name:'イリュージョニスト',genre:'新体操',       emoji:'🐿️', color:'#ff88dd', level:'Lv.12〜',  desc:'美しさ×柔軟を極めた者だけがなれる美の頂点。新体操の芸術で観客を魅了する伝説の演者。'},
-  next:       {name:'NEXT ?',          genre:'Coming Soon',   emoji:'❓', color:'#555577', level:'???',       desc:'次のジョブはまだ秘密…。さらなる高みを目指す冒険者に新しいジョブが解放されるかも！？'},
+  rookie:     {name:'ルーキー',       charName:'シバッチ', genre:'入門',          emoji:'🐕', color:'#ffb7a0', level:'Lv.1〜3',  desc:'体操の世界に踏み出したばかりの冒険者！まずは基本の動きをしっかり覚えよう。'},
+  challenger: {name:'チャレンジャー',  charName:'グラン',   genre:'初級',          emoji:'🐻', color:'#ffe066', level:'Lv.4〜7',  desc:'基本をマスターした挑戦者。ここから6つのジョブへ進化できるぞ！'},
+  ninja:      {name:'ニンジャ',        charName:'クロウド', genre:'反射',          emoji:'🦊', color:'#bb33ff', level:'Lv.8〜11', desc:'素早い反射神経と瞬発力を持つ忍者。瞬間的な動きの切れ味が武器！'},
+  airrider:   {name:'エア・ライダー',  charName:'ライト',   genre:'跳躍',          emoji:'🐰', color:'#00ccee', level:'Lv.8〜11', desc:'軽やかに空を舞う跳躍の達人。高さとスピードで誰よりも高く飛び上がれ！'},
+  coremaster: {name:'コア・マスター',  charName:'ゼン',     genre:'バランス',       emoji:'🐱', color:'#33cc55', level:'Lv.8〜11', desc:'体幹の強さとバランス感覚に優れた達人。倒立や静止技が完璧に決まる！'},
+  performer:  {name:'パフォーマー',    charName:'エレナ',   genre:'美しさ',         emoji:'🦢', color:'#ff7722', level:'Lv.8〜11', desc:'美しい動きと表現力を持つアーティスト。ポーズや演技の美しさで観客を魅了する！'},
+  waterflow:  {name:'ウォーター・フロー',charName:'リュウ', genre:'柔軟',         emoji:'🦦', color:'#6655ff', level:'Lv.8〜11', desc:'水のように柔らかく流れる動きが特技。しなやかさと流れる美しさが武器！'},
+  striker:    {name:'ストライカー',    charName:'ボルト',   genre:'パワー',         emoji:'🦍', color:'#ff3333', level:'Lv.8〜11', desc:'力強いジャンプと爆発的なパワーを持つ戦士。空中技や高さのある技が得意！'},
+  tracerunner:{name:'トレース・ランナー',charName:'ソウ',  genre:'パルクール',   emoji:'🐒', color:'#ff5588', level:'Lv.12〜',  desc:'反射×バランスを極めた者がなれる超高速の体術師！壁も障害物も自由自在に駆け抜けろ。'},
+  airmaster:  {name:'エアマスター',    charName:'ファルコ', genre:'アクロバット',   emoji:'🦅', color:'#00ffaa', level:'Lv.12〜',  desc:'パワー×跳躍を極めた者だけがなれる究極の空中術師！宙返りや高難度技をマスターしている。'},
+  illusionist:{name:'イリュージョニスト',charName:'ミラ',  genre:'新体操',       emoji:'🐿️', color:'#ff88dd', level:'Lv.12〜',  desc:'美しさ×柔軟を極めた者だけがなれる美の頂点。新体操の芸術で観客を魅了する伝説の演者。'},
+  next:       {name:'NEXT ?',          charName:'？',       genre:'Coming Soon',   emoji:'❓', color:'#555577', level:'???',       desc:'次のジョブはまだ秘密…。さらなる高みを目指す冒険者に新しいジョブが解放されるかも！？'},
 };
 
 // SKILL_MAP: [技名, JOB, x=リスク(低0〜高100), y=難易度(易100〜難0)]
@@ -652,7 +652,7 @@ function initMatrix(){
   </div>`;
   const jobTabs=jobOrder.map(k=>{
     const j=JOBS[k];if(!j)return'';
-    const sprite=SPRITES[k]?`<img src="${SPRITES[k]}" style="width:22px;height:22px;object-fit:contain;image-rendering:pixelated;">`:`<span>${j.emoji}</span>`;
+    const sprite=SPRITES[k]?`<img src="${SPRITES[k]}" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;">`:`<span style="font-size:1.4rem;">${j.emoji}</span>`;
     return `<div class="jtab" id="jtab-${k}" onclick="selJob('${k}',this)">
       ${sprite}<span>${j.name}</span>
     </div>`;
