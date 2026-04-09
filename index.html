@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUMPUP クエスト</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stars"></div>
+
+<!-- ==================== TITLE ==================== -->
+<div class="page active fadein" id="pg-title">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;text-align:center;">
+    <img
+      src="assets/embedded_image_1.png"
+      alt="JUMPUP QUEST SKILL ADVENTURE"
+      style="
+        width:min(420px,92vw);
+        height:auto;
+        margin-bottom:1.8rem;
+        image-rendering:pixelated;
+        filter:drop-shadow(0 0 24px rgba(255,140,0,.5)) drop-shadow(0 4px 16px rgba(0,0,0,.8));
+        animation:titleGlow 2s ease-in-out infinite alternate;
+      "
+    >
+    <div id="titleCharaWrap" style="
+      height:140px;margin-bottom:1.2rem;
+      display:flex;align-items:center;justify-content:center;
+      position:relative;
+    ">
+      <img id="titleCharaImg"
+        src=""
+        alt=""
+        style="
+          height:130px;width:auto;
+          image-rendering:pixelated;
+          filter:drop-shadow(0 0 18px rgba(0,229,255,.45)) drop-shadow(0 4px 12px rgba(0,0,0,.7));
+          animation:bob 1.5s ease-in-out infinite alternate;
+          transition:opacity .4s ease;
+          object-fit:contain;
+        "
+      >
+    </div>
+    <div class="menu-box">
+      <button class="menu-item new-game" onclick="goPage('pg-newgame')">
+        <span class="menu-arrow">▶</span>あたらしく始める
+      </button>
+      <button class="menu-item continue" onclick="goPage('pg-login')">
+        <span class="menu-arrow">▶</span>つづきから
+      </button>
+      <div class="menu-sep"></div>
+      <button class="menu-item view-all" onclick="goPage('pg-explorer')">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>冒険者一覧を見る
+      </button>
+      <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
+      </button>
+    </div>
+    <div id="gasStatusTitle">🟡 接続中...</div>
+  </div>
+</div>
+
+<!-- ==================== NEW GAME ==================== -->
+<div class="page fadein" id="pg-newgame">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;">
+    <div style="background:var(--panel);border:3px solid var(--green);padding:2rem;max-width:400px;width:100%;position:relative;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--green);margin-bottom:1.5rem;text-align:center;">あたらしい冒険者</div>
+      <div style="text-align:center;font-size:3rem;margin-bottom:1rem;animation:bob 1s ease-in-out infinite alternate;">🐕</div>
+      <div class="form-lbl">なまえを入れてね</div>
+      <input class="pinput" id="newName" type="text" placeholder="例：たろう" style="width:100%;margin-bottom:.8rem;" maxlength="10">
+      <div class="form-lbl">教室</div>
+      <select class="fselect" id="newClass" style="margin-bottom:1.2rem;">
+        <option>ルネック勝川（月）</option>
+        <option>スタジオMy（木）</option>
+        <option>ococoロネ学園（火）</option>
+      </select>
+      <button class="pbtn btn-green" onclick="createNewChar()" style="width:100%;height:56px;font-size:.58rem;">▶ ぼうけんを始める！</button>
+      <div id="newCharErr" style="display:none;color:var(--pink);font-family:'Press Start 2P';font-size:.38rem;margin-top:.6rem;text-align:center;"></div>
+    </div>
+    <button class="back-link" onclick="goPage('pg-title')">◀ タイトルにもどる</button>
+  </div>
+</div>
+
+<!-- ==================== LOGIN ==================== -->
+<div class="page fadein" id="pg-login">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;">
+    <div class="login-box">
+      <div class="login-title">つづきから</div>
+      <div class="form-lbl">なまえで検索</div>
+      <input class="login-input" id="loginSearch" type="text" placeholder="名前を入れてね..." oninput="loginSearch()" maxlength="20">
+      <div class="login-results" id="loginResults"></div>
+    </div>
+    <button class="back-link" onclick="goPage('pg-title')">◀ タイトルにもどる</button>
+  </div>
+</div>
+
+
+<!-- ==================== STATUS (メイン画面) ==================== -->
+<div class="page fadein" id="pg-status">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goPage('pg-title')">◀ タイトルへ</button>
+    <span class="nav-title" id="stNavTitle">マイページ</span>
+  </div>
+
+  <!-- ナビボタン -->
+  <div class="st-nav-btns">
+    <button class="st-nav-btn" onclick="goPage('pg-jobmap')">
+      <span class="nav-icon">🗺️</span><span class="nav-label">ジョブマップ</span>
+    </button>
+    <button class="st-nav-btn" onclick="goPage('pg-matrix')">
+      <span class="nav-icon">⚔️</span><span class="nav-label">技マトリックス</span>
+    </button>
+    <button class="st-nav-btn" onclick="goPage('pg-explorer')">
+      <span class="nav-icon">🚪</span><span class="nav-label">冒険者一覧</span>
+    </button>
+  </div>
+
+  <div class="st-content">
+
+    <!-- ===== キャラパネル ===== -->
+    <div class="pp st-char-panel" id="stCharPanel">
+      <div class="st-job-sprite-bg" id="stJobSpriteBg"></div>
+      <div class="sec-ttl">冒険者カード</div>
+      <div class="st-card-inner">
+        <div class="st-photo-frame">
+          <span class="st-corner tl"></span>
+          <span class="st-corner tr"></span>
+          <span class="st-corner bl"></span>
+          <span class="st-corner br"></span>
+          <img id="stPhoto" class="st-photo-img" src="" alt="" style="display:none;">
+          <div id="stInitial" class="st-initial"></div>
+          <label class="st-photo-btn" title="写真を変更">
+            📷<input type="file" accept="image/*" style="display:none;" onchange="uploadStatusPhoto(event)">
+          </label>
+          <button class="st-sprite-btn" title="キャラアイコンに切り替え" onclick="toggleSpriteAvatar()">🎮</button>
+        </div>
+        <div class="st-info-col">
+          <div class="st-name" id="stName">---</div>
+          <div class="job-badge" id="stJobBadge" style="margin:.4rem 0;">---</div>
+          <div class="st-stats-row">
+            <div class="st-stat-chip">
+              <span class="st-stat-label">MASTER</span>
+              <span class="st-stat-val gold" id="stMasterCnt">0</span>
+            </div>
+            <div class="st-stat-chip">
+              <span class="st-stat-label">TOTAL PT</span>
+              <span class="st-stat-val teal" id="stTotalPt">0</span>
+            </div>
+            <div class="st-stat-chip">
+              <span class="st-stat-label">教室</span>
+              <span class="st-stat-val" id="stClass" style="font-size:.65rem;">---</span>
+            </div>
+          </div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.4rem;">📅 <span id="stJoinDate">---</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 📬 メッセージBOX ===== -->
+    <div class="pp" style="margin-top:.8rem;">
+      <div class="sec-ttl">📬 メッセージBOX <span id="stUnreadBadge" style="display:none;font-family:'Press Start 2P',monospace;font-size:.32rem;background:var(--pink);color:#fff;padding:.18rem .45rem;margin-left:.5rem;vertical-align:middle;">NEW</span></div>
+      <div id="stMailList" style="margin-top:.7rem;display:flex;flex-direction:column;gap:.5rem;">
+        <div style="color:var(--text2);font-size:.85rem;padding:.5rem 0;">まだメッセージはないよ。テストをがんばろう！</div>
+      </div>
+    </div>
+
+    <!-- ===== TROPHY ===== -->
+    <div class="pp" style="margin-top:.8rem;">
+      <div class="sec-ttl">🏆 TROPHY</div>
+      <div id="stTrophyRow" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem;min-height:40px;">
+        <div style="color:var(--text2);font-size:.8rem;">まだトロフィーはないよ！</div>
+      </div>
+    </div>
+
+    <!-- ===== SKILL RECORDS ===== -->
+    <div class="pp" style="margin-top:.8rem;">
+      <div class="sec-ttl">⚔ SKILL RECORDS</div>
+      <div id="stSkillRecs" style="margin-top:.8rem;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- メール詳細モーダル -->
+<div class="mail-modal-overlay" id="mailModal" onclick="closeMailModal(event)">
+  <div class="mail-modal-box" onclick="event.stopPropagation()">
+    <div class="mail-modal-header">
+      <div class="mail-modal-subject" id="mailModalSubject"></div>
+      <button class="mail-modal-close" onclick="closeMailModal()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
+    </div>
+    <div class="mail-modal-meta" id="mailModalMeta"></div>
+    <div class="mail-modal-body" id="mailModalBody"></div>
+  </div>
+</div>
+
+<!-- ==================== EXPLORER ==================== -->
+<div class="page fadein" id="pg-explorer">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goBack()">◀ もどる</button>
+    <span class="nav-title">冒険者一覧</span>
+  </div>
+  <div style="padding:1.2rem 0;">
+    <div class="pp">
+      <div class="sec-ttl">冒険者たち</div>
+      <p style="color:var(--text2);font-size:.85rem;margin-bottom:1rem;">みんなの冒険者カードを見てみよう！</p>
+      <div class="explorer-grid" id="explorerGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== JOB MAP ==================== -->
+<div class="page fadein" id="pg-jobmap">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goBack()">◀ もどる</button>
+    <span class="nav-title">ジョブマップ</span>
+  </div>
+  <div style="padding:1.2rem 0;">
+    <div class="pp">
+      <div class="sec-ttl">ジョブ・クエストマップ</div>
+      <p style="color:var(--text2);font-size:.83rem;margin-bottom:1.2rem;">チャレンジャーになったら好きなジョブを選んで進化しよう！カードをタップすると詳細が見られるよ⚔️</p>
+      <div style="display:flex;flex-direction:column;gap:0;align-items:center;padding:1rem .5rem;" id="jobmapContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MATRIX ==================== -->
+<div class="page fadein" id="pg-matrix">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goBack()">◀ もどる</button>
+    <span class="nav-title">技マトリックス</span>
+  </div>
+  <div style="padding:1.2rem 0;">
+    <div class="pp">
+      <div class="sec-ttl">技マトリックス</div>
+      <p style="color:var(--text2);font-size:.83rem;margin-bottom:.9rem;">JOBを選んで技を確認。2軸マップで難しさと安全度も一目でわかる！</p>
+      <div class="job-tabs" id="matrixTabs"></div>
+      <div class="view-toggle">
+        <button class="pbtn btn-teal" id="btnMap" onclick="setView('map')" style="font-size:.38rem;padding:.42rem .75rem;">🗺️ マップ</button>
+        <button class="pbtn btn-outline" id="btnList" onclick="setView('list')" style="font-size:.38rem;padding:.42rem .75rem;">📋 リスト</button>
+      </div>
+      <div id="matrixMap">
+        <div class="axis-wrap">
+          <div class="axis-v"></div><div class="axis-h"></div>
+          <div class="axis-lbl" style="top:1%;left:50%;transform:translateX(-50%);">難しい ▲</div>
+          <div class="axis-lbl" style="bottom:1%;left:50%;transform:translateX(-50%);">▼ 簡単</div>
+          <div class="axis-lbl" style="left:1%;top:50%;transform:translateY(-50%);">◀ 安全</div>
+          <div class="axis-lbl" style="right:1%;top:50%;transform:translateY(-50%);">危険 ▶</div>
+          <div id="mapNodes"></div>
+        </div>
+        <div style="margin-top:.7rem;display:flex;flex-wrap:wrap;gap:.5rem;" id="mapLegend"></div>
+      </div>
+      <div id="matrixList" style="display:none;">
+        <div class="skill-list-grid" id="skillListGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADMIN ==================== -->
+<div class="page fadein" id="pg-admin">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goPage('pg-title')">◀ タイトルへ</button>
+    <span class="nav-title">管理者パネル</span>
+    <div id="gasStatusAdmin" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-left:auto;">🟡</div>
+  </div>
+  <div style="padding:1.2rem 0;">
+    <div class="pp">
+      <div id="adminLock">
+        <div style="text-align:center;padding:2rem 1rem;">
+          <div style="font-size:3rem;margin-bottom:.8rem;">🔐</div>
+          <div style="font-family:'Press Start 2P';font-size:.68rem;color:var(--gold);margin-bottom:1.2rem;">管理者ログイン</div>
+          <div style="max-width:360px;margin:0 auto;">
+            <input class="pinput" type="password" id="adminPw" placeholder="パスワード" style="width:100%;margin-bottom:.8rem;" onkeydown="if(event.key==='Enter')adminLogin()">
+            <button class="pbtn btn-gold" onclick="adminLogin()" style="width:100%;">▶ ログイン</button>
+            <div id="adminErr" style="display:none;color:var(--pink);font-family:'Press Start 2P';font-size:.4rem;margin-top:.7rem;">❌ パスワードが違います</div>
+          </div>
+        </div>
+      </div>
+      <div id="adminPanel" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:1.1rem;">
+          <div style="font-family:'Press Start 2P';font-size:.48rem;color:var(--green);">✅ 管理者モード</div>
+          <button class="pbtn btn-outline" onclick="adminLogout()" style="font-size:.38rem;padding:.38rem .65rem;">ログアウト</button>
+        </div>
+
+        <!-- メッセージ送信 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">💬 先生からのメッセージを送る</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.8rem;">
+            <div><label class="form-lbl">送る冒険者</label>
+              <select class="fselect" id="msgTarget"><option value="">-- 選んでね --</option></select>
+            </div>
+            <div><label class="form-lbl">送信日</label>
+              <input class="pinput fselect" type="date" id="msgDate">
+            </div>
+          </div>
+          <div style="margin-bottom:.8rem;">
+            <label class="form-lbl">件名</label>
+            <input class="pinput" id="msgSubject" placeholder="例：4月のテスト結果について" style="width:100%;">
+          </div>
+          <div style="margin-bottom:.8rem;">
+            <label class="form-lbl">メッセージ内容</label>
+            <textarea class="pinput" id="msgBody" rows="4" placeholder="例：前転がとても上手になったね！次は側転にチャレンジしよう！" style="width:100%;resize:vertical;"></textarea>
+          </div>
+          <button class="pbtn btn-pink" onclick="sendMessage()" style="width:100%;">📬 メッセージを送る</button>
+        </div>
+
+        <!-- テスト結果入力 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">📝 月次テスト結果を入力</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.75rem;">
+            <div><label class="form-lbl">冒険者を選択</label><select class="fselect" id="adminSel" onchange="loadAdminChar()"><option value="">-- 選んでね --</option></select></div>
+            <div><label class="form-lbl">テスト日</label><input class="pinput fselect" type="date" id="adminDate"></div>
+          </div>
+          <div id="adminCharInfo" style="display:none;margin-bottom:.75rem;">
+            <div style="background:var(--bg);border:2px solid var(--border);padding:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+              <span id="aSprite" style="font-size:1.8rem;"></span>
+              <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.38rem;margin-top:.2rem;" id="aJob"></div></div>
+              <div style="margin-left:auto;text-align:right;">
+                <div style="font-family:'Press Start 2P';font-size:.45rem;color:var(--gold);" id="aLv"></div>
+                <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
+              </div>
+            </div>
+          </div>
+          <div id="adminSkillSec" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
+              <label class="form-lbl" style="margin:0;">挑戦する技を選んで評価をつける</label>
+              <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);">⭐⭐⭐+3pt　⭐⭐+1pt　☆0pt（2連続☆→💀リセット）</div>
+            </div>
+            <div style="background:var(--bg3);border:2px solid var(--border);padding:.7rem;margin-bottom:.8rem;font-size:.78rem;color:var(--text2);line-height:1.8;">
+              🏆 <span style="color:var(--gold);">累計10pt以上 かつ 今回⭐⭐⭐</span> → 技マスター！<br>
+              💀 <span style="color:var(--pink);">2ヶ月連続☆</span> → ポイント全リセット
+            </div>
+            <div id="adminSkillList"></div>
+            <div style="margin-top:.8rem;">
+              <button class="pbtn btn-outline" onclick="addSkillRow()" style="font-size:.38rem;padding:.42rem .75rem;width:100%;">＋ 技を追加する</button>
+            </div>
+          </div>
+          <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
+            <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
+          </div>
+        </div>
+
+        <!-- 新規登録 -->
+        <div class="pp">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+            <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
+            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>ococoロネ学園（火）</option></select></div>
+            <div><label class="form-lbl">冒険者ID</label><input class="pinput" id="nId" placeholder="JU-001" style="width:100%;"></div>
+          </div>
+          <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
+        </div>
+
+        <!-- 冒険者削除 -->
+        <div class="pp" style="margin-top:1.1rem;border-color:var(--pink);">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;color:var(--pink);">🗑️ 冒険者を削除する</div>
+          <div style="background:var(--bg3);border:2px solid var(--pink);padding:.65rem;margin-bottom:.85rem;font-family:'Press Start 2P';font-size:.38rem;color:var(--pink);line-height:1.9;">
+            ⚠️ 削除すると元に戻せません！<br>本当に必要なときだけ使ってください。
+          </div>
+          <div style="margin-bottom:.75rem;">
+            <label class="form-lbl">削除する冒険者</label>
+            <select class="fselect" id="delSel"><option value="">-- 選んでね --</option></select>
+          </div>
+          <div style="margin-bottom:.75rem;">
+            <label class="form-lbl">確認のため名前を入力</label>
+            <input class="pinput" id="delConfirm" placeholder="削除する冒険者の名前" style="width:100%;">
+          </div>
+          <button class="pbtn btn-pink" onclick="deleteChar()" style="width:100%;">🗑️ 削除する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- SKILL POPUP（冒険者一覧用） -->
+<div class="popup-overlay" id="explorerSkillPopup" onclick="closeExplorerSkillPopup(event)">
+  <div class="popup-box" style="max-width:420px;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <button class="popup-close" onclick="closeExplorerSkillPopup()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
+    <div id="espSprite" style="text-align:center;margin-bottom:.4rem;"></div>
+    <div id="espName" style="font-weight:900;font-size:1.2rem;text-align:center;margin-bottom:.2rem;"></div>
+    <div id="espJob" style="font-family:'Press Start 2P',monospace;font-size:.36rem;text-align:center;margin-bottom:.3rem;padding:.2rem .5rem;display:inline-block;border:2px solid;"></div>
+    <div id="espStats" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);text-align:center;margin-bottom:1rem;"></div>
+    <div id="espSkillList" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+  </div>
+</div>
+
+<!-- JOB POPUP -->
+<div class="popup-overlay" id="jobPopup">
+  <div class="popup-box">
+    <button class="popup-close" onclick="closeJobPopup()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
+    <div style="font-size:3rem;margin-bottom:.4rem;" id="ppEmoji"></div>
+    <div style="font-family:'Press Start 2P';font-size:.62rem;margin-bottom:.3rem;" id="ppName"></div>
+    <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.75rem;" id="ppSub"></div>
+    <div style="font-size:.86rem;color:var(--text2);line-height:1.7;margin-bottom:.75rem;" id="ppDesc"></div>
+    <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.28rem;">必要レベル</div>
+    <div style="font-family:'Press Start 2P';font-size:.58rem;margin-bottom:.75rem;" id="ppLv"></div>
+    <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.38rem;">技サンプル</div>
+    <div id="ppTags"></div>
+  </div>
+</div>
+
+<!-- メッセージオーバーレイ（RPGポスト） -->
+
+
+<!-- 管理者へのリンク（隠し） -->
+<div style="position:fixed;bottom:.5rem;left:.5rem;z-index:50;">
+  <button onclick="goPage('pg-admin')" style="font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.3rem .5rem;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text2);cursor:pointer;opacity:.4;">🔐</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
+
+<script src="main.js"></script>
+</body>
+</html>
