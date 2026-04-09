@@ -51,10 +51,10 @@
       </button>
       <div class="menu-sep"></div>
       <button class="menu-item view-all" onclick="goPage('pg-explorer')">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>冒険者一覧を見る
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>ぼうけんしゃリストを見る
       </button>
       <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>わざリストを見る
       </button>
     </div>
     <div id="gasStatusTitle">🟡 接続中...</div>
@@ -109,10 +109,10 @@
       <span class="nav-icon">🗺️</span><span class="nav-label">ジョブマップ</span>
     </button>
     <button class="st-nav-btn" onclick="goPage('pg-matrix')">
-      <span class="nav-icon">⚔️</span><span class="nav-label">技マトリックス</span>
+      <span class="nav-icon">⚔️</span><span class="nav-label">わざリスト</span>
     </button>
     <button class="st-nav-btn" onclick="goPage('pg-explorer')">
-      <span class="nav-icon">🚪</span><span class="nav-label">冒険者一覧</span>
+      <span class="nav-icon">🚪</span><span class="nav-label">ぼうけんしゃリスト</span>
     </button>
   </div>
 
@@ -198,11 +198,11 @@
 <div class="page fadein" id="pg-explorer">
   <div class="top-nav">
     <button class="nav-back" onclick="goBack()">◀ もどる</button>
-    <span class="nav-title">冒険者一覧</span>
+    <span class="nav-title">ぼうけんしゃリスト</span>
   </div>
   <div style="padding:1.2rem 0;">
     <div class="pp">
-      <div class="sec-ttl">冒険者たち</div>
+      <div class="sec-ttl">ぼうけんしゃリスト</div>
       <p style="color:var(--text2);font-size:.85rem;margin-bottom:1rem;">みんなの冒険者カードを見てみよう！</p>
       <div class="explorer-grid" id="explorerGrid"></div>
     </div>
@@ -228,11 +228,11 @@
 <div class="page fadein" id="pg-matrix">
   <div class="top-nav">
     <button class="nav-back" onclick="goBack()">◀ もどる</button>
-    <span class="nav-title">技マトリックス</span>
+    <span class="nav-title">わざリスト</span>
   </div>
   <div style="padding:1.2rem 0;">
     <div class="pp">
-      <div class="sec-ttl">技マトリックス</div>
+      <div class="sec-ttl">わざリスト</div>
       <p style="color:var(--text2);font-size:.83rem;margin-bottom:.9rem;">JOBを選んで技を確認。2軸マップで難しさと安全度も一目でわかる！</p>
       <div class="job-tabs" id="matrixTabs"></div>
       <div class="view-toggle">
@@ -375,7 +375,7 @@
 
 </main>
 
-<!-- SKILL POPUP（冒険者一覧用） -->
+<!-- SKILL POPUP（ぼうけんしゃリスト用） -->
 <div class="popup-overlay" id="explorerSkillPopup" onclick="closeExplorerSkillPopup(event)">
   <div class="popup-box" style="max-width:420px;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
     <button class="popup-close" onclick="closeExplorerSkillPopup()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
