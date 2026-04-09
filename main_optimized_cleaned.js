@@ -38,7 +38,7 @@ async function initGAS(){
     const data=await res.json();
     if(data.chars&&data.chars.length>0){chars=data.chars;localStorage.setItem('jq5',JSON.stringify(chars));gasReady=true;showGasStatus('online');}
     else{for(const c of DEMO)await gasPost({action:'addChar',char:c});gasReady=true;showGasStatus('online');}
-  }catch(e){showGasStatus('offline');}
+  }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
 }
 function showGasStatus(s){
   const els=['gasStatusTitle','gasStatusAdmin'].map(i=>document.getElementById(i)).filter(Boolean);
@@ -55,7 +55,23 @@ async function gasPost(body){
 }
 async function saveCharsToGAS(char){saveChars();if(!gasReady)return;try{await gasPost({action:'saveChar',char});}catch(e){}}
 async function saveTestToGAS(char,testDate){saveChars();if(!gasReady)return;try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}catch(e){}}
-window.addEventListener('load',()=>initGAS());
+window.addEventListener('load',()=>{
+  initGAS();
+  // タイトルキャラをSPRITES画像でローテーション
+  const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
+  let i=0;
+  function nextChara(){
+    const el=document.getElementById('titleCharaImg');
+    if(!el)return;
+    const job=jobOrder[i%jobOrder.length];
+    if(SPRITES[job]){
+      el.style.opacity='0';
+      setTimeout(()=>{el.src=SPRITES[job];el.style.opacity='1';},200);
+    }
+    i++;
+  }
+  setTimeout(()=>{nextChara();setInterval(nextChara,1400);},300);
+});
 
 
 
@@ -238,27 +254,6 @@ function uploadStatusPhoto(event){
 function uploadRoomPhoto(event){ uploadStatusPhoto(event); } // 後方互換
 
 // ======== TITLE ========
-// タイトルキャラをSPRITES画像でローテーション
-(()=>{
-  const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
-  let i=0;
-  function nextChara(){
-    const el=document.getElementById('titleCharaImg');
-    if(!el)return;
-    const job=jobOrder[i%jobOrder.length];
-    if(SPRITES[job]){
-      el.style.opacity='0';
-      setTimeout(()=>{
-        el.src=SPRITES[job];
-        el.style.opacity='1';
-      },200);
-    }
-    i++;
-  }
-  // 初期表示（SPRITES読み込み後に実行）
-  setTimeout(()=>{nextChara();setInterval(nextChara,1400);},100);
-})();
-
 // ======== LOGIN ========
 function loginSearch(){
   const q=document.getElementById('loginSearch').value.trim().toLowerCase();
