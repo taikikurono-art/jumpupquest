@@ -949,6 +949,12 @@ async function saveResult(){
   if(newMasters.length>0)setTimeout(()=>showToast(`🏆 マスター！${newMasters.join('・')}`),600);
   showToast('✅ 保存完了！');
 }
+function updateNewCharIcon(){
+  const name=document.getElementById('newName').value.trim();
+  const icon=document.getElementById('newCharIcon');
+  if(!icon)return;
+  icon.textContent=name?name[0]:'？';
+}
 async function addChar(){
   const name=document.getElementById('nName').value.trim();if(!name){showToast('❌ 名前を入力してね');return;}
   const id=document.getElementById('nId').value.trim()||'JU-'+(chars.length+1).toString().padStart(3,'0');
