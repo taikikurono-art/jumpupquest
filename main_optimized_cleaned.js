@@ -2,17 +2,17 @@
 // ======== SPRITES ========
 // ======== SPRITE IMAGES ========
 const SPRITES = {
-  'rookie': 'assets/sprite_1.webp',
-  'challenger': 'assets/sprite_2.webp',
-  'ninja': 'assets/sprite_3.webp',
-  'airrider': 'assets/sprite_4.webp',
-  'coremaster': 'assets/sprite_5.webp',
-  'performer': 'assets/sprite_6.webp',
-  'waterflow': 'assets/sprite_7.webp',
-  'striker': 'assets/sprite_8.webp',
-  'tracerunner': 'assets/sprite_9.webp',
-  'airmaster': 'assets/sprite_10.webp',
-  'illusionist': 'assets/sprite_11.webp',
+  'rookie': 'sprite_1.webp',
+  'challenger': 'sprite_2.webp',
+  'ninja': 'sprite_3.webp',
+  'airrider': 'sprite_4.webp',
+  'coremaster': 'sprite_5.webp',
+  'performer': 'sprite_6.webp',
+  'waterflow': 'sprite_7.webp',
+  'striker': 'sprite_8.webp',
+  'tracerunner': 'sprite_9.webp',
+  'airmaster': 'sprite_10.webp',
+  'illusionist': 'sprite_11.webp',
 };;;;
 
 
@@ -766,7 +766,7 @@ function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-5
 
 // ======== ADMIN ========
 function adminLogin(){
-  if(document.getElementById('adminPw').value==='jumpup2025'){document.getElementById('adminLock').style.display='none';document.getElementById('adminPanel').style.display='block';loadAdminSel();loadMsgTarget();loadDelSel();}
+  if(document.getElementById('adminPw').value==='jumpup2025'){document.getElementById('adminLock').style.display='none';document.getElementById('adminPanel').style.display='block';loadAdminSel();loadMsgTarget();}
   else{const e=document.getElementById('adminErr');e.style.display='block';setTimeout(()=>e.style.display='none',2000);}
 }
 function adminLogout(){document.getElementById('adminLock').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminPw').value='';}
@@ -778,10 +778,6 @@ function loadMsgTarget(){
   const s=document.getElementById('msgTarget');if(!s)return;
   s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
   document.getElementById('msgDate').value=new Date().toISOString().slice(0,10);
-}
-function loadDelSel(){
-  const s=document.getElementById('delSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
 }
 
 // メッセージ送信
@@ -965,21 +961,6 @@ async function addChar(){
   chars.push(newChar);await saveCharsToGAS(newChar);loadAdminSel();loadMsgTarget();
   document.getElementById('nName').value='';document.getElementById('nId').value='';
   showToast('✅ 「'+name+'」を登録しました！');
-}
-
-async function deleteChar(){
-  const id=document.getElementById('delSel').value;
-  const confirm=document.getElementById('delConfirm').value.trim();
-  const c=chars.find(x=>x.id===id);
-  if(!c){showToast('❌ 冒険者を選んでね');return;}
-  if(confirm!==c.name){showToast('❌ 名前が一致しません');return;}
-  if(!window.confirm('「'+c.name+'」を本当に削除しますか？\nこの操作は取り消せません。')){return;}
-  chars=chars.filter(x=>x.id!==id);
-  saveChars();
-  if(gasReady){try{await gasPost({action:'deleteChar',charId:id});}catch(e){}}
-  loadAdminSel();loadMsgTarget();loadDelSel();
-  document.getElementById('delConfirm').value='';
-  showToast('🗑️ 「'+c.name+'」を削除しました');
 }
 
 function toggleSpriteAvatar(){
