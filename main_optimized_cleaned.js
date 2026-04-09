@@ -18,13 +18,8 @@ const SPRITES = {
 
 // ======== GAS ========
 const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
-const DEMO=[
-  {id:'JU-001',name:'たろう',sprite:'🦊',job:'ninja',level:9,exp:65,joinDate:'2025-04-01',classroom:'スタジオMy（木）',stats:{power:6,flex:7,speed:9,balance:7,beauty:5,focus:8},skills:['でんぐり返り','前転','後転'],skillRecords:{'でんぐり返り':{pts:10,lastResult:3,consec0:0,mastered:true}}},
-  {id:'JU-002',name:'はなこ',sprite:'🦢',job:'performer',level:8,exp:40,joinDate:'2025-04-01',classroom:'ルネック勝川（月）',stats:{power:4,flex:8,speed:5,balance:7,beauty:10,focus:7},skills:['シャッセ'],skillRecords:{'シャッセ':{pts:10,lastResult:3,consec0:0,mastered:true}}},
-  {id:'JU-003',name:'けんた',sprite:'🦍',job:'striker',level:10,exp:80,joinDate:'2024-09-01',classroom:'ルネック勝川（月）',stats:{power:9,flex:5,speed:8,balance:6,beauty:4,focus:7},skills:['ロンダート'],skillRecords:{'ロンダート':{pts:7,lastResult:3,consec0:0,mastered:false}}},
-  {id:'JU-004',name:'さくら',sprite:'🦦',job:'waterflow',level:8,exp:20,joinDate:'2025-04-01',classroom:'スタジオMy（木）',stats:{power:4,flex:10,speed:5,balance:8,beauty:7,focus:6},skills:[],skillRecords:{}},
-];
-let chars=JSON.parse(localStorage.getItem('jq5')||'null')||DEMO;
+const DEMO=[];
+let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
 let gasReady=false;
 let currentUser=null; // ログイン中のキャラ
 let prevPage='pg-title'; // もどるボタン用
@@ -37,7 +32,7 @@ async function initGAS(){
     const res=await fetch(GAS_URL+'?action=getAll');
     const data=await res.json();
     if(data.chars&&data.chars.length>0){chars=data.chars;localStorage.setItem('jq5',JSON.stringify(chars));gasReady=true;showGasStatus('online');}
-    else{for(const c of DEMO)await gasPost({action:'addChar',char:c});gasReady=true;showGasStatus('online');}
+    else{gasReady=true;showGasStatus('online');}
   }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
 }
 function showGasStatus(s){
@@ -761,7 +756,7 @@ function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-5
 
 // ======== ADMIN ========
 function adminLogin(){
-  if(document.getElementById('adminPw').value==='jumpup2025'){document.getElementById('adminLock').style.display='none';document.getElementById('adminPanel').style.display='block';loadAdminSel();loadMsgTarget();}
+  if(document.getElementById('adminPw').value==='jumpup2025'){document.getElementById('adminLock').style.display='none';document.getElementById('adminPanel').style.display='block';loadAdminSel();loadMsgTarget();loadDelSel();}
   else{const e=document.getElementById('adminErr');e.style.display='block';setTimeout(()=>e.style.display='none',2000);}
 }
 function adminLogout(){document.getElementById('adminLock').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminPw').value='';}
