@@ -283,9 +283,45 @@
           <button class="pbtn btn-outline" onclick="adminLogout()" style="font-size:.38rem;padding:.38rem .65rem;">ログアウト</button>
         </div>
 
+        <!-- テスト結果入力 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="margin-bottom:.9rem;">📝 月次テスト結果を入力</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.75rem;">
+            <div><label class="form-lbl">冒険者を選択</label><select class="fselect" id="adminSel" onchange="loadAdminChar()"><option value="">-- 選んでね --</option></select></div>
+            <div><label class="form-lbl">テスト日</label><input class="pinput fselect" type="date" id="adminDate"></div>
+          </div>
+          <div id="adminCharInfo" style="display:none;margin-bottom:.75rem;">
+            <div style="background:var(--bg);border:2px solid var(--border);padding:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+              <span id="aSprite" style="font-size:1.8rem;"></span>
+              <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.56rem;margin-top:.2rem;" id="aJob"></div></div>
+              <div style="margin-left:auto;text-align:right;">
+                <div style="font-family:'Press Start 2P';font-size:.63rem;color:var(--gold);" id="aLv"></div>
+                <div style="font-family:'Press Start 2P';font-size:.56rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
+              </div>
+            </div>
+          </div>
+          <div id="adminSkillSec" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
+              <label class="form-lbl" style="margin:0;">挑戦する技を選んで評価をつける</label>
+              <div style="font-family:'Press Start 2P',monospace;font-size:.56rem;color:var(--text2);">⭐⭐⭐+3pt　⭐⭐+1pt　☆0pt（2連続☆→💀リセット）</div>
+            </div>
+            <div style="background:var(--bg3);border:2px solid var(--border);padding:.7rem;margin-bottom:.8rem;font-size:.85rem;color:var(--text2);line-height:1.8;">
+              🏆 <span style="color:var(--gold);">累計10pt以上 かつ 今回⭐⭐⭐</span> → 技マスター！<br>
+              💀 <span style="color:var(--pink);">2ヶ月連続☆</span> → ポイント全リセット
+            </div>
+            <div id="adminSkillList"></div>
+            <div style="margin-top:.8rem;">
+              <button class="pbtn btn-outline" onclick="addSkillRow()" style="font-size:.56rem;padding:.42rem .75rem;width:100%;">＋ 技を追加する</button>
+            </div>
+          </div>
+          <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
+            <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
+          </div>
+        </div>
+
         <!-- メッセージ送信 -->
         <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">💬 先生からのメッセージを送る</div>
+          <div class="sec-ttl" style="margin-bottom:.9rem;">💬 先生からのメッセージを送る</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.8rem;">
             <div><label class="form-lbl">送る冒険者</label>
               <select class="fselect" id="msgTarget"><option value="">-- 選んでね --</option></select>
@@ -305,45 +341,9 @@
           <button class="pbtn btn-pink" onclick="sendMessage()" style="width:100%;">📬 メッセージを送る</button>
         </div>
 
-        <!-- テスト結果入力 -->
-        <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">📝 月次テスト結果を入力</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.75rem;">
-            <div><label class="form-lbl">冒険者を選択</label><select class="fselect" id="adminSel" onchange="loadAdminChar()"><option value="">-- 選んでね --</option></select></div>
-            <div><label class="form-lbl">テスト日</label><input class="pinput fselect" type="date" id="adminDate"></div>
-          </div>
-          <div id="adminCharInfo" style="display:none;margin-bottom:.75rem;">
-            <div style="background:var(--bg);border:2px solid var(--border);padding:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-              <span id="aSprite" style="font-size:1.8rem;"></span>
-              <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.38rem;margin-top:.2rem;" id="aJob"></div></div>
-              <div style="margin-left:auto;text-align:right;">
-                <div style="font-family:'Press Start 2P';font-size:.45rem;color:var(--gold);" id="aLv"></div>
-                <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
-              </div>
-            </div>
-          </div>
-          <div id="adminSkillSec" style="display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
-              <label class="form-lbl" style="margin:0;">挑戦する技を選んで評価をつける</label>
-              <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);">⭐⭐⭐+3pt　⭐⭐+1pt　☆0pt（2連続☆→💀リセット）</div>
-            </div>
-            <div style="background:var(--bg3);border:2px solid var(--border);padding:.7rem;margin-bottom:.8rem;font-size:.78rem;color:var(--text2);line-height:1.8;">
-              🏆 <span style="color:var(--gold);">累計10pt以上 かつ 今回⭐⭐⭐</span> → 技マスター！<br>
-              💀 <span style="color:var(--pink);">2ヶ月連続☆</span> → ポイント全リセット
-            </div>
-            <div id="adminSkillList"></div>
-            <div style="margin-top:.8rem;">
-              <button class="pbtn btn-outline" onclick="addSkillRow()" style="font-size:.38rem;padding:.42rem .75rem;width:100%;">＋ 技を追加する</button>
-            </div>
-          </div>
-          <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
-            <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
-          </div>
-        </div>
-
         <!-- 新規登録 -->
-        <div class="pp">
-          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
             <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
             <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>ココロネ学園（火）</option></select></div>
