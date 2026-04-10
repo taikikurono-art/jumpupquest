@@ -449,6 +449,14 @@ body::before{
 .lvup-text{font-family:"Press Start 2P",monospace;font-size:clamp(1.3rem,5vw,2.6rem);color:var(--gold);text-shadow:0 0 30px var(--gold2),4px 4px 0 var(--gold-shadow);animation:lvupAnim 2.2s ease forwards;}
 @keyframes lvupAnim{0%{opacity:0;transform:scale(.5) translateY(20px);}20%{opacity:1;transform:scale(1.2);}70%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(.9) translateY(-20px);}}
 
+/* ===== 紙吹雪・マスター演出 ===== */
+.confetti{position:fixed;top:-10px;z-index:700;pointer-events:none;border-radius:2px;animation:confettiFall linear forwards;}
+@keyframes confettiFall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+.master-flash{position:fixed;inset:0;z-index:650;pointer-events:none;background:radial-gradient(ellipse at center,rgba(255,215,0,.22) 0%,transparent 70%);animation:masterFlash .6s ease forwards;}
+@keyframes masterFlash{0%{opacity:0;}30%{opacity:1;}100%{opacity:0;}}
+.master-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:660;pointer-events:none;text-align:center;animation:bannerPop 2.8s ease forwards;}
+@keyframes bannerPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4);}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}25%{transform:translate(-50%,-50%) scale(1);}75%{opacity:1;transform:translate(-50%,-50%) scale(1);}100%{opacity:0;transform:translate(-50%,-50%) scale(.9) translateY(-30px);}}
+
 /* ===== STATUS CARD ===== */
 .char-layout{display:grid;grid-template-columns:240px 1fr;gap:1.2rem;}
 @media(max-width:620px){.char-layout{grid-template-columns:1fr;}}
