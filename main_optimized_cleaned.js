@@ -16,7 +16,22 @@ const SPRITES = {
 };;;;
 
 
-// ======== GAS ========
+// ======== GAS + FIREBASE ========
+// Firebase連携コード（GASと並走）
+let _fb={saveChar:()=>Promise.resolve(),deleteChar:()=>Promise.resolve()};
+let fbLoaded=false;
+async function loadFirebase(){
+  if(fbLoaded)return;
+  try{
+    const m=await import('./firebase.js');
+    await m.fbInit();
+    _fb={saveChar:m.fbSaveChar,deleteChar:m.fbDeleteChar};
+    fbLoaded=true;
+    const fbChars=await m.fbGetAll();
+    if(fbChars&&fbChars.length>0){chars=fbChars;saveChars();showGasStatus('online');console.log('Firebase: '+fbChars.length+'件読み込み');}
+  }catch(e){console.warn('Firebase失敗（GASで継続）',e);}
+}
+
 const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
 const DEMO=[];
 let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
@@ -38,7 +53,7 @@ async function initGAS(){
 function showGasStatus(s){
   const els=['gasStatusTitle','gasStatusAdmin'].map(i=>document.getElementById(i)).filter(Boolean);
   els.forEach(el=>{
-    if(s==='online'){el.textContent='🟢 Sheets連携中';el.style.color='var(--green)';}
+    if(s==='online'){el.textContent='🟢 DB連携中';el.style.color='var(--green)';}
     if(s==='offline'){el.textContent='🔴 ローカルモード';el.style.color='var(--pink)';}
     if(s==='loading'){el.textContent='🟡 接続中...';el.style.color='var(--gold)';}
   });
@@ -48,9 +63,10 @@ async function gasPost(body){
   const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'}});
   return await res.json();
 }
-async function saveCharsToGAS(char){saveChars();if(!gasReady)return;try{await gasPost({action:'saveChar',char});}catch(e){}}
-async function saveTestToGAS(char,testDate){saveChars();if(!gasReady)return;try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}catch(e){}}
+async function saveCharsToGAS(char){saveChars();_fb.saveChar(char).catch(()=>{});if(!gasReady)return;try{await gasPost({action:'saveChar',char});}catch(e){}}
+async function saveTestToGAS(char,testDate){saveChars();_fb.saveChar(char).catch(()=>{});if(!gasReady)return;try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}catch(e){}}
 window.addEventListener('load',()=>{
+  loadFirebase();
   initGAS();
   // タイトルキャラをSPRITES画像でローテーション
   const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
