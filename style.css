@@ -490,11 +490,28 @@ body::before{
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);}
 ::-webkit-scrollbar-thumb:hover{background:var(--text2);}
+/* ===== 管理画面グリッド（モバイルファースト） ===== */
+.admin-grid2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.8rem;}
+.admin-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem;}
+
+/* 試技ボタン：モバイルで横3列に */
+.trial-wrap{display:flex;gap:.5rem;margin-top:.5rem;}
+.trial-col{flex:1;display:flex;flex-direction:column;gap:.3rem;}
+.trial-label{font-family:"Press Start 2P",monospace;font-size:.28rem;color:var(--text2);text-align:center;margin-bottom:.2rem;}
+
 @media(max-width:500px){
   .stat-grid{grid-template-columns:1fr;}
   .jnode{min-width:88px;max-width:110px;}
   .st-card-inner{gap:.8rem;}
   .st-stat-chip{padding:.3rem .5rem;min-width:64px;}
   .explorer-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
+  /* 管理画面グリッドをスマホで縦積み */
+  .admin-grid2,.admin-grid3{grid-template-columns:1fr;}
+  /* 試技ボタン：スマホでも横3列を維持しつつ文字縮小 */
+  .rbtn{font-size:.28rem;padding:.38rem .4rem;}
+  /* skill-row をスマホで縦方向に整理 */
+  .skill-row{flex-direction:column;align-items:stretch;}
+  .skill-name-sel{width:100%;}
+  .pt-disp{text-align:left;margin-top:.3rem;}
 }
 </style>
