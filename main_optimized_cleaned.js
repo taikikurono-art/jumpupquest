@@ -812,7 +812,12 @@ function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-5
 
 // ======== ADMIN ========
 function adminLogin(){
-  if(document.getElementById('adminPw').value==='jumpup2025'){document.getElementById('adminLock').style.display='none';document.getElementById('adminPanel').style.display='block';loadAdminSel();loadMsgTarget();loadDelSel();}
+  if(document.getElementById('adminPw').value==='jumpup2025'){
+    document.getElementById('adminLock').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    loadAdminSel();loadMsgTarget();loadDelSel();
+    renderDashboard();
+  }
   else{const e=document.getElementById('adminErr');e.style.display='block';setTimeout(()=>e.style.display='none',2000);}
 }
 function adminLogout(){document.getElementById('adminLock').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminPw').value='';}
@@ -1015,6 +1020,59 @@ async function addChar(){
   chars.push(newChar);await saveCharsToGAS(newChar);loadAdminSel();loadMsgTarget();
   document.getElementById('nName').value='';document.getElementById('nId').value='';
   showToast('✅ 「'+name+'」を登録しました！');
+}
+
+async function deleteChar(){
+  const id=document.getElementById('delSel').value;
+  const confirm=document.getElementById('delConfirm').value.trim();
+  const c=chars.find(x=>x.id===id);
+  if(!c){showToast('❌ 冒険者を選んでね');return;}
+  if(confirm!==c.name){showToast('❌ 名前が一致しません');return;}
+  chars=chars.filter(x=>x.id!==id);
+  saveChars();
+  _fb.deleteChar(id).catch(()=>{});
+  if(gasReady){try{await gasPost({action:'deleteChar',charId:id});}catch(e){}}
+  loadAdminSel();loadMsgTarget();loadDelSel();
+  document.getElementById('delConfirm').value='';
+  showToast('🗑️ 「'+c.name+'」を削除しました');
+}
+
+// ======== 先生ダッシュボード ========
+function renderDashboard(){
+  const el=document.getElementById('dashboardContent');
+  if(!el)return;
+  if(chars.length===0){el.innerHTML='<div style="color:var(--text2);font-size:.85rem;">冒険者がいません</div>';return;}
+
+  const now=new Date();
+  const rows=chars.map(c=>{
+    const recs=c.skillRecords||{};
+    const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
+    const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+    const trainings=Object.values(recs).filter(r=>r.training&&!r.mastered).length;
+    const challenged=Object.values(recs).filter(r=>(r.pts||0)>0&&!r.mastered).length;
+    // 停滞判定：挑戦中なのに修行モード2つ以上、またはポイントが全部0
+    const isStuck=trainings>=2||(Object.keys(recs).length>0&&totalPt===0);
+    const j=JOBS[c.job]||JOBS.rookie;
+    return{c,masterCnt,totalPt,trainings,challenged,isStuck,j};
+  }).sort((a,b)=>(b.isStuck-a.isStuck)||b.trainings-a.trainings);
+
+  el.innerHTML=rows.map(({c,masterCnt,totalPt,trainings,isStuck,j})=>{
+    const statusColor=isStuck?'var(--pink)':trainings>0?'#8888ff':'var(--green)';
+    const statusLabel=isStuck?'🌱 フォロー推奨':trainings>0?'🌱 修行中':'✅ 順調';
+    const sprite=SPRITES[c.job]?`<img src="${SPRITES[c.job]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`:`<span style="font-size:1.2rem;">${j.emoji}</span>`;
+    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;background:var(--bg);border:2px solid ${isStuck?'var(--pink)':'var(--border)'};border-left:4px solid ${statusColor};margin-bottom:.4rem;flex-wrap:wrap;">
+      ${sprite}
+      <div style="flex:1;min-width:120px;">
+        <div style="font-weight:900;font-size:.95rem;">${c.name}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${j.color};margin-top:.2rem;">${j.name}</div>
+      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;text-align:right;">
+        <div style="color:var(--gold);">🏆 ${masterCnt}技</div>
+        <div style="color:var(--teal);margin-top:.2rem;">${totalPt}pt</div>
+      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:${statusColor};min-width:90px;text-align:right;">${statusLabel}</div>
+    </div>`;
+  }).join('');
 }
 
 function toggleSpriteAvatar(){
