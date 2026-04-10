@@ -900,21 +900,20 @@ function addSkillRow(){
 
   // 3試技ボタン
   const trialsWrap=document.createElement('div');
-  trialsWrap.style.cssText='display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem;';
+  trialsWrap.className='trial-wrap';
   [1,2,3].forEach(trial=>{
     const trialDiv=document.createElement('div');
-    trialDiv.style.cssText='flex:1;min-width:80px;';
+    trialDiv.className='trial-col';
     const label=document.createElement('div');
-    label.style.cssText='font-family:"Press Start 2P",monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;text-align:center;';
+    label.className='trial-label';
     label.textContent=`${trial}回目`;
     const btnWrap=document.createElement('div');
     btnWrap.style.cssText='display:flex;flex-direction:column;gap:.2rem;';
-    [{v:3,label:'⭐⭐⭐'},{v:1,label:'⭐⭐'},{v:0,label:'☆'}].forEach(({v,label:bl})=>{
+    [{v:3,label:'⭐⭐⭐'},{v:1,label:'⭐⭐'},{v:0,label:'🌱'}].forEach(({v,label:bl})=>{
       const b=document.createElement('button');
       b.className=`rbtn r${v}`;b.textContent=bl;
       b.dataset.trial=trial;b.dataset.val=v;
       b.onclick=()=>{
-        // 同じ試技の他ボタンの選択解除
         trialDiv.querySelectorAll('.rbtn').forEach(x=>x.classList.remove('sel'));
         b.classList.add('sel');
         updateSkillRow(rowId,c);
