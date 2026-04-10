@@ -769,6 +769,10 @@ function loadMsgTarget(){
   s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
   document.getElementById('msgDate').value=new Date().toISOString().slice(0,10);
 }
+function loadDelSel(){
+  const s=document.getElementById('delSel');if(!s)return;
+  s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+}
 
 // メッセージ送信
 async function sendMessage(){
