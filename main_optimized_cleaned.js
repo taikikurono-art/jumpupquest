@@ -974,12 +974,17 @@ async function saveResult(){
     });
     if(ratings.some(r=>r===null))return; // 未入力はスキップ
     const rec=c.skillRecords[sk]||{};const result=calcSkillStatus(rec,ratings);
-    if(result.mastered&&!rec.mastered)newMasters.push(sk);
+    if(result.mastered&&!rec.mastered)newMasters.push({name:sk,instant:result.instantMaster});
     c.skillRecords[sk]={pts:result.pts,lastResult:result.lastResult,consec0:result.consec0,mastered:result.mastered};
   });
   c.skills=Object.entries(c.skillRecords).filter(([,r])=>r.mastered).map(([sk])=>sk);
   showToast('💾 保存中...');await saveTestToGAS(c,testDate);
-  if(newMasters.length>0)setTimeout(()=>showToast(`🏆 マスター！${newMasters.join('・')}`),600);
+  if(newMasters.length>0){
+    setTimeout(()=>{
+      newMasters.forEach((m,i)=>setTimeout(()=>showMasterBanner(m.name,m.instant),i*3200));
+      showToast(`🏆 マスター！${newMasters.map(m=>m.name).join('・')}`);
+    },500);
+  }
   showToast('✅ 保存完了！');
 }
 function updateNewCharIcon(){
@@ -1007,3 +1012,30 @@ function toggleSpriteAvatar(){
 }
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function showLvUp(){const o=document.getElementById('lvup');o.classList.add('show');setTimeout(()=>o.classList.remove('show'),2300);}
+
+// ===== 紙吹雪・マスター演出 =====
+function launchConfetti(count=40){
+  const colors=['#ffd700','#00e5ff','#ff4081','#39ff14','#ff8c00','#bb33ff'];
+  for(let i=0;i<count;i++){
+    const el=document.createElement('div');
+    el.className='confetti';
+    const size=6+Math.random()*8;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${size}px;height:${size*0.6}px;background:${colors[i%colors.length]};animation-duration:${1.2+Math.random()*1.8}s;animation-delay:${Math.random()*.6}s;transform:rotate(${Math.random()*360}deg);`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
+}
+function showMasterBanner(skillName,isInstant=false){
+  // フラッシュ
+  const flash=document.createElement('div');flash.className='master-flash';document.body.appendChild(flash);
+  setTimeout(()=>flash.remove(),700);
+  // バナー
+  const banner=document.createElement('div');banner.className='master-banner';
+  banner.innerHTML=`
+    <div style="font-family:'Press Start 2P',monospace;font-size:clamp(.7rem,3vw,1.1rem);color:var(--gold);text-shadow:0 0 20px var(--gold),4px 4px 0 #6b3500;margin-bottom:.5rem;">${isInstant?'⚡ 一発 ':''}🏆 MASTER！</div>
+    <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:clamp(1rem,4vw,1.5rem);color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.8);max-width:80vw;">${skillName}</div>
+    <div style="font-size:1.8rem;margin-top:.4rem;animation:titleGlow 1s ease-in-out infinite alternate;">✨🏆✨</div>`;
+  document.body.appendChild(banner);
+  setTimeout(()=>banner.remove(),3000);
+  launchConfetti(isInstant?60:40);
+}
