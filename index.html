@@ -42,6 +42,7 @@
         "
       >
     </div>
+    <p style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1.4rem;letter-spacing:.04em;">技に挑戦して、君だけの冒険を進めよう！</p>
     <div class="menu-box">
       <button class="menu-item new-game" onclick="goPage('pg-newgame')">
         <span class="menu-arrow">▶</span>あたらしく始める
@@ -50,12 +51,14 @@
         <span class="menu-arrow">▶</span>つづきから
       </button>
       <div class="menu-sep"></div>
-      <button class="menu-item view-all" onclick="goPage('pg-explorer')">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>ぼうけんしゃリストを見る
-      </button>
-      <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>わざリストを見る
-      </button>
+      <div style="display:flex;gap:.5rem;">
+        <button class="menu-item view-all" onclick="goPage('pg-explorer')" style="flex:1;font-size:.42rem;">
+          <span class="menu-arrow" style="font-size:.6rem;">▶</span>みんなの冒険者
+        </button>
+        <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="flex:1;font-size:.42rem;border-color:var(--border);color:var(--text2);">
+          <span class="menu-arrow" style="font-size:.6rem;">▶</span>わざ図鑑
+        </button>
+      </div>
     </div>
     <div id="gasStatusTitle">🟡 接続中...</div>
   </div>
@@ -101,6 +104,21 @@
   <div class="top-nav">
     <button class="nav-back" onclick="goPage('pg-title')">◀ タイトルへ</button>
     <span class="nav-title" id="stNavTitle">マイページ</span>
+  </div>
+
+  <!-- ===== 次にやること（固定サマリー） ===== -->
+  <div id="stNextAction" class="pp" style="margin:0;border-bottom:none;border-left:4px solid var(--teal);display:none;">
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:160px;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.4rem;">▶ 次のおすすめ技</div>
+        <div id="stNextSkill" style="font-weight:900;font-size:1rem;"></div>
+        <div id="stNextPt" style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-top:.3rem;"></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.3rem;">今月の獲得</div>
+        <div id="stMonthPt" style="font-family:'Press Start 2P',monospace;font-size:.75rem;color:var(--gold);"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ナビボタン -->
