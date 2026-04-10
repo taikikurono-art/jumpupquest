@@ -405,7 +405,10 @@ body::before{
 .rbtn:hover{transform:translate(-1px,-1px);}
 .rbtn.r3.sel{background:#ffd700;border-color:#7a4800;color:#1a0800;}
 .rbtn.r1.sel{background:#6655ff;border-color:#222288;color:white;}
-.rbtn.r0.sel{background:#333355;border-color:#ff4081;color:#ff4081;}
+.rbtn.r0.sel{background:#6655cc;border-color:#332266;color:#e0d0ff;}
+
+/* ===== 次にやること ===== */
+#stNextAction{background:linear-gradient(135deg,var(--bg2),rgba(0,229,255,.04));border-color:var(--teal)!important;}
 .pt-disp{font-family:"Press Start 2P",monospace;font-size:.38rem;min-width:58px;text-align:right;}
 .del-btn{font-size:.75rem;cursor:pointer;color:var(--text2);background:none;border:none;padding:.3rem .5rem;min-height:var(--tap-min);display:flex;align-items:center;}
 .del-btn:hover{color:var(--pink);}
