@@ -305,6 +305,43 @@ function enterStatus(c){
 function goStatus(){ if(currentUser) goPage('pg-status'); }
 
 // ======== MAIL BOX ========
+// ======== 次にやること ========
+function renderNextAction(c){
+  const el=document.getElementById('stNextAction');
+  if(!el)return;
+  const recs=c.skillRecords||{};
+  const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
+
+  // 挑戦中（未マスター・pt>0）の技を優先、次いで未挑戦技
+  let nextSkill=null, nextPtMsg='';
+  for(const jk of jobOrder){
+    const candidates=SKILL_MAP.filter(([n,k])=>k===jk&&recs[n]&&!recs[n].mastered&&(recs[n].pts||0)>0);
+    if(candidates.length){
+      const [name]=candidates.sort((a,b)=>(recs[b[0]].pts||0)-(recs[a[0]].pts||0))[0];
+      const pts=recs[name].pts||0;
+      nextSkill=name;
+      nextPtMsg=`あと${Math.max(0,10-pts)}pt でマスター！（現在${pts}pt）`;
+      break;
+    }
+  }
+  if(!nextSkill){
+    // 未挑戦の技を探す
+    for(const jk of jobOrder){
+      const untried=SKILL_MAP.filter(([n,k])=>k===jk&&!recs[n]);
+      if(untried.length){nextSkill=untried[0][0];nextPtMsg='まだ挑戦していない技だよ！';break;}
+    }
+  }
+  if(!nextSkill){el.style.display='none';return;}
+
+  // 今月のポイント計算（簡易：skillRecordsの合計）
+  const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+
+  document.getElementById('stNextSkill').textContent=nextSkill;
+  document.getElementById('stNextPt').textContent=nextPtMsg;
+  document.getElementById('stMonthPt').textContent=totalPt+'pt';
+  el.style.display='block';
+}
+
 function renderMailBox(c){
   const msgs=(c.messages||[]).slice().reverse(); // 新しい順
   const mailList=document.getElementById('stMailList');
@@ -359,6 +396,9 @@ function closeMsg(){ document.getElementById('mailModal').classList.remove('open
 // ======== STATUS ========
 function renderStatus(c){
   const j=JOBS[c.job]||JOBS.rookie;
+
+  // ===== 次にやること =====
+  renderNextAction(c);
 
   // ナビタイトル
   const navTitle=document.getElementById('stNavTitle');
@@ -796,33 +836,27 @@ function getSkillRecords(c){return c.skillRecords||{};}
 // ratings: [1回目, 2回目, 3回目] の配列（各値は 3=できた / 1=あと少し / 0=まだ）
 function calcSkillStatus(rec, ratings){
   const pts=rec.pts||0, consec0=rec.consec0||0, mastered=rec.mastered||false;
-  let newPts=pts, newConsec0=consec0, newMastered=mastered, resetted=false;
+  let newPts=pts, newConsec0=consec0, newMastered=mastered;
 
   // 3回全部できた → 即マスター
   if(ratings.every(r=>r===3)){
-    const addPt=ratings.reduce((s,r)=>s+r,0); // 9pt加算
-    newPts=pts+addPt;
-    newConsec0=0;
-    newMastered=true;
-    return{pts:newPts,lastResult:3,consec0:0,mastered:true,resetted:false,instantMaster:true};
+    return{pts:pts+9,lastResult:3,consec0:0,mastered:true,training:false,instantMaster:true};
   }
 
-  // 通常計算（3回分合算）
   const totalAdd=ratings.reduce((s,r)=>s+r,0);
-  const hasZero=ratings.every(r=>r===0);
+  const allZero=ratings.every(r=>r===0);
   const lastRating=ratings[ratings.length-1];
 
-  if(hasZero){
-    // 3回全部まだ → リセットカウント
+  if(allZero){
+    // 全☆→リセットではなく「修行モード」へ（ポイントは維持）
     newConsec0=consec0+1;
-    if(newConsec0>=2){newPts=0;newConsec0=0;newMastered=false;resetted=true;}
   } else {
     newConsec0=0;
     newPts=pts+totalAdd;
-    // 累計10pt以上 かつ 最後の試技が「できた」 → マスター
     if(!mastered&&newPts>=10&&lastRating===3) newMastered=true;
   }
-  return{pts:newPts,lastResult:lastRating,consec0:newConsec0,mastered:newMastered,resetted,instantMaster:false};
+  const isTraining=newConsec0>=2;
+  return{pts:newPts,lastResult:lastRating,consec0:newConsec0,mastered:newMastered,training:isTraining,instantMaster:false,resetted:false};
 }
 function loadAdminChar(){
   const id=document.getElementById('adminSel').value;const c=chars.find(x=>x.id===id);
@@ -906,8 +940,8 @@ function updateSkillRow(rowId,c){
   const recs=getSkillRecords(c);const rec=recs[sk]||{};
   const prevPts=rec.pts||0,isMastered=rec.mastered||false,prevConsec=rec.consec0||0;
   let prevStr=`現在${prevPts}pt`;
-  if(isMastered)prevStr+=' 🏆マスター済';else if(prevConsec===1)prevStr+=' ⚠️次に全☆でリセット！';
-  if(rec.lastResult!==undefined){const ll=rec.lastResult===3?'⭐⭐⭐':rec.lastResult===1?'⭐⭐':'☆';prevStr+=`　前回：${ll}`;}
+  if(isMastered)prevStr+=' 🏆マスター済';else if(prevConsec===1)prevStr+=' 🌱土台づくり中（もう一度がんばろう）';
+  if(rec.lastResult!==undefined){const ll=rec.lastResult===3?'⭐⭐⭐':rec.lastResult===1?'⭐⭐':'🌱';prevStr+=`　前回：${ll}`;}
   prevEl.textContent=prevStr;
 
   // 3試技分の評価を収集
@@ -919,7 +953,7 @@ function updateSkillRow(rowId,c){
   if(!allSelected){ptDisp.textContent='-- (3回入力してね)';div.className='skill-row';return;}
 
   const result=calcSkillStatus(rec,ratings);
-  if(result.resetted){ptDisp.textContent='💀→0pt';div.className='skill-row danger';}
+  if(result.training){ptDisp.textContent='🌱 修行クエストへ！';div.className='skill-row';}
   else if(result.instantMaster){ptDisp.textContent='🏆⚡ 一発マスター！';div.className='skill-row master-ready';}
   else if(result.mastered&&!isMastered){ptDisp.textContent=`🏆 ${result.pts}pt`;div.className='skill-row master-ready';}
   else{ptDisp.textContent=`→${result.pts}pt (+${ratings.reduce((s,r)=>s+r,0)}pt)`;div.className='skill-row';}
