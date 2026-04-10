@@ -1,29 +1,33 @@
 // ======== FIREBASE ========
-// GASと並走する形でFirestoreにデータを保存・読み込みする
-// 認証：匿名ログインでユーザーを識別
+// 設定はindex.htmlのmeta要素から読み込む（APIキーをJSファイルに直書きしない）
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCVDRhFmGKncW0c3TM7zdx-wiYkzgfH3_M",
-  authDomain: "jumpuppupquest.firebaseapp.com",
-  projectId: "jumpuppupquest",
-  storageBucket: "jumpuppupquest.firebasestorage.app",
-  messagingSenderId: "830728135743",
-  appId: "1:830728135743:web:c79422603586f97092048a"
-};
+// index.htmlのmeta要素からFirebase設定を読み込む
+function getFirebaseConfig() {
+  const get = name => document.querySelector(`meta[name="fb-${name}"]`)?.content || '';
+  return {
+    apiKey:            get('api-key'),
+    authDomain:        get('auth-domain'),
+    projectId:         get('project-id'),
+    storageBucket:     get('storage-bucket'),
+    messagingSenderId: get('messaging-sender-id'),
+    appId:             get('app-id'),
+  };
+}
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
+let app, auth, db;
 let fbReady = false;
 
-// 匿名ログイン
 async function fbInit() {
   try {
+    const config = getFirebaseConfig();
+    if(!config.apiKey) throw new Error('Firebase設定が見つかりません');
+    app  = initializeApp(config);
+    auth = getAuth(app);
+    db   = getFirestore(app);
     await signInAnonymously(auth);
     fbReady = true;
     console.log('Firebase: 匿名ログイン完了');
@@ -34,7 +38,6 @@ async function fbInit() {
   }
 }
 
-// 全キャラ取得
 async function fbGetAll() {
   if(!fbReady) return null;
   try {
@@ -42,30 +45,19 @@ async function fbGetAll() {
     const result = [];
     snap.forEach(d => result.push(d.data()));
     return result;
-  } catch(e) {
-    console.warn('fbGetAll error', e);
-    return null;
-  }
+  } catch(e) { console.warn('fbGetAll error', e); return null; }
 }
 
-// キャラ保存（id をドキュメントキーに使用）
 async function fbSaveChar(char) {
   if(!fbReady || !char?.id) return;
-  try {
-    await setDoc(doc(db, 'chars', char.id), char);
-  } catch(e) {
-    console.warn('fbSaveChar error', e);
-  }
+  try { await setDoc(doc(db, 'chars', char.id), char); }
+  catch(e) { console.warn('fbSaveChar error', e); }
 }
 
-// キャラ削除
 async function fbDeleteChar(charId) {
   if(!fbReady || !charId) return;
-  try {
-    await deleteDoc(doc(db, 'chars', charId));
-  } catch(e) {
-    console.warn('fbDeleteChar error', e);
-  }
+  try { await deleteDoc(doc(db, 'chars', charId)); }
+  catch(e) { console.warn('fbDeleteChar error', e); }
 }
 
-export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbReady };
+export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar };
