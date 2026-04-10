@@ -347,6 +347,8 @@
           </div>
           <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
             <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
+            <button class="pbtn" onclick="generateAIMessage()" style="width:100%;margin-top:.6rem;background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:#7c3aed;font-size:.52rem;">🤖 AIメッセージを下書きする</button>
+            <div id="aiGenStatus" style="display:none;font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);text-align:center;margin-top:.5rem;">✨ 生成中...</div>
           </div>
         </div>
 
@@ -445,5 +447,107 @@
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
 <script src="main_optimized_cleaned.js"></script>
+<script>
+// ============================================================
+// AI メッセージ下書き生成（Anthropic API）
+// ============================================================
+async function generateAIMessage() {
+  const charId = document.getElementById('adminSel')?.value;
+  if (!charId) { showToast('❌ 冒険者を選んでね'); return; }
+
+  const c = chars.find(x => x.id === charId);
+  if (!c) { showToast('❌ キャラデータが見つかりません'); return; }
+
+  // skill-row から技名と3試技の結果を収集
+  const rows = document.querySelectorAll('#adminSkillList .skill-row');
+  const skillResults = [];
+  rows.forEach(row => {
+    const skillName = row.querySelector('.skill-name-sel')?.value;
+    if (!skillName) return;
+    const ratings = [1, 2, 3].map(trial => {
+      const btn = row.querySelector(`.rbtn.sel[data-trial="${trial}"]`);
+      return btn ? parseInt(btn.dataset.val) : null;
+    });
+    if (ratings.some(r => r === null)) return; // 未入力スキップ
+    // 3試技の結果をまとめて表示用ラベルに
+    const ratingLabels = ratings.map(r => r === 3 ? '⭐⭐⭐' : r === 1 ? '⭐⭐' : '🌱');
+    // 全体の最高評価で代表ラベルを決める
+    const best = Math.max(...ratings);
+    const overallLabel = best === 3 ? 'できた' : best === 1 ? 'あと少し' : '土台づくり中';
+    skillResults.push({ skill: skillName, trials: ratingLabels.join(' / '), overall: overallLabel });
+  });
+
+  if (skillResults.length === 0) {
+    showToast('❌ 技と評価を入力してから生成してね');
+    return;
+  }
+
+  const job = JOBS[c.job] || JOBS.rookie;
+  const masterCount = Object.values(c.skillRecords || {}).filter(r => r.mastered).length;
+  const skillText = skillResults.map(r =>
+    `・${r.skill}：${r.trials}（総合：${r.overall}）`
+  ).join('\n');
+
+  const prompt = `あなたは体操教室の先生です。子ども（小学生）の冒険者「${c.name}」へ月次フィードバックメッセージを日本語で書いてください。
+
+【冒険者情報】
+- 名前：${c.name}
+- ジョブ：${job.name}（${job.genre}）
+- レベル：Lv.${c.level || 1}
+- マスター技数：${masterCount}技
+
+【今回のテスト結果（1〜3回目）】
+${skillText}
+
+【条件】
+- 読んだ子どもが嬉しくなる、温かく前向きなトーンで
+- RPG・冒険の世界観の表現を少し入れる（例：「〜の技が輝いていたよ！」「次のクエストは〜」）
+- 150〜200文字程度
+- 1行目に「件名：〇〇」の形で件名を出力し、その後に本文
+- 署名は不要`;
+
+  const statusEl = document.getElementById('aiGenStatus');
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = '✨ AI生成中...'; }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || '').join('').trim();
+
+    // 件名と本文を分離
+    const lines = text.split('\n').filter(l => l.trim());
+    let subject = '', body = text;
+    if (lines[0] && (lines[0].startsWith('件名：') || lines[0].startsWith('件名:'))) {
+      subject = lines[0].replace(/^件名[：:]/, '').trim();
+      body = lines.slice(1).join('\n').trim();
+    }
+
+    // メッセージ送信フォームへ反映
+    const targetSel = document.getElementById('msgTarget');
+    if (targetSel) targetSel.value = charId;
+
+    const msgDate = document.getElementById('msgDate');
+    if (msgDate && !msgDate.value) msgDate.value = new Date().toISOString().slice(0, 10);
+
+    if (subject) document.getElementById('msgSubject').value = subject;
+    document.getElementById('msgBody').value = body;
+
+    if (statusEl) statusEl.textContent = '✅ 生成完了！内容を確認して送信してね';
+    document.getElementById('msgBody')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  } catch (err) {
+    console.error('AI生成エラー:', err);
+    if (statusEl) statusEl.textContent = '❌ 生成に失敗しました';
+  }
+}
+</script>
 </body>
 </html>
