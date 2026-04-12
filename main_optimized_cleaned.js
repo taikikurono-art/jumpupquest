@@ -359,32 +359,77 @@ function renderNextAction(c){
 }
 
 function renderMailBox(c){
-  const msgs=(c.messages||[]).slice().reverse(); // 新しい順
+  const msgs=(c.messages||[]).slice().reverse();
   const mailList=document.getElementById('stMailList');
   const badge=document.getElementById('stUnreadBadge');
   const unreadCnt=msgs.filter(m=>!m.read).length;
   if(badge) badge.style.display=unreadCnt>0?'inline':'none';
 
-  if(msgs.length===0){
-    mailList.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:.5rem 0;">まだメッセージはないよ。テストをがんばろう！</div>';
+  // マスター済み技を取得（日付なし → joinDateで代用）
+  const recs=c.skillRecords||{};
+  const masteredSkills=Object.entries(recs)
+    .filter(([,r])=>r.mastered)
+    .map(([sk])=>({type:'master',skill:sk,date:c.joinDate||''}));
+
+  // メッセージをタイムラインアイテムに変換
+  const msgItems=msgs.map((m,idx)=>({type:'msg',msg:m,idx,date:m.date||''}));
+
+  // 日付で降順ソート（新しい順）
+  const timeline=[...msgItems,...masteredSkills].sort((a,b)=>{
+    if(b.date>a.date)return 1;if(b.date<a.date)return -1;return 0;
+  });
+
+  if(timeline.length===0){
+    mailList.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:.5rem 0;">まだ記録はないよ。テストをがんばろう！</div>';
     return;
   }
+
   const j=JOBS[c.job]||JOBS.rookie;
-  mailList.innerHTML=msgs.map((m,idx)=>{
-    const subject=m.subject||'先生からのメッセージ';
-    const preview=m.body?m.body.slice(0,40)+(m.body.length>40?'…':''):'';
-    const accentColor=m.read?'var(--border)':j.color;
-    const unreadDot=m.read?'':' <div class="mail-item-unread-dot"></div>';
-    return `<div class="mail-item${m.read?'':' unread'}" onclick="openMailModal(${idx})">
-      <div class="mail-item-accent" style="background:${accentColor};"></div>
-      <div class="mail-item-content">
-        <div class="mail-item-top">
-          <div class="mail-item-subject">${subject}</div>
-          ${unreadDot}
-          <div class="mail-item-date">${m.date||''}</div>
-        </div>
-        <div class="mail-item-preview">${preview}</div>
-      </div>
+
+  // 月ごとにグループ化
+  const grouped={};
+  timeline.forEach(item=>{
+    const month=item.date?item.date.slice(0,7):'不明';
+    if(!grouped[month])grouped[month]=[];
+    grouped[month].push(item);
+  });
+
+  const months=Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+
+  mailList.innerHTML=months.map(month=>{
+    const [y,m]=month.split('-');
+    const monthLabel=month==='不明'?'記録日不明':`${y}年${parseInt(m)}月`;
+    const items=grouped[month].map(item=>{
+      if(item.type==='msg'){
+        const msg=item.msg;
+        const subject=msg.subject||'先生からのメッセージ';
+        const preview=msg.body?msg.body.slice(0,40)+(msg.body.length>40?'…':''):'';
+        const isUnread=!msg.read;
+        return `<div class="tl-item tl-msg${isUnread?' unread':''}" onclick="openMailModal(${item.idx})" style="cursor:pointer;">
+          <div class="tl-dot" style="background:${isUnread?j.color:'var(--border)'};box-shadow:${isUnread?`0 0 8px ${j.color}`:''};"></div>
+          <div class="tl-body">
+            <div class="tl-label" style="color:${isUnread?j.color:'var(--text2)'};">💬 先生からのメッセージ${isUnread?' 🔴':''}</div>
+            <div class="tl-title">${subject}</div>
+            <div class="tl-preview">${preview}</div>
+          </div>
+        </div>`;
+      } else {
+        const jobKey=SKILL_MAP.find(([n])=>n===item.skill)?.[1];
+        const jb=JOBS[jobKey]||JOBS.rookie;
+        return `<div class="tl-item tl-master">
+          <div class="tl-dot" style="background:var(--gold);box-shadow:0 0 8px var(--gold);"></div>
+          <div class="tl-body">
+            <div class="tl-label" style="color:var(--gold);">🏆 技マスター！</div>
+            <div class="tl-title" style="color:var(--gold);">「${item.skill}」</div>
+            <div class="tl-preview" style="color:${jb.color};">${jb.name}（${jb.genre}）</div>
+          </div>
+        </div>`;
+      }
+    }).join('');
+
+    return `<div class="tl-month">
+      <div class="tl-month-label">📅 ${monthLabel}</div>
+      <div class="tl-month-items">${items}</div>
     </div>`;
   }).join('');
 }
