@@ -831,8 +831,9 @@ function renderMatrix(){
       const jb=JOBS[jk];if(!jb)return'';
       const sprite=SPRITES[jk]?`<img src="${SPRITES[jk]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`:`<span style="font-size:1.4rem;">${jb.emoji}</span>`;
       const skills=grouped[jk].map(({name})=>{
-        return `<div style="background:var(--bg3);border-left:3px solid ${jb.color};padding:.6rem .8rem;border-radius:0 6px 6px 0;">
+        return `<div style="background:var(--bg3);border-left:3px solid ${jb.color};padding:.6rem .8rem;border-radius:0 6px 6px 0;cursor:pointer;" onclick="openSkillDetail('${name.replace(/'/g,"\\'")}','${jk}')">
           <div style="font-weight:700;font-size:.88rem;">${name}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-top:.2rem;">▶ タップして詳細を見る</div>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:1.2rem;">
@@ -848,7 +849,64 @@ function renderMatrix(){
     }).join('');
   }
 }
-function renderLegend(){
+// ======== スキル動画 ========
+// 動画URLはlocalStorageに保存（キー: jq_videos）
+function getSkillVideos(){ return JSON.parse(localStorage.getItem('jq_videos')||'{}'); }
+function saveSkillVideos(v){ localStorage.setItem('jq_videos',JSON.stringify(v)); }
+
+function openSkillDetail(skillName, jobKey){
+  const jb=JOBS[jobKey]||JOBS.rookie;
+  const videos=getSkillVideos();
+  const url=videos[skillName]||'';
+  const embedId=getYouTubeId(url);
+
+  const overlay=document.getElementById('skillDetailOverlay');
+  document.getElementById('sdTitle').textContent=skillName;
+  document.getElementById('sdJob').textContent=jb.name+'（'+jb.genre+'）';
+  document.getElementById('sdJob').style.color=jb.color;
+
+  const videoArea=document.getElementById('sdVideoArea');
+  if(embedId){
+    videoArea.innerHTML=`<iframe width="100%" height="200" src="https://www.youtube.com/embed/${embedId}" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="border-radius:4px;border:2px solid var(--border);"></iframe>`;
+  } else {
+    videoArea.innerHTML=`<div style="height:80px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;">動画はまだ登録されていないよ</div>`;
+  }
+
+  // 管理者モードなら編集欄を表示
+  const adminSection=document.getElementById('sdAdminSection');
+  const isAdmin=document.getElementById('adminPanel')?.style.display==='block';
+  if(isAdmin){
+    adminSection.style.display='block';
+    document.getElementById('sdVideoUrl').value=url;
+    document.getElementById('sdVideoUrl').dataset.skill=skillName;
+  } else {
+    adminSection.style.display='none';
+  }
+
+  overlay.classList.add('open');
+}
+
+function getYouTubeId(url){
+  if(!url)return null;
+  const m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return m?m[1]:null;
+}
+
+function saveSkillVideo(){
+  const url=document.getElementById('sdVideoUrl').value.trim();
+  const skill=document.getElementById('sdVideoUrl').dataset.skill;
+  if(!skill)return;
+  const videos=getSkillVideos();
+  if(url) videos[skill]=url; else delete videos[skill];
+  saveSkillVideos(videos);
+  openSkillDetail(skill, SKILL_MAP.find(([n])=>n===skill)?.[1]||'rookie');
+  showToast('✅ 動画URLを保存しました');
+}
+
+function closeSkillDetail(e){
+  if(!e||e.target===document.getElementById('skillDetailOverlay'))
+    document.getElementById('skillDetailOverlay').classList.remove('open');
+}
   if(curJob!=='all'){document.getElementById('mapLegend').innerHTML='';return;}
   document.getElementById('mapLegend').innerHTML=Object.entries(JOBS).filter(([k])=>k!=='next'&&SKILL_MAP.some(([,j])=>j===k)).map(([,j])=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--text2);"><div style="width:10px;height:10px;background:${j.color};border-radius:50%;box-shadow:0 0 4px ${j.color}88;"></div>${j.name}</div>`).join('');
 }
