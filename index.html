@@ -11,6 +11,10 @@
 <meta name="fb-storage-bucket"     content="jumpuppupquest.firebasestorage.app">
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"             content="1:830728135743:web:c79422603586f97092048a">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JUMPUPクエスト">
 <link rel="stylesheet" href="style.css">
 <style>
 /* ===== 成長タイムライン ===== */
@@ -602,5 +606,14 @@
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
 <script src="main_optimized_cleaned.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/jumpupquest/sw.js')
+      .then(reg=>console.log('SW登録完了:',reg.scope))
+      .catch(e=>console.warn('SW登録失敗:',e));
+  });
+}
+</script>
 </body>
 </html>
