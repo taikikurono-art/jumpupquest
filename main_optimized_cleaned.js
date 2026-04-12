@@ -856,28 +856,50 @@ function isLight(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16
 function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-50).toString(16).padStart(2,'0')).join('');}
 
 // ======== ADMIN ========
+const ADMIN_ROOMS={
+  'jumpup2025':     null,              // スーパー管理者（全教室）
+  'runeck2025':     'ルネック勝川（月）',
+  'studio2025':     'スタジオMy（木）',
+  'cocoro2025':     'ココロネ学園（火）',
+};
+let adminClassroom=null; // null=全教室、string=特定教室
+
 function adminLogin(){
-  if(document.getElementById('adminPw').value==='jumpup2025'){
+  const pw=document.getElementById('adminPw').value;
+  if(pw in ADMIN_ROOMS){
+    adminClassroom=ADMIN_ROOMS[pw];
     document.getElementById('adminLock').style.display='none';
     document.getElementById('adminPanel').style.display='block';
+    // 教室名をヘッダーに表示
+    const modeEl=document.getElementById('adminModeLabel');
+    if(modeEl) modeEl.textContent=adminClassroom?`📍 ${adminClassroom}`:'👑 全教室（スーパー管理者）';
     loadAdminSel();loadMsgTarget();loadDelSel();
     renderDashboard();
   }
   else{const e=document.getElementById('adminErr');e.style.display='block';setTimeout(()=>e.style.display='none',2000);}
 }
-function adminLogout(){document.getElementById('adminLock').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('adminPw').value='';}
+function adminLogout(){
+  adminClassroom=null;
+  document.getElementById('adminLock').style.display='block';
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('adminPw').value='';
+}
+function getAdminChars(){
+  if(!adminClassroom) return chars; // 全教室
+  return chars.filter(c=>c.classroom===adminClassroom);
+}
 function loadAdminSel(){
   const s=document.getElementById('adminSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
 }
 function loadMsgTarget(){
   const s=document.getElementById('msgTarget');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
   document.getElementById('msgDate').value=new Date().toISOString().slice(0,10);
 }
 function loadDelSel(){
   const s=document.getElementById('delSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+chars.map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
 }
 
 // メッセージ送信
@@ -1125,11 +1147,11 @@ async function deleteChar(){
 function renderDashboard(){
   const el=document.getElementById('dashboardContent');
   if(!el)return;
-  if(chars.length===0){el.innerHTML='<div style="color:var(--text2);font-size:.85rem;">冒険者がいません</div>';return;}
+  const adminChars=getAdminChars();
+  if(adminChars.length===0){el.innerHTML='<div style="color:var(--text2);font-size:.85rem;">冒険者がいません</div>';return;}
 
   const now=new Date();
-  const rows=chars.map(c=>{
-    const recs=c.skillRecords||{};
+  const rows=adminChars.map(c=>{    const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
     const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
     const trainings=Object.values(recs).filter(r=>r.training&&!r.mastered).length;
