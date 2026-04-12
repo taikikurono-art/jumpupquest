@@ -63,8 +63,57 @@ async function gasPost(body){
   const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'}});
   return await res.json();
 }
-async function saveCharsToGAS(char){saveChars();_fb.saveChar(char).catch(()=>{});if(!gasReady)return;try{await gasPost({action:'saveChar',char});}catch(e){}}
-async function saveTestToGAS(char,testDate){saveChars();_fb.saveChar(char).catch(()=>{});if(!gasReady)return;try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}catch(e){}}
+async function saveCharsToGAS(char){
+  saveChars();_fb.saveChar(char).catch(()=>{});
+  if(!gasReady||!navigator.onLine){
+    await addPendingToIDB({action:'saveChar',char});
+    showToast('📦 オフライン保存しました（復帰後に同期）');
+    return;
+  }
+  try{await gasPost({action:'saveChar',char});}catch(e){await addPendingToIDB({action:'saveChar',char});}
+}
+async function saveTestToGAS(char,testDate){
+  saveChars();_fb.saveChar(char).catch(()=>{});
+  if(!gasReady||!navigator.onLine){
+    await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
+    showToast('📦 オフライン保存しました（復帰後に同期）');
+    return;
+  }
+  try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}
+  catch(e){await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}
+}
+
+// ======== IndexedDB オフライン同期 ========
+function openIDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open('jumpupquest',1);
+    req.onupgradeneeded=e=>{e.target.result.createObjectStore('pending',{keyPath:'id',autoIncrement:true});};
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=rej;
+  });
+}
+async function addPendingToIDB(data){
+  try{const db=await openIDB();const tx=db.transaction('pending','readwrite');tx.objectStore('pending').add(data);await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=j;});}catch(e){}
+}
+async function syncPendingData(){
+  if(!navigator.onLine||!gasReady)return;
+  try{
+    const db=await openIDB();
+    const items=await new Promise((res,rej)=>{const tx=db.transaction('pending','readonly');const req=tx.objectStore('pending').getAll();req.onsuccess=()=>res(req.result);req.onerror=rej;});
+    if(!items||items.length===0)return;
+    showToast(`🔄 ${items.length}件のデータを同期中...`);
+    for(const item of items){
+      const {id,...body}=item;
+      try{
+        await gasPost(body);
+        const db2=await openIDB();const tx=db2.transaction('pending','readwrite');tx.objectStore('pending').delete(id);await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=j;});
+      }catch(e){}
+    }
+    showToast('✅ 同期完了！');
+  }catch(e){}
+}
+// オンライン復帰時に自動同期
+window.addEventListener('online',()=>{showToast('🟢 オンラインに復帰しました');syncPendingData();});
 window.addEventListener('load',()=>{
   loadFirebase();
   initGAS();
