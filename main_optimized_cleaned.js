@@ -983,10 +983,10 @@ function updateSkillRow(rowId,c){
   if(!suggestEl){suggestEl=document.createElement('div');suggestEl.className='suggest-box';div.appendChild(suggestEl);}
 
   const jobKey=SKILL_MAP.find(([n])=>n===sk)?.[1];
-  const jobSkills=SKILL_MAP.filter(([,j])=>j===jobKey).sort((a,b)=>a[2]-b[2]||b[3]-a[3]); // x昇順→y降順
+  const jobSkills=SKILL_MAP.filter(([,j])=>j===jobKey).sort((a,b)=>b[3]-a[3]); // y降順（簡単→難しい順）
   const currentIdx=jobSkills.findIndex(([n])=>n===sk);
-  const nextSkill=jobSkills[currentIdx+1]?.[0]||null;   // 一つ上の難易度
-  const prevSkill=jobSkills[currentIdx-1]?.[0]||null;   // 一つ下の難易度
+  const nextSkill=jobSkills[currentIdx+1]?.[0]||null;   // 次の難しい技
+  const prevSkill=jobSkills[currentIdx-1]?.[0]||null;   // 一つ簡単な技
 
   let suggestHTML='';
   if(result.mastered&&!isMastered||result.instantMaster){
