@@ -1,5 +1,5 @@
 // ======== JUMPUPクエスト Service Worker ========
-const CACHE_NAME = 'jumpupquest-v1';
+const CACHE_NAME = 'jumpupquest-20260413-0000';
 const STATIC_ASSETS = [
   '/jumpupquest/',
   '/jumpupquest/index.html',
