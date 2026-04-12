@@ -907,6 +907,7 @@ function closeSkillDetail(e){
   if(!e||e.target===document.getElementById('skillDetailOverlay'))
     document.getElementById('skillDetailOverlay').classList.remove('open');
 }
+function renderLegend(){
   if(curJob!=='all'){document.getElementById('mapLegend').innerHTML='';return;}
   document.getElementById('mapLegend').innerHTML=Object.entries(JOBS).filter(([k])=>k!=='next'&&SKILL_MAP.some(([,j])=>j===k)).map(([,j])=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--text2);"><div style="width:10px;height:10px;background:${j.color};border-radius:50%;box-shadow:0 0 4px ${j.color}88;"></div>${j.name}</div>`).join('');
 }
