@@ -977,6 +977,45 @@ function updateSkillRow(rowId,c){
   else if(result.instantMaster){ptDisp.textContent='🏆⚡ 一発マスター！';div.className='skill-row master-ready';}
   else if(result.mastered&&!isMastered){ptDisp.textContent=`🏆 ${result.pts}pt`;div.className='skill-row master-ready';}
   else{ptDisp.textContent=`→${result.pts}pt (+${ratings.reduce((s,r)=>s+r,0)}pt)`;div.className='skill-row';}
+
+  // ===== 練習サジェスト =====
+  let suggestEl=div.querySelector('.suggest-box');
+  if(!suggestEl){suggestEl=document.createElement('div');suggestEl.className='suggest-box';div.appendChild(suggestEl);}
+
+  const jobKey=SKILL_MAP.find(([n])=>n===sk)?.[1];
+  const jobSkills=SKILL_MAP.filter(([,j])=>j===jobKey).sort((a,b)=>a[2]-b[2]||b[3]-a[3]); // x昇順→y降順
+  const currentIdx=jobSkills.findIndex(([n])=>n===sk);
+  const nextSkill=jobSkills[currentIdx+1]?.[0]||null;   // 一つ上の難易度
+  const prevSkill=jobSkills[currentIdx-1]?.[0]||null;   // 一つ下の難易度
+
+  let suggestHTML='';
+  if(result.mastered&&!isMastered||result.instantMaster){
+    // マスター確定 → 次の技を提案
+    if(nextSkill){
+      suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(255,215,0,.1);border:2px solid var(--gold);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.6;">
+        🏆 マスター！次の挑戦 →<br>
+        <strong style="color:var(--gold);">「${nextSkill}」</strong>にチャレンジしよう！
+      </div>`;
+    } else {
+      suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(255,215,0,.1);border:2px solid var(--gold);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;">
+        🏆 このジョブの技をコンプリート！
+      </div>`;
+    }
+  } else if(ratings.filter(r=>r===0).length>=2){
+    // 🌱が2回以上 → 一つ下の技を提案
+    if(prevSkill){
+      suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(136,136,255,.1);border:2px solid #8888ff;border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.6;">
+        🌱 まずは<strong style="color:#8888ff;">「${prevSkill}」</strong>をしっかり練習しよう！
+      </div>`;
+    }
+  } else if(ratings.some(r=>r===1)){
+    // ⭐⭐あり → 2択提案
+    const prevTxt=prevSkill?`<strong style="color:var(--teal);">「${prevSkill}」</strong>で基礎固め`:'基礎練習を重点的に';
+    suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(0,229,255,.08);border:2px solid var(--teal);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.7;">
+      💡 この技を続ける？<br>or ${prevTxt}する？
+    </div>`;
+  }
+  suggestEl.innerHTML=suggestHTML;
 }
 async function saveResult(){
   const id=document.getElementById('adminSel').value;const c=chars.find(x=>x.id===id);if(!c)return;
