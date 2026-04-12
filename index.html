@@ -555,6 +555,26 @@
   </div>
 </div>
 
+<!-- 技詳細ポップアップ -->
+<div class="mail-modal-overlay" id="skillDetailOverlay" onclick="closeSkillDetail(event)">
+  <div class="mail-modal-box" onclick="event.stopPropagation()" style="max-width:480px;">
+    <div class="mail-modal-header">
+      <div>
+        <div class="mail-modal-subject" id="sdTitle"></div>
+        <div id="sdJob" style="font-family:'Press Start 2P',monospace;font-size:.38rem;margin-top:.3rem;"></div>
+      </div>
+      <button class="mail-modal-close" onclick="closeSkillDetail()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
+    </div>
+    <div id="sdVideoArea"></div>
+    <!-- 管理者のみ表示 -->
+    <div id="sdAdminSection" style="display:none;border-top:1px solid var(--border);padding-top:.8rem;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--text2);margin-bottom:.5rem;">🎬 YouTube URL を登録</div>
+      <input class="pinput" id="sdVideoUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;margin-bottom:.6rem;">
+      <button class="pbtn btn-teal" onclick="saveSkillVideo()" style="width:100%;font-size:.52rem;">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
 <!-- JOB POPUP -->
 <div class="popup-overlay" id="jobPopup">
   <div class="popup-box">
