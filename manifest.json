@@ -1,0 +1,25 @@
+{
+  "name": "JUMPUPクエスト",
+  "short_name": "JUMPUPクエスト",
+  "description": "体操教室の子ども向けRPG風スキル管理アプリ",
+  "start_url": "/jumpupquest/",
+  "scope": "/jumpupquest/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#00e5ff",
+  "icons": [
+    {
+      "src": "embedded_image_1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "embedded_image_1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
