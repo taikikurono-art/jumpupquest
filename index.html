@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JUMPUP クエスト</title>
 <!-- Firebase設定（GitHubのSecret Scanningを回避するためmeta要素に分離） -->
+<!--
+  Firestoreセキュリティルール（videos追加要）:
+  match /videos/{docId} { allow read: if true; allow write: if request.auth != null; }
+-->
 <meta name="fb-api-key"            content="AIzaSyCVDRhFmGKncW0c3TM7zdx-wiYkzgfH3_M">
 <meta name="fb-auth-domain"        content="jumpuppupquest.firebaseapp.com">
 <meta name="fb-project-id"         content="jumpuppupquest">
@@ -188,8 +192,11 @@
         "
       >
     </div>
+    <div id="titleGuildName" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--teal);margin-bottom:.6rem;letter-spacing:2px;min-height:1.4em;"></div>
     <p style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1.4rem;letter-spacing:.04em;">技に挑戦して、君だけの冒険を進めよう！</p>
-    <div class="menu-box">
+    <!-- イベントバナー -->
+    <div id="eventBanner" style="display:none;background:rgba(255,215,0,.08);border:2px solid var(--gold);padding:.75rem 1rem;margin-bottom:1rem;max-width:380px;width:100%;"></div>
+
       <button class="menu-item new-game" onclick="goPage('pg-newgame')">
         <span class="menu-arrow">▶</span>あたらしく始める
       </button>
@@ -252,19 +259,21 @@
     <span class="nav-title" id="stNavTitle">マイページ</span>
   </div>
 
-  <!-- ===== 次にやること（固定サマリー） ===== -->
+  <!-- ===== 🌐 全国リアルタイム進捗ログ ===== -->
+  <div id="activityLogPanel" style="background:var(--bg2);border-bottom:2px solid var(--border);padding:.6rem 1rem;display:none;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.4rem;">🌐 全国の冒険者の活躍</div>
+    <div id="activityLogList" style="display:flex;flex-direction:column;gap:0;max-height:120px;overflow-y:auto;"></div>
+  </div>
+
   <div id="stNextAction" class="pp" style="margin:0;border-bottom:none;border-left:4px solid var(--teal);display:none;">
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <div style="flex:1;min-width:160px;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.4rem;">▶ 次のおすすめ技</div>
-        <div id="stNextSkill" style="font-weight:900;font-size:1rem;"></div>
-        <div id="stNextPt" style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-top:.3rem;"></div>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);">▶ 次のおすすめ技</div>
       <div style="text-align:right;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.3rem;">今月の獲得</div>
-        <div id="stMonthPt" style="font-family:'Press Start 2P',monospace;font-size:.75rem;color:var(--gold);"></div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">合計pt</div>
+        <div id="stMonthPt" style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--gold);"></div>
       </div>
     </div>
+    <div id="stNextCards" style="display:flex;flex-direction:column;gap:.55rem;"></div>
   </div>
 
   <!-- ナビボタン -->
@@ -277,6 +286,9 @@
     </button>
     <button class="st-nav-btn" onclick="goPage('pg-explorer')">
       <span class="nav-icon">🚪</span><span class="nav-label">ぼうけんしゃリスト</span>
+    </button>
+    <button class="st-nav-btn parent-btn" onclick="goParentPage()">
+      <span class="nav-icon">👪</span><span class="nav-label">保護者ページ</span>
     </button>
   </div>
 
@@ -335,6 +347,12 @@
       <div id="stTrophyRow" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem;min-height:40px;">
         <div style="color:var(--text2);font-size:.8rem;">まだトロフィーはないよ！</div>
       </div>
+    </div>
+
+    <!-- ===== 🏅 バッジ ===== -->
+    <div class="pp" style="margin-top:.8rem;">
+      <div class="sec-ttl">🏅 バッジ</div>
+      <div id="stBadgeRow" style="margin-top:.5rem;"></div>
     </div>
 
     <!-- ===== SKILL RECORDS ===== -->
@@ -450,7 +468,26 @@
           <button class="pbtn btn-outline" onclick="adminLogout()" style="font-size:.38rem;padding:.38rem .65rem;">ログアウト</button>
         </div>
 
-        <!-- ダッシュボード -->
+        <!-- 本部分析ダッシュボード（スーパー管理者のみ） -->
+        <div class="pp" id="hqDashboard" style="margin-bottom:1.1rem;display:none;border-color:var(--gold);">
+          <div class="sec-ttl" style="margin-bottom:.9rem;color:var(--gold);">👑 本部分析ダッシュボード</div>
+          <div id="hqContent"></div>
+        </div>
+
+        <!-- 動画一括更新（スーパー管理者のみ） -->
+        <div class="pp" id="bulkVideoPanel" style="margin-bottom:1.1rem;display:none;border-color:var(--teal);">
+          <div class="sec-ttl" style="margin-bottom:.9rem;">🎬 動画URL一括更新</div>
+          <div id="bulkVideoContent"></div>
+        </div>
+
+
+        <!-- ギルドイベント管理 -->
+        <div class="pp" style="margin-bottom:1.1rem;border-color:var(--gold);">
+          <div class="sec-ttl" style="margin-bottom:.9rem;color:var(--gold);">🎉 ギルドイベント管理</div>
+          <div id="eventAdminForm"></div>
+        </div>
+
+        <!-- 本部分析ダッシュボード（スーパー管理者のみ） -->
         <div class="pp" style="margin-bottom:1.1rem;">
           <div class="sec-ttl" style="margin-bottom:.9rem;">📊 冒険者ダッシュボード</div>
           <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--text2);margin-bottom:.7rem;">🌱フォロー推奨 → 修行中 → 順調 の順で表示</div>
@@ -507,11 +544,44 @@
             <label class="form-lbl">件名</label>
             <input class="pinput" id="msgSubject" placeholder="例：4月のテスト結果について" style="width:100%;">
           </div>
+          <div style="margin-bottom:.5rem;">
+            <label class="form-lbl">テンプレートから選ぶ</label>
+            <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.6rem;">
+              <button class="pbtn btn-outline" onclick="insertTemplate('よく挑戦できたね！その調子で続けていこう！')" style="font-size:.38rem;padding:.3rem .55rem;">👍 よく挑戦できた</button>
+              <button class="pbtn btn-outline" onclick="insertTemplate('安定してきたね！次のレベルが見えてきたよ！')" style="font-size:.38rem;padding:.3rem .55rem;">📈 安定してきた</button>
+              <button class="pbtn btn-outline" onclick="insertTemplate('まずは土台を積み上げよう！焦らず一歩一歩ね。')" style="font-size:.38rem;padding:.3rem .55rem;">🌱 土台を積もう</button>
+              <button class="pbtn btn-outline" onclick="insertTemplate('自信を持ってきたね！その姿勢が大事だよ！')" style="font-size:.38rem;padding:.3rem .55rem;">✨ 自信が出てきた</button>
+            </div>
+          </div>
           <div style="margin-bottom:.8rem;">
             <label class="form-lbl">メッセージ内容</label>
             <textarea class="pinput" id="msgBody" rows="4" placeholder="例：前転がとても上手になったね！次は側転にチャレンジしよう！" style="width:100%;resize:vertical;"></textarea>
           </div>
           <button class="pbtn btn-pink" onclick="sendMessage()" style="width:100%;">📬 メッセージを送る</button>
+        </div>
+
+        <!-- 姿勢バッジ付与 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="margin-bottom:.9rem;">🏅 姿勢バッジを付与する</div>
+          <div class="admin-grid2" style="margin-bottom:.7rem;">
+            <div>
+              <label class="form-lbl">冒険者を選択</label>
+              <select class="fselect" id="badgeCharSel"><option value="">-- 選んでね --</option></select>
+            </div>
+            <div>
+              <label class="form-lbl">バッジを選択</label>
+              <select class="fselect" id="badgeSel">
+                <option value="attitude_hello">👋 あいさつ名人</option>
+                <option value="attitude_never">💪 あきらめない心</option>
+                <option value="attitude_cheer">🤝 仲間応援マスター</option>
+                <option value="attitude_focus">🎯 集中の達人</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="pbtn btn-green" onclick="grantBadgeFromAdmin()" style="flex:1;font-size:.48rem;">🏅 付与する</button>
+            <button class="pbtn btn-outline" onclick="revokeBadgeFromAdmin()" style="flex:1;font-size:.44rem;">↩️ 取り消す</button>
+          </div>
         </div>
 
         <!-- 新規登録 -->
@@ -525,21 +595,36 @@
           <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
         </div>
 
-        <!-- 冒険者削除 -->
-        <div class="pp" style="margin-top:1.1rem;border-color:var(--pink);">
-          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;color:var(--pink);">🗑️ 冒険者を削除する</div>
-          <div style="background:var(--bg3);border:2px solid var(--pink);padding:.65rem;margin-bottom:.85rem;font-family:'Press Start 2P';font-size:.38rem;color:var(--pink);line-height:1.9;">
-            ⚠️ 削除すると元に戻せません！<br>本当に必要なときだけ使ってください。
+        <!-- 冒険者アーカイブ管理 -->
+        <div class="pp" style="margin-top:1.1rem;">
+          <div class="sec-ttl" style="margin-bottom:.9rem;">📂 冒険者のステータス変更</div>
+          <div style="background:var(--bg3);border:2px solid var(--border);padding:.65rem;margin-bottom:.85rem;font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);line-height:1.9;">
+            休会・退会・卒業の冒険者をアーカイブできます。データは保持されます。
           </div>
-          <div style="margin-bottom:.75rem;">
-            <label class="form-lbl">削除する冒険者</label>
-            <select class="fselect" id="delSel"><option value="">-- 選んでね --</option></select>
+          <div class="admin-grid2" style="margin-bottom:.75rem;">
+            <div>
+              <label class="form-lbl">冒険者を選択</label>
+              <select class="fselect" id="delSel"><option value="">-- 選んでね --</option></select>
+            </div>
+            <div>
+              <label class="form-lbl">ステータス変更</label>
+              <select class="fselect" id="archiveStatus">
+                <option value="active">✅ 在籍中</option>
+                <option value="leave">⏸️ 休会</option>
+                <option value="withdraw">📦 退会</option>
+                <option value="graduate">🎓 卒業</option>
+              </select>
+            </div>
           </div>
-          <div style="margin-bottom:.75rem;">
-            <label class="form-lbl">確認のため名前を入力</label>
-            <input class="pinput" id="delConfirm" placeholder="削除する冒険者の名前" style="width:100%;">
+          <button class="pbtn btn-teal" onclick="archiveChar()" style="width:100%;margin-bottom:.6rem;">📂 ステータスを変更する</button>
+          <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.3rem;">
+            <div style="font-family:'Press Start 2P';font-size:.34rem;color:var(--pink);margin-bottom:.6rem;">⚠️ 完全削除（元に戻せません）</div>
+            <div style="margin-bottom:.6rem;">
+              <label class="form-lbl">確認のため名前を入力</label>
+              <input class="pinput" id="delConfirm" placeholder="削除する冒険者の名前" style="width:100%;">
+            </div>
+            <button class="pbtn btn-pink" onclick="deleteChar()" style="width:100%;font-size:.42rem;">🗑️ 完全に削除する</button>
           </div>
-          <button class="pbtn btn-pink" onclick="deleteChar()" style="width:100%;">🗑️ 削除する</button>
         </div>
       </div>
     </div>
@@ -547,6 +632,64 @@
 </div>
 
 </main>
+
+
+<!-- ==================== PARENT (保護者モード) ==================== -->
+<div class="page fadein" id="pg-parent">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goBack()">◀ もどる</button>
+    <span class="nav-title">👪 保護者向けページ</span>
+  </div>
+  <div style="padding:1.2rem 0;">
+    <div class="pp" style="margin-bottom:.8rem;border-left:4px solid var(--teal);">
+      <div style="display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;">
+        <img id="parentSprite" src="" alt="" style="width:56px;height:56px;object-fit:contain;image-rendering:pixelated;display:none;">
+        <div id="parentSpriteEmoji" style="font-size:2.2rem;display:none;"></div>
+        <div>
+          <div id="parentName" style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:1.3rem;"></div>
+          <div id="parentJob" style="font-family:'Press Start 2P',monospace;font-size:.38rem;margin-top:.2rem;"></div>
+          <div id="parentClass" style="font-size:.8rem;color:var(--text2);margin-top:.2rem;"></div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">マスター技数</div>
+          <div id="parentMasterCnt" style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--gold);"></div>
+        </div>
+      </div>
+    </div>
+    <div class="pp" style="margin-bottom:.8rem;">
+      <div class="sec-ttl" style="margin-bottom:.8rem;">📅 最近の取り組み</div>
+      <div id="parentThisMonth" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+    </div>
+    <div class="pp" style="margin-bottom:.8rem;">
+      <div class="sec-ttl" style="margin-bottom:.8rem;">🌱 技ごとの成長段階</div>
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;">お子さんが挑戦中の技と、今どの段階にいるかを確認できます。</p>
+      <div id="parentSkillStages" style="display:flex;flex-direction:column;gap:.45rem;"></div>
+    </div>
+    <div class="pp" style="margin-bottom:.8rem;">
+      <div class="sec-ttl" style="margin-bottom:.8rem;">🏅 がんばりバッジ</div>
+      <div id="parentBadges" style="margin-top:.4rem;"></div>
+    </div>
+    <div class="pp" style="margin-bottom:.8rem;">
+      <div class="sec-ttl" style="margin-bottom:.8rem;">💬 先生からのメッセージ</div>
+      <div id="parentMessages" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+    </div>
+    <div class="pp" style="margin-bottom:.8rem;border-left:4px solid var(--green);">
+      <div class="sec-ttl" style="margin-bottom:.6rem;">🏠 おうちでできるサポート</div>
+      <div id="parentHomeSupport" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.9;color:var(--text);"></div>
+    </div>
+    <div style="padding:0 0 2rem;">
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+        <button class="pbtn btn-gold" onclick="openMonthlyReport()" style="flex:1;font-size:.44rem;">
+          📊 成長レポートDL
+        </button>
+        <button class="pbtn btn-green" onclick="copyLINEReport()" style="flex:1;font-size:.44rem;">
+          📋 LINE用コピー
+        </button>
+      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);text-align:center;">HTMLファイル / LINEに貼り付け可能なテキスト</div>
+    </div>
+  </div>
+</div>
 
 <!-- SKILL POPUP（ぼうけんしゃリスト用） -->
 <div class="popup-overlay" id="explorerSkillPopup" onclick="closeExplorerSkillPopup(event)">
