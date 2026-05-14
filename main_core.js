@@ -155,10 +155,6 @@ window.addEventListener('load',()=>{
     }
     i++;
   }
-  ['パンシェターン',                   'illusionist', 10, 88],
-]
-const SKILL_BY_JOB={};
-SKILL_MAP.forEach(([n,j])=>{if(!SKILL_BY_JOB[j])SKILL_BY_JOB[j]=[];SKILL_BY_JOB[j].push(n);});
 
 // ======== STARS ========
 (()=>{const c=document.getElementById('stars');for(let i=0;i<90;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*5)+'s');s.style.setProperty('--delay',(Math.random()*5)+'s');c.appendChild(s);}})();
@@ -521,7 +517,6 @@ function renderStatus(c){
 
   // ===== TROPHY =====
   const masteredJobs=new Set();
-  SKILL_MAP.forEach(([skillName,jobKey])=>{
     const rec=recs[skillName];
     if(rec&&rec.mastered) masteredJobs.add(jobKey);
   });
@@ -1026,7 +1021,6 @@ function countMastered(c){
 function masteredJobCount(c){
   const recs=c.skillRecords||{};
   const jobs=new Set();
-  SKILL_MAP.forEach(([n,jk])=>{ if(recs[n]&&recs[n].mastered) jobs.add(jk); });
   return jobs.size;
 }
 function hasInstantMaster(c){
@@ -2518,7 +2512,6 @@ function renderEventAdmin(event){
           ${(() => {
             const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
             const grouped={};
-            SKILL_MAP.forEach(([n,jk])=>{if(!grouped[jk])grouped[jk]=[];grouped[jk].push(n);});
             return jobOrder.filter(jk=>grouped[jk]).map(jk=>{
               const jb=JOBS[jk];
               return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</optgroup>`;
