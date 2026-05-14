@@ -16,10 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Generate version string
         id: version
-        run: echo "VER=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+        run: echo "VER=$(TZ='Asia/Tokyo' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
       - name: Update version in index.html
         run: |
@@ -28,11 +30,15 @@ jobs:
           sed -i "s|data\.js?v=[0-9-]*|data.js?v=${VER}|g" index.html
           sed -i "s|firebase\.js?v=[0-9-]*|firebase.js?v=${VER}|g" index.html
           sed -i "s|main_core\.js?v=[0-9-]*|main_core.js?v=${VER}|g" index.html
-          echo "Updated version to ${VER}"
+
+      - name: Update CACHE_NAME in sw.js
+        run: |
+          VER="${{ steps.version.outputs.VER }}"
+          sed -i "s/const CACHE_NAME = 'jumpupquest-[^']*'/const CACHE_NAME = 'jumpupquest-${VER}'/" sw.js
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --staged --quiet || (git commit -m "chore: update cache version to ${{ steps.version.outputs.VER }} [skip ci]" && git pull --rebase && git push)
+          git add index.html sw.js
+          git diff --staged --quiet || (git commit -m "chore: update cache version to ${{ steps.version.outputs.VER }} [skip ci]" && git pull --rebase origin main && git push)
