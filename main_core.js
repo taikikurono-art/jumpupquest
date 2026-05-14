@@ -27,7 +27,7 @@ async function loadFirebase(){
     await new Promise(r=>setTimeout(r,100));
     waited+=100;
   }
-  if(!window._fbModule){console.warn('Firebase module not loaded, falling back to GAS');return;}
+  if(!window._fbModule){console.warn('Firebase module not loaded');return;}
   try{
     const m=window._fbModule;
     await m.fbInit();
@@ -47,8 +47,8 @@ async function loadFirebase(){
       watchAdminLog:m.fbWatchAdminLog,
     };
     fbLoaded=true;
-    const fbChars=await m.fbGetAll();
-    if(fbChars&&fbChars.length>0){chars=fbChars;saveChars();showGasStatus('online');console.log('Firebase: '+fbChars.length+'件読み込み');}
+    // ※ キャラデータはGASが正。Firebaseからは読み込まない
+    // 動画URLのみFirestoreから読み込み
     const fbVideos=await _fb.getVideos();
     if(fbVideos&&Object.keys(fbVideos).length>0){
       localStorage.setItem('jq_videos',JSON.stringify(fbVideos));
@@ -56,15 +56,15 @@ async function loadFirebase(){
     }
     startActivityLogWatch();
     startEventWatch();
-  }catch(e){console.warn('Firebase失敗（GASで継続）',e);}
+  }catch(e){console.warn('Firebase失敗',e);}
 }
 
 const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
 const DEMO=[];
 let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
 let gasReady=false;
-let currentUser=null; // ログイン中のキャラ
-let prevPage='pg-title'; // もどるボタン用
+let currentUser=null;
+let prevPage='pg-title';
 
 function saveChars(){localStorage.setItem('jq5',JSON.stringify(chars));}
 async function initGAS(){
@@ -73,8 +73,17 @@ async function initGAS(){
     showGasStatus('loading');
     const res=await fetch(GAS_URL+'?action=getAll');
     const data=await res.json();
-    if(data.chars&&data.chars.length>0){chars=data.chars;localStorage.setItem('jq5',JSON.stringify(chars));gasReady=true;showGasStatus('online');}
-    else{gasReady=true;showGasStatus('online');}
+    if(data.chars&&data.chars.length>0){
+      // GASが常に正。必ずGASのデータで上書き
+      chars=data.chars;
+      localStorage.setItem('jq5',JSON.stringify(chars));
+      gasReady=true;
+      showGasStatus('online');
+      console.log('GAS: '+data.chars.length+'件読み込み（正データ）');
+    } else {
+      gasReady=true;
+      showGasStatus('online');
+    }
   }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
 }
 function showGasStatus(s){
@@ -91,22 +100,33 @@ async function gasPost(body){
   return await res.json();
 }
 async function saveCharsToGAS(char){
-  saveChars();_fb.saveChar(char).catch(()=>{});
+  // GASが正：まずGASに保存、成功後にlocalStorage更新
+  saveChars();
   if(!gasReady||!navigator.onLine){
     await addPendingToIDB({action:'saveChar',char});
     showToast('📦 オフライン保存しました（復帰後に同期）');
     return;
   }
-  try{await gasPost({action:'saveChar',char});}catch(e){await addPendingToIDB({action:'saveChar',char});}
+  try{
+    await gasPost({action:'saveChar',char});
+    // GAS保存成功後にFirebaseにも反映（リアルタイム機能のため）
+    _fb.saveChar(char).catch(()=>{});
+  }catch(e){
+    await addPendingToIDB({action:'saveChar',char});
+  }
 }
 async function saveTestToGAS(char,testDate){
-  saveChars();_fb.saveChar(char).catch(()=>{});
+  saveChars();
   if(!gasReady||!navigator.onLine){
     await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
     showToast('📦 オフライン保存しました（復帰後に同期）');
     return;
   }
-  try{await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}
+  try{
+    await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
+    // GAS保存成功後にFirebaseにも反映
+    _fb.saveChar(char).catch(()=>{});
+  }
   catch(e){await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}
 }
 
