@@ -2134,9 +2134,15 @@ function generateMonthlyReport(c, targetMonth){
   .comment{background:#0d0d22;border-left:3px solid #ffd700;padding:.8rem 1rem;font-size:.9rem;line-height:1.9;white-space:pre-wrap;}
   .next-box{background:rgba(0,229,255,.06);border:2px solid #00e5ff;padding:.8rem 1rem;}
   .footer{font-family:'Press Start 2P',monospace;font-size:.32rem;color:#6666aa;margin-top:1.5rem;text-align:center;line-height:2;}
+  .print-btn{display:block;width:100%;padding:.9rem;background:#ffd700;color:#000;font-family:'Press Start 2P',monospace;font-size:.5rem;border:none;cursor:pointer;margin-bottom:1.5rem;letter-spacing:1px;}
+  @media print{.print-btn{display:none;}body{background:#fff;color:#000;}
+    .card{background:#f8f8f8;border:1px solid #ccc;}.card::after{display:none;}
+    .card-ttl{color:#0066aa;}.pt-big{color:#cc8800;}.comment{background:#f8f8f8;border-left:3px solid #cc8800;}
+  }
 </style>
 </head>
 <body>
+  <button class="print-btn" onclick="window.print()">🖨️ PDFとして保存する</button>
   <h1>📊 成長レポート</h1>
   <div class="sub">${c.name}さん ／ ${monthLabel} ／ ${c.classroom}</div>
 
@@ -2198,12 +2204,10 @@ function openMonthlyReport(){
   const html = generateMonthlyReport(currentUser);
   const blob = new Blob([html], {type:'text/html'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${currentUser.name}_成長レポート.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('📊 レポートをダウンロードしました！');
+  const win = window.open(url, '_blank');
+  // 新しいタブが開いたらPDF保存のガイドを表示
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  showToast('📊 新しいタブでレポートが開きます。印刷→PDFで保存できます');
 }
 
 // LINE送信用短縮レポートを生成してクリップボードにコピー
