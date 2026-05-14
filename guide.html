@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUMPUPクエスト ガイドブック</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f7f2;
+  --surface: #ffffff;
+  --border: #e8e4d9;
+  --text: #1a1a2e;
+  --text2: #666680;
+  --accent: #00c896;
+  --accent2: #0099cc;
+  --gold: #f0a500;
+  --pink: #e05580;
+  --purple: #7c4dff;
+  --radius: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Zen Maru Gothic', sans-serif;
+  line-height: 1.7;
+}
+
+/* ヘッダー */
+.hero {
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a1a2e 100%);
+  padding: 3rem 1.5rem 2.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(0,200,150,.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0,153,204,.08) 0%, transparent 50%);
+}
+.hero-tag {
+  display: inline-block;
+  background: rgba(0,200,150,.15);
+  border: 1px solid rgba(0,200,150,.4);
+  color: #00e5b0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .5rem;
+  padding: .35rem .8rem;
+  margin-bottom: 1.2rem;
+  letter-spacing: 1px;
+}
+.hero h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(.9rem, 4vw, 1.4rem);
+  color: #fff;
+  line-height: 1.6;
+  margin-bottom: .8rem;
+  text-shadow: 0 0 30px rgba(0,200,150,.3);
+}
+.hero-sub {
+  color: rgba(255,255,255,.6);
+  font-size: .95rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* ナビ */
+.toc {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: .8rem 1.5rem;
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  scrollbar-width: none;
+}
+.toc::-webkit-scrollbar { display: none; }
+.toc a {
+  text-decoration: none;
+  color: var(--text2);
+  font-size: .8rem;
+  white-space: nowrap;
+  padding: .3rem .6rem;
+  border-radius: 20px;
+  transition: background .15s, color .15s;
+}
+.toc a:hover { background: var(--border); color: var(--text); }
+
+/* コンテンツ */
+.container { max-width: 680px; margin: 0 auto; padding: 0 1.2rem; }
+
+section {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+section:last-child { border-bottom: none; }
+
+.sec-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: .45rem;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-bottom: .6rem;
+}
+h2 {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin-bottom: 1.2rem;
+  color: var(--text);
+}
+h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.4rem 0 .6rem;
+  color: var(--text);
+}
+p { font-size: .95rem; color: var(--text2); margin-bottom: .8rem; }
+p strong { color: var(--text); font-weight: 700; }
+
+/* カード */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  margin-bottom: .8rem;
+}
+.card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .8rem;
+}
+@media(max-width: 480px) { .card-row { grid-template-columns: 1fr; } }
+
+/* ステップ */
+.step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-body { flex: 1; }
+.step-title { font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
+.step-desc { font-size: .88rem; color: var(--text2); }
+
+/* 評価バッジ */
+.rating-row {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .8rem 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.rating-badge {
+  font-size: 1.1rem;
+  min-width: 60px;
+  text-align: center;
+}
+.rating-info { flex: 1; }
+.rating-label { font-weight: 700; font-size: .9rem; }
+.rating-desc { font-size: .82rem; color: var(--text2); }
+.rating-pt {
+  font-family: 'Press Start 2P', monospace;
+  font-size: .55rem;
+  padding: .25rem .55rem;
+  border-radius: 20px;
+}
+.pt-gold { background: rgba(240,165,0,.12); color: var(--gold); border: 1px solid rgba(240,165,0,.3); }
+.pt-blue { background: rgba(0,153,204,.1); color: var(--accent2); border: 1px solid rgba(0,153,204,.25); }
+.pt-gray { background: var(--border); color: var(--text2); }
+
+/* ジョブカード */
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .6rem;
+}
+.job-card {
+  border-radius: 10px;
+  padding: .8rem;
+  border: 1px solid;
+}
+.job-card .jc-tag {
+  font-family: 'Press Start 2P', monospace;
+  font-size: .3rem;
+  margin-bottom: .3rem;
+}
+.job-card .jc-name { font-weight: 700; font-size: .9rem; margin-bottom: .2rem; }
+.job-card .jc-desc { font-size: .78rem; color: var(--text2); }
+
+/* ハイライトボックス */
+.highlight {
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin: 1rem 0;
+  border-left: 4px solid;
+}
+.hl-green { background: rgba(0,200,150,.06); border-color: var(--accent); }
+.hl-gold { background: rgba(240,165,0,.06); border-color: var(--gold); }
+.hl-blue { background: rgba(0,153,204,.06); border-color: var(--accent2); }
+.hl-pink { background: rgba(224,85,128,.06); border-color: var(--pink); }
+
+/* FAQ */
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: .6rem;
+}
+.faq-q {
+  width: 100%;
+  background: var(--surface);
+  border: none;
+  padding: .9rem 1rem;
+  text-align: left;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+}
+.faq-q::after {
+  content: '▼';
+  font-size: .65rem;
+  color: var(--text2);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.faq-item.open .faq-q::after { transform: rotate(180deg); }
+.faq-a {
+  display: none;
+  padding: .8rem 1rem 1rem;
+  font-size: .88rem;
+  color: var(--text2);
+  background: var(--bg);
+  line-height: 1.8;
+}
+.faq-item.open .faq-a { display: block; }
+
+/* フッター */
+footer {
+  background: #0a0a1a;
+  color: rgba(255,255,255,.5);
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: .8rem;
+}
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .55rem;
+}
+
+/* タグ */
+.tag {
+  display: inline-block;
+  font-size: .75rem;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  font-weight: 700;
+  margin-right: .3rem;
+}
+.tag-green { background: rgba(0,200,150,.1); color: #008060; }
+.tag-gold { background: rgba(240,165,0,.12); color: #a06000; }
+.tag-blue { background: rgba(0,153,204,.1); color: #005588; }
+.tag-purple { background: rgba(124,77,255,.1); color: #5520cc; }
+
+/* マスタールール */
+.master-rule {
+  background: rgba(240,165,0,.06);
+  border: 1px solid rgba(240,165,0,.25);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin: .8rem 0;
+}
+.master-rule .mr-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: .42rem;
+  color: var(--gold);
+  margin-bottom: .5rem;
+}
+</style>
+</head>
+<body>
+
+<!-- ヒーロー -->
+<div class="hero">
+  <div class="hero-tag">PARENT GUIDE</div>
+  <h1>JUMPUP QUEST<br>ガイドブック</h1>
+  <p class="hero-sub">保護者のみなさまへ。このページでクエストの使い方をまるごと確認できます。</p>
+</div>
+
+<!-- ナビ -->
+<nav class="toc">
+  <a href="#about">クエストとは</a>
+  <a href="#login">はじめ方</a>
+  <a href="#point">ポイント</a>
+  <a href="#job">ジョブ</a>
+  <a href="#parent">保護者ページ</a>
+  <a href="#message">メッセージ</a>
+  <a href="#faq">よくある質問</a>
+</nav>
+
+<div class="container">
+
+  <!-- ① クエストとは -->
+  <section id="about">
+    <div class="sec-label">01 / ABOUT</div>
+    <h2>JUMPUPクエストとは？</h2>
+    <p>体操教室の練習をRPGゲーム風に記録できるシステムです。お子さんが習得した技をポイントで管理し、成長の軌跡を「冒険者カード」として確認できます。</p>
+
+    <div class="card-row">
+      <div class="card">
+        <div class="sec-label" style="color:var(--accent);">お子さんができること</div>
+        <ul style="font-size:.88rem;color:var(--text2);list-style:none;display:flex;flex-direction:column;gap:.5rem;">
+          <li>🎮 自分のページでスキルを確認</li>
+          <li>🏆 マスターした技を一覧表示</li>
+          <li>💬 先生からのメッセージを受け取る</li>
+          <li>🗺️ ジョブマップで成長をイメージ</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="sec-label" style="color:var(--accent2);">保護者ができること</div>
+        <ul style="font-size:.88rem;color:var(--text2);list-style:none;display:flex;flex-direction:column;gap:.5rem;">
+          <li>📊 成長レポートを確認</li>
+          <li>📋 LINE用テキストにコピー</li>
+          <li>🌟 バッジ・称号を確認</li>
+          <li>💬 先生コメントを確認</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② はじめ方 -->
+  <section id="login">
+    <div class="sec-label">02 / HOW TO START</div>
+    <h2>はじめ方・ログインの仕方</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">クエストのページを開く</div>
+        <div class="step-desc">先生から共有されたURLをブラウザで開きます。ホーム画面に追加するとアプリのように使えます。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">「つづきから」をタップ</div>
+        <div class="step-desc">お子さんの名前が登録済みの場合は「つづきから」→ 名前を検索 → タップでログインできます。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">マイページを確認する</div>
+        <div class="step-desc">ログイン後に「マイページ」が表示されます。技の記録・バッジ・先生からのメッセージをここで確認できます。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">保護者ページへ</div>
+        <div class="step-desc">マイページ下部の「👪 保護者ページ」ボタンから、成長レポートやLINEコピー機能が使えます。</div>
+      </div>
+    </div>
+
+    <div class="highlight hl-green">
+      <strong>💡 ヒント：</strong> 毎回ログインが必要ですが、お子さんの名前を2〜3文字入れるだけで検索できます。
+    </div>
+  </section>
+
+  <!-- ③ ポイントとマスター -->
+  <section id="point">
+    <div class="sec-label">03 / POINT SYSTEM</div>
+    <h2>ポイントとマスターの仕組み</h2>
+    <p>毎月の練習テストで先生が評価を入力します。3回の試技（チャレンジ）をそれぞれ評価し、ポイントが加算されます。</p>
+
+    <h3>評価の種類</h3>
+    <div class="rating-row">
+      <div class="rating-item">
+        <div class="rating-badge">⭐⭐⭐</div>
+        <div class="rating-info">
+          <div class="rating-label">できた！</div>
+          <div class="rating-desc">技がしっかりできたとき</div>
+        </div>
+        <div class="rating-pt pt-gold">+3pt</div>
+      </div>
+      <div class="rating-item">
+        <div class="rating-badge">⭐⭐</div>
+        <div class="rating-info">
+          <div class="rating-label">あと少し</div>
+          <div class="rating-desc">もう少しでできそうなとき</div>
+        </div>
+        <div class="rating-pt pt-blue">+1pt</div>
+      </div>
+      <div class="rating-item">
+        <div class="rating-badge">🌱</div>
+        <div class="rating-info">
+          <div class="rating-label">土台づくり中</div>
+          <div class="rating-desc">まだ練習が必要なとき</div>
+        </div>
+        <div class="rating-pt pt-gray">+0pt</div>
+      </div>
+    </div>
+
+    <h3>マスター達成の条件</h3>
+    <div class="master-rule">
+      <div class="mr-title">🏆 マスター条件</div>
+      <p style="margin:0;font-size:.9rem;"><strong>3回全部⭐⭐⭐</strong> → 即マスター！（一発マスター⚡）<br>
+      <strong>累計10pt以上 かつ 最後の試技が⭐⭐⭐</strong> → マスター達成</p>
+    </div>
+
+    <div class="highlight hl-gold">
+      <strong>🌱 土台づくりモードについて：</strong> 2ヶ月連続で全回🌱になった場合、その技は「土台づくり中」モードになります。ポイントはリセットされず、基礎練習に切り替えるサインです。
+    </div>
+
+    <h3>ポイントの見方</h3>
+    <p>マイページの「スキル記録」に技ごとのポイントバーが表示されます。10ptでゲージが満タンになりマスター達成です。</p>
+  </section>
+
+  <!-- ④ ジョブ・キャラクター -->
+  <section id="job">
+    <div class="sec-label">04 / JOB SYSTEM</div>
+    <h2>ジョブ（クラス）について</h2>
+    <p>お子さんは最初「ルーキー」からスタートし、技をマスターするにつれてジョブが進化します。ジョブはキャラクターの見た目や得意なジャンルが変わります。</p>
+
+    <h3>ジョブの進化ルート</h3>
+    <div class="highlight hl-blue">
+      <strong>入門</strong>　ルーキー（シバッチ）<br>
+      ↓ ルーキーの技を全マスターで自動昇格<br>
+      <strong>初級</strong>　チャレンジャー（グラン）<br>
+      ↓ チャレンジャーの技を全マスターで選択<br>
+      <strong>中級（6種類から選ぶ）</strong><br>
+      ↓ 中級ジョブの技を全マスターで選択<br>
+      <strong>上級（3種類）</strong>
+    </div>
+
+    <h3>中級ジョブ一覧</h3>
+    <div class="job-grid">
+      <div class="job-card" style="border-color:rgba(187,51,255,.3);background:rgba(187,51,255,.04);">
+        <div class="jc-tag" style="color:#bb33ff;">反射</div>
+        <div class="jc-name">ニンジャ</div>
+        <div class="jc-desc">素早い動きが得意</div>
+      </div>
+      <div class="job-card" style="border-color:rgba(0,204,238,.3);background:rgba(0,204,238,.04);">
+        <div class="jc-tag" style="color:#00ccee;">跳躍</div>
+        <div class="jc-name">エア・ライダー</div>
+        <div class="jc-desc">高く跳ぶ技が得意</div>
+      </div>
+      <div class="job-card" style="border-color:rgba(51,204,85,.3);background:rgba(51,204,85,.04);">
+        <div class="jc-tag" style="color:#33cc55;">バランス</div>
+        <div class="jc-name">コア・マスター</div>
+        <div class="jc-desc">倒立・静止技が得意</div>
+      </div>
+      <div class="job-card" style="border-color:rgba(255,119,34,.3);background:rgba(255,119,34,.04);">
+        <div class="jc-tag" style="color:#ff7722;">美しさ</div>
+        <div class="jc-name">パフォーマー</div>
+        <div class="jc-desc">表現・演技が得意</div>
+      </div>
+      <div class="job-card" style="border-color:rgba(102,85,255,.3);background:rgba(102,85,255,.04);">
+        <div class="jc-tag" style="color:#6655ff;">柔軟</div>
+        <div class="jc-name">ウォーター・フロー</div>
+        <div class="jc-desc">柔軟・流れる動きが得意</div>
+      </div>
+      <div class="job-card" style="border-color:rgba(255,51,51,.3);background:rgba(255,51,51,.04);">
+        <div class="jc-tag" style="color:#ff3333;">パワー</div>
+        <div class="jc-name">ストライカー</div>
+        <div class="jc-desc">力強い技が得意</div>
+      </div>
+    </div>
+
+    <h3>バッジ・称号について</h3>
+    <p>続けた期間や習得した技の数に応じてバッジが自動でもらえます。先生から「あいさつ名人」「あきらめない心」などの姿勢バッジがもらえることもあります。</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;">
+      <span class="tag tag-gold">🗓️ 3ヶ月の冒険者</span>
+      <span class="tag tag-gold">🌟 半年の勇者</span>
+      <span class="tag tag-gold">👑 1年の伝説</span>
+      <span class="tag tag-blue">⚔️ チャレンジャー</span>
+      <span class="tag tag-blue">🏅 初マスター</span>
+      <span class="tag tag-green">👋 あいさつ名人</span>
+      <span class="tag tag-green">💪 あきらめない心</span>
+      <span class="tag tag-purple">⚡ 一発マスター！</span>
+    </div>
+  </section>
+
+  <!-- ⑤ 保護者ページ -->
+  <section id="parent">
+    <div class="sec-label">05 / PARENT PAGE</div>
+    <h2>保護者ページの使い方</h2>
+    <p>マイページ下部の「👪 保護者ページ」から専用ページに移動できます。</p>
+
+    <div class="card" style="margin-bottom:.8rem;">
+      <h3 style="margin-top:0;">📊 成長レポートのダウンロード</h3>
+      <p style="margin-bottom:0;">「成長レポートをDL」ボタンを押すと、HTMLファイルとしてダウンロードできます。マスター技・挑戦中の技・先生コメント・次のおすすめがまとまっています。</p>
+    </div>
+
+    <div class="card" style="margin-bottom:.8rem;">
+      <h3 style="margin-top:0;">📋 LINE用レポートのコピー</h3>
+      <p style="margin-bottom:0;">「LINEレポートをコピー」ボタンで、テキスト形式のレポートをクリップボードにコピーできます。そのままLINEに貼り付けて共有できます。</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">🏠 おうちサポートのヒント</h3>
+      <p style="margin-bottom:0;">挑戦中の技や土台づくり中の技に応じて、おうちでできる声かけのヒントが表示されます。</p>
+    </div>
+
+    <div class="highlight hl-green">
+      <strong>💡 おすすめ：</strong> レッスン後にお子さんと一緒にマイページを開いて、今日の練習をふり返ってみてください。「これマスターしたの？すごい！」の一言が大きなモチベーションになります。
+    </div>
+  </section>
+
+  <!-- ⑥ 先生からのメッセージ -->
+  <section id="message">
+    <div class="sec-label">06 / MESSAGE</div>
+    <h2>先生からのメッセージ</h2>
+    <p>先生からメッセージが届くと、マイページのタイムラインに表示されます。未読のメッセージには🔴マークが付きます。</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">マイページを開く</div>
+        <div class="step-desc">ログイン後のマイページに「タイムライン」があります。</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">メッセージをタップ</div>
+        <div class="step-desc">「💬 先生からのメッセージ」の項目をタップすると全文が表示されます。</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">既読になります</div>
+        <div class="step-desc">タップした時点で既読になります。保護者ページでも最新3件が確認できます。</div>
+      </div>
+    </div>
+
+    <div class="highlight hl-blue">
+      <strong>📅 タイムラインについて：</strong> メッセージだけでなく、技をマスターした記録も月ごとにタイムラインに表示されます。成長の記録としてふり返りに使えます。
+    </div>
+  </section>
+
+  <!-- ⑦ FAQ -->
+  <section id="faq">
+    <div class="sec-label">07 / FAQ</div>
+    <h2>よくある質問</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">ポイントはどのタイミングで入力されますか？</button>
+      <div class="faq-a">毎月のテストが行われた後、先生が管理者パネルから入力します。テスト後数日以内にマイページへ反映されます。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">写真はどこで確認できますか？</button>
+      <div class="faq-a">お子さんのマイページにある写真フレームに、本人またはキャラクター画像が表示されます。📷ボタンから写真の変更もできます。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">ジョブはいつ変わりますか？</button>
+      <div class="faq-a">そのジョブの技を全てマスターすると、次のテスト結果を保存したタイミングで自動的にジョブチェンジの演出が起きます。チャレンジャー以降は複数のジョブから選ぶことができます。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">土台づくり中になっても大丈夫ですか？</button>
+      <div class="faq-a">大丈夫です。「土台づくり中」は先生からの「基礎をじっくり固めましょう」というサインです。ポイントはリセットされず、段階的に取り組んでいきます。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">スマホからも使えますか？</button>
+      <div class="faq-a">はい、スマートフォンに対応しています。SafariやChromeでURLを開いてご利用ください。「ホーム画面に追加」するとアプリのように素早くアクセスできます。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">データはどこに保存されていますか？</button>
+      <div class="faq-a">データはクラウド（Google Firebase）に安全に保存されています。お子さんの情報は教室内のみで使用します。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">バッジはどうすればもらえますか？</button>
+      <div class="faq-a">継続バッジ（3・6・12ヶ月）や挑戦バッジ（マスター数）は自動で付与されます。あいさつ・姿勢バッジは先生が手動で付与します。</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">全国リアルタイムログって何ですか？</button>
+      <div class="faq-a">全国のJUMPUPクエスト受講者が技をマスターすると、タイトル画面に「〇〇さんが△△をマスター！」とリアルタイムで表示されます。みんなで盛り上がれる機能です。</div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <p style="margin-bottom:.8rem;">わからないことは先生までお気軽にどうぞ。</p>
+  <a href="https://taikikurono-art.github.io/jumpupquest/">▶ クエストに戻る</a>
+</footer>
+
+<script>
+function toggleFaq(btn){
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+</script>
+</body>
+</html>
