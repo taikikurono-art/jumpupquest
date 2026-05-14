@@ -20,8 +20,6 @@ let _fb={
 let fbLoaded=false;
 async function loadFirebase(){
   if(fbLoaded)return;
-  // firebase.jsはindex.htmlのtype="module"スクリプトでwindow._fbModuleに格納済み
-  // モジュール読み込み完了を待つ（最大3秒）
   let waited=0;
   while(!window._fbModule&&waited<3000){
     await new Promise(r=>setTimeout(r,100));
@@ -519,6 +517,7 @@ function renderStatus(c){
 
   // ===== TROPHY =====
   const masteredJobs=new Set();
+  SKILL_MAP.forEach(([skillName,jobKey])=>{
     const rec=recs[skillName];
     if(rec&&rec.mastered) masteredJobs.add(jobKey);
   });
@@ -980,11 +979,9 @@ function renderLegend(){
   if(curJob!=='all'){document.getElementById('mapLegend').innerHTML='';return;}
   document.getElementById('mapLegend').innerHTML=Object.entries(JOBS).filter(([k])=>k!=='next'&&SKILL_MAP.some(([,j])=>j===k)).map(([,j])=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--text2);"><div style="width:10px;height:10px;background:${j.color};border-radius:50%;box-shadow:0 0 4px ${j.color}88;"></div>${j.name}</div>`).join('');
 }
-};
+function isLight(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return(r*299+g*587+b*114)/1000>130;}
+function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-50).toString(16).padStart(2,'0')).join('');}
 
-function getSkillMeta(skillName){
-  return SKILL_META[skillName] || null;
-}
 // ======== バッジ・称号システム ========
 const BADGES = [
   // 継続バッジ
@@ -1023,6 +1020,7 @@ function countMastered(c){
 function masteredJobCount(c){
   const recs=c.skillRecords||{};
   const jobs=new Set();
+  SKILL_MAP.forEach(([n,jk])=>{ if(recs[n]&&recs[n].mastered) jobs.add(jk); });
   return jobs.size;
 }
 function hasInstantMaster(c){
@@ -1182,9 +1180,9 @@ async function saveBulkVideos(){
   localStorage.setItem('jq_videos', JSON.stringify(videos));
   await _fb.saveVideosBulk(videos);
   if(statusEl) statusEl.textContent = `✅ ${Object.keys(videos).length}本の動画URLを全デバイスに保存しました！`;
-    guildName:'JUMPUPクエスト',emoji:'⚔️',greeting:'今日も全力で挑戦しよう！',
-    themeColor:'#00e5ff',accentColor:'#ffd700',teacherChar:'👩‍🏫',
-  };
+  showToast(`✅ 動画URL ${Object.keys(videos).length}本を一括保存しました！`);
+  // ボーダーをリセット
+  document.querySelectorAll('#bulkVideoContent input[data-skill]').forEach(i=>i.style.borderColor='');
 }
 
 // ======== ADMIN ========
@@ -1490,18 +1488,15 @@ async function saveResult(){
   c.skills=Object.entries(c.skillRecords).filter(([,r])=>r.mastered).map(([sk])=>sk);
   showToast('💾 保存中...');await saveTestToGAS(c,testDate);
   if(newMasters.length>0){
-    // 全国進捗ログに投稿
     for(const m of newMasters){ await postMasterLog(c, m.name, m.instant); }
-    const masterDelay = newMasters.length * 3200 + 500;
-    newMasters_delay = masterDelay;
+    const masterDelay=newMasters.length*3200+500;
+    newMasters_delay=masterDelay;
     setTimeout(()=>{
       newMasters.forEach((m,i)=>setTimeout(()=>showMasterBanner(m.name,m.instant),i*3200));
       showToast(`🏆 マスター！${newMasters.map(m=>m.name).join('・')}`);
     },500);
-    // マスター演出が終わった後にジョブチェンジチェック
-    setTimeout(()=>checkAndShowJobChange(c), masterDelay + 500);
+    setTimeout(()=>checkAndShowJobChange(c),masterDelay+500);
   } else {
-    // マスターなしでもジョブチェンジチェック（念のため）
     checkAndShowJobChange(c);
   }
   showToast('✅ 保存完了！');
@@ -1833,190 +1828,103 @@ function showMasterBanner(skillName,isInstant=false){
   launchConfetti(isInstant?60:40);
 }
 
+
 // ======== ジョブチェンジシステム ========
-
-// ジョブチェンジ条件チェック
 function checkJobChange(c){
-  const recs = c.skillRecords || {};
-  const currentJob = c.job;
-
-  // rookie → challenger：rookie技を全マスター
-  if(currentJob === 'rookie'){
-    const rookieSkills = SKILL_MAP.filter(([,j])=>j==='rookie').map(([n])=>n);
-    const allMastered = rookieSkills.every(sk => recs[sk]?.mastered);
-    if(allMastered) return { type:'auto', nextJob:'challenger' };
+  const recs=c.skillRecords||{};
+  const currentJob=c.job;
+  if(currentJob==='rookie'){
+    const rookieSkills=SKILL_MAP.filter(([,j])=>j==='rookie').map(([n])=>n);
+    if(rookieSkills.every(sk=>recs[sk]?.mastered)) return{type:'auto',nextJob:'challenger'};
   }
-
-  // challenger → 中級（選択式）：challenger技を全マスター
-  if(currentJob === 'challenger'){
-    const challengerSkills = SKILL_MAP.filter(([,j])=>j==='challenger').map(([n])=>n);
-    const allMastered = challengerSkills.every(sk => recs[sk]?.mastered);
-    if(allMastered) return { type:'select', candidates:['ninja','airrider','coremaster','performer','waterflow','striker'] };
+  if(currentJob==='challenger'){
+    const challengerSkills=SKILL_MAP.filter(([,j])=>j==='challenger').map(([n])=>n);
+    if(challengerSkills.every(sk=>recs[sk]?.mastered)) return{type:'select',candidates:['ninja','airrider','coremaster','performer','waterflow','striker']};
   }
-
-  // 中級 → 上級（選択式）：その中級ジョブ技を全マスター
-  const midJobs = ['ninja','airrider','coremaster','performer','waterflow','striker'];
+  const midJobs=['ninja','airrider','coremaster','performer','waterflow','striker'];
   if(midJobs.includes(currentJob)){
-    const jobSkills = SKILL_MAP.filter(([,j])=>j===currentJob).map(([n])=>n);
-    const allMastered = jobSkills.every(sk => recs[sk]?.mastered);
-    if(allMastered){
-      // 上級ジョブの対応関係
-      const advancedMap = {
-        ninja:      ['tracerunner','airmaster'],
-        airrider:   ['tracerunner','airmaster'],
-        coremaster: ['tracerunner','illusionist'],
-        performer:  ['airmaster','illusionist'],
-        waterflow:  ['airmaster','illusionist'],
-        striker:    ['tracerunner','airmaster'],
-      };
-      return { type:'select', candidates: advancedMap[currentJob] || ['tracerunner','airmaster','illusionist'] };
+    const jobSkills=SKILL_MAP.filter(([,j])=>j===currentJob).map(([n])=>n);
+    if(jobSkills.every(sk=>recs[sk]?.mastered)){
+      const advMap={ninja:['tracerunner','airmaster'],airrider:['tracerunner','airmaster'],coremaster:['tracerunner','illusionist'],performer:['airmaster','illusionist'],waterflow:['airmaster','illusionist'],striker:['tracerunner','airmaster']};
+      return{type:'select',candidates:advMap[currentJob]||['tracerunner','airmaster','illusionist']};
     }
   }
-
   return null;
 }
-
-// ジョブチェンジ実行（自動）
-async function executeJobChange(c, nextJob){
-  c.job = nextJob;
+async function executeJobChange(c,nextJob){
+  c.job=nextJob;
   await saveCharsToGAS(c);
-  if(currentUser?.id === c.id) currentUser = c;
+  if(currentUser?.id===c.id) currentUser=c;
 }
-
-// ジョブチェンジバナーを表示（自動昇格用）
-function showJobChangeBanner(c, nextJob, onClose){
-  const j = JOBS[nextJob];
-  const overlay = document.createElement('div');
-  overlay.className = 'jobchange-overlay';
-
-  const spriteHTML = SPRITES[nextJob]
-    ? `<img src="${SPRITES[nextJob]}" class="jobchange-sprite" alt="${j.name}">`
-    : `<div style="font-size:5rem;margin-bottom:.8rem;">${j.emoji}</div>`;
-
-  overlay.innerHTML = `
-    <div class="jobchange-box">
-      <div class="jobchange-title">✨ JOB CHANGE ✨</div>
-      ${spriteHTML}
-      <div class="jobchange-name" style="color:${j.color};">${j.name}</div>
-      <div class="jobchange-genre" style="color:${j.color};">${j.genre}</div>
-      <div class="jobchange-desc">${j.desc}</div>
-      <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;" id="jobchangeCloseBtn">
-        ▶ ${c.name}の新たな冒険が始まる！
-      </button>
-    </div>`;
-
+function showJobChangeBanner(c,nextJob,onClose){
+  const j=JOBS[nextJob];
+  const overlay=document.createElement('div');
+  overlay.className='jobchange-overlay';
+  const spriteHTML=SPRITES[nextJob]?`<img src="${SPRITES[nextJob]}" class="jobchange-sprite" alt="${j.name}">`:`<div style="font-size:5rem;margin-bottom:.8rem;">${j.emoji}</div>`;
+  overlay.innerHTML=`<div class="jobchange-box">
+    <div class="jobchange-title">✨ JOB CHANGE ✨</div>
+    ${spriteHTML}
+    <div class="jobchange-name" style="color:${j.color};">${j.name}</div>
+    <div class="jobchange-genre" style="color:${j.color};">${j.genre}</div>
+    <div class="jobchange-desc">${j.desc}</div>
+    <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;" id="jobchangeCloseBtn">▶ ${c.name}の新たな冒険が始まる！</button>
+  </div>`;
   document.body.appendChild(overlay);
   launchConfetti(80);
-
-  document.getElementById('jobchangeCloseBtn').onclick = () => {
-    overlay.remove();
-    if(onClose) onClose();
-  };
+  document.getElementById('jobchangeCloseBtn').onclick=()=>{overlay.remove();if(onClose)onClose();};
 }
-
-// ジョブ選択画面を表示（チャレンジャー→中級、中級→上級）
-function showJobSelectBanner(c, candidates, onSelect){
-  const overlay = document.createElement('div');
-  overlay.className = 'jobchange-overlay';
-
-  const cardsHTML = candidates.map(jk => {
-    const j = JOBS[jk];
-    const spriteHTML = SPRITES[jk]
-      ? `<img src="${SPRITES[jk]}" alt="${j.name}">`
-      : `<div style="font-size:2.5rem;margin-bottom:.3rem;">${j.emoji}</div>`;
-    return `
-      <div class="job-select-card" data-job="${jk}" style="border-color:${j.color}44;"
-        onclick="selectJobCard(this,'${jk}')">
-        ${spriteHTML}
-        <div class="jsc-name" style="color:${j.color};">${j.name}</div>
-        <div class="jsc-genre">${j.genre}</div>
-      </div>`;
+function showJobSelectBanner(c,candidates,onSelect){
+  const overlay=document.createElement('div');
+  overlay.className='jobchange-overlay';
+  const cardsHTML=candidates.map(jk=>{
+    const j=JOBS[jk];
+    const spriteHTML=SPRITES[jk]?`<img src="${SPRITES[jk]}" alt="${j.name}">`:`<div style="font-size:2.5rem;margin-bottom:.3rem;">${j.emoji}</div>`;
+    return `<div class="job-select-card" data-job="${jk}" style="border-color:${j.color}44;" onclick="selectJobCard(this,'${jk}')">${spriteHTML}<div class="jsc-name" style="color:${j.color};">${j.name}</div><div class="jsc-genre">${j.genre}</div></div>`;
   }).join('');
-
-  overlay.innerHTML = `
-    <div class="jobchange-box">
-      <div class="jobchange-title">⚔️ JOB SELECT ⚔️</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1rem;line-height:1.7;">
-        ${c.name}よ、次のジョブを選べ！<br>
-        <span style="font-family:'Press Start 2P',monospace;font-size:.3rem;">どのジョブに進化する？</span>
-      </div>
-      <div class="job-select-grid" id="jobSelectGrid">${cardsHTML}</div>
-      <div id="jobSelectDesc" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;color:var(--text2);min-height:2.5rem;margin-bottom:.8rem;line-height:1.7;"></div>
-      <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;opacity:.4;" id="jobSelectConfirmBtn" disabled
-        onclick="confirmJobSelect()">
-        ▶ このジョブに進化する！
-      </button>
-    </div>`;
-
+  overlay.innerHTML=`<div class="jobchange-box">
+    <div class="jobchange-title">⚔️ JOB SELECT ⚔️</div>
+    <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1rem;line-height:1.7;">${c.name}よ、次のジョブを選べ！<br><span style="font-family:'Press Start 2P',monospace;font-size:.3rem;">どのジョブに進化する？</span></div>
+    <div class="job-select-grid" id="jobSelectGrid">${cardsHTML}</div>
+    <div id="jobSelectDesc" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;color:var(--text2);min-height:2.5rem;margin-bottom:.8rem;line-height:1.7;"></div>
+    <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;opacity:.4;" id="jobSelectConfirmBtn" disabled onclick="confirmJobSelect()">▶ このジョブに進化する！</button>
+  </div>`;
   document.body.appendChild(overlay);
-
-  // 選択状態を管理
-  window._jobSelectTarget = c;
-  window._jobSelectCallback = onSelect;
-  window._selectedJob = null;
+  window._jobSelectTarget=c;
+  window._jobSelectCallback=onSelect;
+  window._selectedJob=null;
 }
-
-function selectJobCard(el, jobKey){
-  // 全カードの選択解除
-  document.querySelectorAll('.job-select-card').forEach(c => {
+function selectJobCard(el,jobKey){
+  document.querySelectorAll('.job-select-card').forEach(c=>{
     c.classList.remove('selected');
-    const jk = c.dataset.job;
-    const j = JOBS[jk];
-    c.style.borderColor = j.color+'44';
-    c.style.background = 'var(--bg)';
+    const jk=c.dataset.job;const j=JOBS[jk];
+    c.style.borderColor=j.color+'44';c.style.background='var(--bg)';
   });
-  // 選択中カードをハイライト
-  const j = JOBS[jobKey];
-  el.classList.add('selected');
-  el.style.borderColor = j.color;
-  el.style.background = j.color+'18';
-  // 説明文を更新
-  document.getElementById('jobSelectDesc').textContent = j.desc;
-  // 確定ボタンを有効化
-  const btn = document.getElementById('jobSelectConfirmBtn');
-  btn.disabled = false;
-  btn.style.opacity = '1';
-  window._selectedJob = jobKey;
+  const j=JOBS[jobKey];
+  el.classList.add('selected');el.style.borderColor=j.color;el.style.background=j.color+'18';
+  document.getElementById('jobSelectDesc').textContent=j.desc;
+  const btn=document.getElementById('jobSelectConfirmBtn');
+  btn.disabled=false;btn.style.opacity='1';
+  window._selectedJob=jobKey;
 }
-
 async function confirmJobSelect(){
-  const jobKey = window._selectedJob;
-  const c = window._jobSelectTarget;
-  const callback = window._jobSelectCallback;
-  if(!jobKey || !c) return;
-
-  // ジョブ変更実行
-  await executeJobChange(c, jobKey);
-
-  // 選択画面を閉じてジョブチェンジバナーを表示
+  const jobKey=window._selectedJob;const c=window._jobSelectTarget;const callback=window._jobSelectCallback;
+  if(!jobKey||!c)return;
+  await executeJobChange(c,jobKey);
   document.querySelector('.jobchange-overlay')?.remove();
-  showJobChangeBanner(c, jobKey, callback);
+  showJobChangeBanner(c,jobKey,callback);
 }
-
-// saveResult後にジョブチェンジチェックを行う
 async function checkAndShowJobChange(c){
-  const result = checkJobChange(c);
-  if(!result) return;
-
-  if(result.type === 'auto'){
-    // 自動昇格（rookie→challenger）
-    await executeJobChange(c, result.nextJob);
-    setTimeout(() => {
-      showJobChangeBanner(c, result.nextJob, ()=>{
-        renderStatus(c);
-      });
-    }, newMasters_delay || 500);
-  } else if(result.type === 'select'){
-    // 選択式昇格
-    setTimeout(() => {
-      showJobSelectBanner(c, result.candidates, ()=>{
-        renderStatus(c);
-      });
-    }, newMasters_delay || 500);
+  const result=checkJobChange(c);
+  if(!result)return;
+  if(result.type==='auto'){
+    await executeJobChange(c,result.nextJob);
+    setTimeout(()=>showJobChangeBanner(c,result.nextJob,()=>renderStatus(c)),newMasters_delay||500);
+  } else if(result.type==='select'){
+    setTimeout(()=>showJobSelectBanner(c,result.candidates,()=>renderStatus(c)),newMasters_delay||500);
   }
 }
-let newMasters_delay = 0;
-
+let newMasters_delay=0;
+// ======== テンプレコメント ========
 function insertTemplate(text){
   const el=document.getElementById('msgBody');
   if(!el)return;
@@ -2480,6 +2388,17 @@ function renderEventBanner(event){
   `;
 }
 
+// イベント対象技セレクトのoptgroup生成（CSP対応でIIFE不使用）
+function buildSkillOptions(){
+  const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
+  const grouped={};
+  SKILL_MAP.forEach(([n,jk])=>{if(!grouped[jk])grouped[jk]=[];grouped[jk].push(n);});
+  return jobOrder.filter(jk=>grouped[jk]).map(jk=>{
+    const jb=JOBS[jk];
+    return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</optgroup>`;
+  }).join('');
+}
+
 function renderEventAdmin(event){
   const el = document.getElementById('eventAdminForm');
   if(!el) return;
@@ -2511,14 +2430,7 @@ function renderEventAdmin(event){
         <label class="form-lbl">イベント対象技（任意）</label>
         <select class="fselect" id="evSkill">
           <option value="">-- 技を指定しない --</option>
-          ${(() => {
-            const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
-            const grouped={};
-            return jobOrder.filter(jk=>grouped[jk]).map(jk=>{
-              const jb=JOBS[jk];
-              return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</optgroup>`;
-            }).join('');
-          })()}
+          ${buildSkillOptions()}
         </select>
       </div>
       <div class="admin-grid2" style="margin-bottom:.7rem;">
