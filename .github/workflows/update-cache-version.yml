@@ -1,0 +1,38 @@
+name: Update cache version
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data.js'
+      - 'main_core.js'
+      - 'firebase.js'
+      - 'style.css'
+      - 'guide.html'
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate version string
+        id: version
+        run: echo "VER=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Update version in index.html
+        run: |
+          VER="${{ steps.version.outputs.VER }}"
+          sed -i "s|style\.css?v=[0-9-]*|style.css?v=${VER}|g" index.html
+          sed -i "s|data\.js?v=[0-9-]*|data.js?v=${VER}|g" index.html
+          sed -i "s|firebase\.js?v=[0-9-]*|firebase.js?v=${VER}|g" index.html
+          sed -i "s|main_core\.js?v=[0-9-]*|main_core.js?v=${VER}|g" index.html
+          echo "Updated version to ${VER}"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --staged --quiet || git commit -m "chore: update cache version to ${{ steps.version.outputs.VER }} [skip ci]"
+          git push
