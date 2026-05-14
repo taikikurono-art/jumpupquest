@@ -11,20 +11,20 @@
 
 <!-- ==================== TITLE ==================== -->
 <div class="page active fadein" id="pg-title">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;text-align:center;">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:1.2rem 1rem 2rem;text-align:center;overflow-y:auto;">
     <img
       src="logo.png"
       alt="JUMPUP QUEST SKILL ADVENTURE"
       style="
-        width:min(420px,92vw);
+        width:min(360px,85vw);
         height:auto;
-        margin-bottom:1.8rem;
+        margin-bottom:1rem;
         filter:drop-shadow(0 0 24px rgba(255,140,0,.5)) drop-shadow(0 4px 16px rgba(0,0,0,.8));
         animation:titleGlow 2s ease-in-out infinite alternate;
       "
     >
     <div id="titleCharaWrap" style="
-      height:140px;margin-bottom:1.2rem;
+      height:100px;margin-bottom:.8rem;
       display:flex;align-items:center;justify-content:center;
       position:relative;
     ">
@@ -32,7 +32,7 @@
         src=""
         alt=""
         style="
-          height:130px;width:auto;
+          height:90px;width:auto;
           image-rendering:pixelated;
           filter:drop-shadow(0 0 18px rgba(0,229,255,.45)) drop-shadow(0 4px 12px rgba(0,0,0,.7));
           animation:bob 1.5s ease-in-out infinite alternate;
@@ -56,9 +56,9 @@
         <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
       </button>
       <div class="menu-sep"></div>
-      <button class="menu-item view-all" onclick="window.open('guide.html','_blank')" style="border-color:rgba(0,229,255,.3);color:var(--teal);font-size:.38rem;">
+      <a href="guide.html" target="_blank" class="menu-item view-all" style="border-color:rgba(0,229,255,.3);color:var(--teal);font-size:.38rem;text-decoration:none;display:flex;align-items:center;">
         <span class="menu-arrow" style="font-size:.7rem;">▶</span>📖 保護者ガイドブック
-      </button>
+      </a>
     </div>
     <div id="gasStatusTitle">🟡 接続中...</div>
   </div>
