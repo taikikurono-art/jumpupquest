@@ -266,6 +266,14 @@ async function createNewChar(){
   const name=document.getElementById('newName').value.trim();
   const err=document.getElementById('newCharErr');
   if(!name){err.textContent='なまえを入れてね！';err.style.display='block';return;}
+
+  // GASから最新データを取得して重複チェック
+  try{
+    const res=await fetch(GAS_URL+'?action=getAll');
+    const data=await res.json();
+    if(data.chars) chars=data.chars; // 最新データで更新
+  }catch(e){}
+
   if(chars.find(c=>c.name===name)){err.textContent='そのなまえはもう使われているよ！';err.style.display='block';return;}
   err.style.display='none';
   // IDをタイムスタンプベースで生成（端末間の重複を防ぐ）
