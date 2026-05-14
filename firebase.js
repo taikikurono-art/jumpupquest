@@ -159,7 +159,6 @@ export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, 
   fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
   fbPostAdminLog, fbWatchAdminLog };
 
-// ======== 管理者操作ログ ========
 async function fbPostAdminLog(entry){
   if(!fbReady)return;
   try{
@@ -181,3 +180,8 @@ function fbWatchAdminLog(callback,limitCount=50){
     });
   }catch(e){console.warn('fbWatchAdminLog error',e);return ()=>{};}
 }
+
+export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
+  fbPostActivityLog, fbWatchActivityLog,
+  fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
+  fbPostAdminLog, fbWatchAdminLog };
