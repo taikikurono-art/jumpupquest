@@ -66,7 +66,16 @@ let gasReady=false;
 let currentUser=null;
 let prevPage='pg-title';
 
-function saveChars(){localStorage.setItem('jq5',JSON.stringify(chars));}
+function cleanupOrphanedData(){
+  const photoKeys = Object.keys(localStorage).filter(k=>k.startsWith('jq_photo_')||k.startsWith('jq_useSprite_'));
+  photoKeys.forEach(key=>{
+    const charId = key.replace('jq_photo_','').replace('jq_useSprite_','');
+    if(!chars.find(c=>c.id===charId)){
+      localStorage.removeItem(key);
+      console.log('古い写真データを削除:', key);
+    }
+  });
+}
 async function initGAS(){
   if(!GAS_URL){showGasStatus('offline');return;}
   try{
@@ -80,6 +89,7 @@ async function initGAS(){
       gasReady=true;
       showGasStatus('online');
       console.log('GAS: '+data.chars.length+'件読み込み（正データ）');
+      cleanupOrphanedData();
     } else {
       gasReady=true;
       showGasStatus('online');
@@ -164,18 +174,6 @@ window.addEventListener('online',()=>{showToast('🟢 オンラインに復帰�
 window.addEventListener('load',()=>{
   loadFirebase();
   initGAS();
-
-  // 起動時クリーンアップ：存在しないキャラの写真データを削除
-  setTimeout(()=>{
-    const photoKeys = Object.keys(localStorage).filter(k=>k.startsWith('jq_photo_')||k.startsWith('jq_useSprite_'));
-    photoKeys.forEach(key=>{
-      const charId = key.replace('jq_photo_','').replace('jq_useSprite_','');
-      if(!chars.find(c=>c.id===charId)){
-        localStorage.removeItem(key);
-        console.log('古い写真データを削除:', key);
-      }
-    });
-  }, 3000); // GAS読み込み完了後に実行
   // タイトルキャラをSPRITES画像でローテーション
   const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
   let i=0;
