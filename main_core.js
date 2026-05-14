@@ -34,8 +34,16 @@ let _fb={
 let fbLoaded=false;
 async function loadFirebase(){
   if(fbLoaded)return;
+  // firebase.jsはindex.htmlのtype="module"スクリプトでwindow._fbModuleに格納済み
+  // モジュール読み込み完了を待つ（最大3秒）
+  let waited=0;
+  while(!window._fbModule&&waited<3000){
+    await new Promise(r=>setTimeout(r,100));
+    waited+=100;
+  }
+  if(!window._fbModule){console.warn('Firebase module not loaded, falling back to GAS');return;}
   try{
-    const m=await import('./firebase.js');
+    const m=window._fbModule;
     await m.fbInit();
     _fb={
       saveChar:m.fbSaveChar,
@@ -53,15 +61,12 @@ async function loadFirebase(){
     fbLoaded=true;
     const fbChars=await m.fbGetAll();
     if(fbChars&&fbChars.length>0){chars=fbChars;saveChars();showGasStatus('online');console.log('Firebase: '+fbChars.length+'件読み込み');}
-    // 動画URLをFirestoreから読み込み（ローカルより優先）
     const fbVideos=await _fb.getVideos();
     if(fbVideos&&Object.keys(fbVideos).length>0){
       localStorage.setItem('jq_videos',JSON.stringify(fbVideos));
       console.log('Firebase: 動画URL '+Object.keys(fbVideos).length+'件読み込み');
     }
-    // 全国進捗ログのウォッチ開始
     startActivityLogWatch();
-    // ギルドイベントのウォッチ開始
     startEventWatch();
   }catch(e){console.warn('Firebase失敗（GASで継続）',e);}
 }

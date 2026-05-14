@@ -495,6 +495,13 @@
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
 <script src="data.js"></script>
+<script type="module">
+  import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
+    fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent
+  } from './firebase.js';
+  window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
+    fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent };
+</script>
 <script src="main_core.js"></script>
 </body>
 </html>
