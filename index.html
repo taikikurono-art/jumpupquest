@@ -341,7 +341,7 @@
         </div>
 
         <!-- 新規登録 -->
-        <div class="pp">
+        <div class="pp" style="margin-bottom:1.1rem;">
           <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
             <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
@@ -349,6 +349,29 @@
             <div><label class="form-lbl">冒険者ID</label><input class="pinput" id="nId" placeholder="JU-001" style="width:100%;"></div>
           </div>
           <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
+        </div>
+
+        <!-- アーカイブ・削除管理 -->
+        <div class="pp">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">📂 在籍管理・削除</div>
+          <div style="margin-bottom:.8rem;">
+            <label class="form-lbl">冒険者を選択</label>
+            <select class="fselect" id="delSel" style="width:100%;margin-bottom:.7rem;"><option value="">-- 選んでね --</option></select>
+            <label class="form-lbl">ステータス変更</label>
+            <select class="fselect" id="archiveStatus" style="width:100%;margin-bottom:.7rem;">
+              <option value="active">✅ 在籍中</option>
+              <option value="leave">⏸️ 休会</option>
+              <option value="withdraw">📦 退会</option>
+              <option value="graduate">🎓 卒業</option>
+            </select>
+            <button class="pbtn btn-outline" onclick="archiveChar()" style="width:100%;margin-bottom:.9rem;">📂 ステータスを変更する</button>
+          </div>
+          <div style="border-top:2px solid var(--border);padding-top:.8rem;">
+            <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--pink);margin-bottom:.6rem;">⚠️ 完全削除（元に戻せません）</div>
+            <label class="form-lbl">確認のため名前を入力</label>
+            <input class="pinput" id="delConfirm" placeholder="冒険者の名前を入力" style="width:100%;margin-bottom:.7rem;">
+            <button class="pbtn btn-pink" onclick="deleteChar()" style="width:100%;">🗑️ 完全に削除する</button>
+          </div>
         </div>
       </div>
     </div>
