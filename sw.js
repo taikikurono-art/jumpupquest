@@ -1,13 +1,15 @@
 // ======== JUMPUPクエスト Service Worker ========
-const CACHE_NAME = 'jumpupquest-20260514-1516';
+const CACHE_NAME = 'jumpupquest-20260514-1700';
 const STATIC_ASSETS = [
   '/jumpupquest/',
   '/jumpupquest/index.html',
   '/jumpupquest/style.css',
-  '/jumpupquest/main_optimized_cleaned.js',
+  '/jumpupquest/data.js',
+  '/jumpupquest/main_core.js',
   '/jumpupquest/firebase.js',
+  '/jumpupquest/guide.html',
   '/jumpupquest/manifest.json',
-  '/jumpupquest/embedded_image_1.png',
+  '/jumpupquest/logo.png',
   '/jumpupquest/sprite_1.webp',
   '/jumpupquest/sprite_2.webp',
   '/jumpupquest/sprite_3.webp',
@@ -20,7 +22,6 @@ const STATIC_ASSETS = [
   '/jumpupquest/sprite_10.webp',
   '/jumpupquest/sprite_11.webp',
 ];
-
 // インストール時：静的ファイルをキャッシュ
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -29,7 +30,6 @@ self.addEventListener('install', e => {
       .then(() => self.skipWaiting())
   );
 });
-
 // アクティベート時：古いキャッシュを削除
 self.addEventListener('activate', e => {
   e.waitUntil(
@@ -38,11 +38,12 @@ self.addEventListener('activate', e => {
     ).then(() => self.clients.claim())
   );
 });
-
 // フェッチ：キャッシュ優先（静的）/ ネットワーク優先（API）
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+  // GETリクエストのみキャッシュ対象
+  if (e.request.method !== 'GET') return;
 
+  const url = new URL(e.request.url);
   // GAS・Firebase・YouTube は常にネットワーク
   if (
     url.hostname.includes('script.google.com') ||
@@ -54,7 +55,6 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('offline', { status: 503 })));
     return;
   }
-
   // 静的ファイル：キャッシュ優先
   e.respondWith(
     caches.match(e.request).then(cached => {
@@ -69,22 +69,16 @@ self.addEventListener('fetch', e => {
     })
   );
 });
-
 // ======== オフライン入力同期 ========
-// オンライン復帰時にペンディングデータをGASへ送信
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
-
 self.addEventListener('sync', e => {
   if (e.tag === 'sync-chars') {
     e.waitUntil(syncPendingChars());
   }
 });
-
 async function syncPendingChars() {
-  // ペンディングデータはIndexedDBに保存（main.jsから登録）
   const pending = await getPendingFromIDB();
   if (!pending || pending.length === 0) return;
-
   for (const item of pending) {
     try {
       await fetch(GAS_URL, {
@@ -98,8 +92,6 @@ async function syncPendingChars() {
     }
   }
 }
-
-// IndexedDB helpers
 function openIDB() {
   return new Promise((res, rej) => {
     const req = indexedDB.open('jumpupquest', 1);
