@@ -117,6 +117,9 @@
     <button class="st-nav-btn" onclick="goPage('pg-explorer')">
       <span class="nav-icon">🚪</span><span class="nav-label">冒険者一覧</span>
     </button>
+    <button class="st-nav-btn" onclick="goParentPage()" style="border-color:var(--pink);color:var(--pink);">
+      <span class="nav-icon">👪</span><span class="nav-label">保護者ページ</span>
+    </button>
   </div>
 
   <div class="st-content">
@@ -194,6 +197,75 @@
     </div>
     <div class="mail-modal-meta" id="mailModalMeta"></div>
     <div class="mail-modal-body" id="mailModalBody"></div>
+  </div>
+</div>
+
+<!-- ==================== PARENT PAGE ==================== -->
+<div class="page fadein" id="pg-parent">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goPage('pg-status')">◀ マイページへ</button>
+    <span class="nav-title">保護者ページ</span>
+  </div>
+  <div style="padding:1.2rem 0;">
+
+    <!-- キャラヘッダー -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+          <img id="parentSprite" src="" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;display:none;">
+          <span id="parentSpriteEmoji" style="font-size:3rem;display:none;"></span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:900;font-size:1.2rem;" id="parentName"></div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;padding:.2rem .5rem;border:2px solid;display:inline-block;margin:.3rem 0;" id="parentJob"></div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);" id="parentClass"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);">マスター技</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--gold);" id="parentMasterCnt">0技</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近の取り組み -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl">📋 最近の取り組み</div>
+      <div id="parentThisMonth"></div>
+    </div>
+
+    <!-- 技ごとの成長段階 -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl">📈 技の成長ステージ</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;" id="parentSkillStages"></div>
+    </div>
+
+    <!-- バッジ -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl">🏅 がんばりバッジ</div>
+      <div id="parentBadges"></div>
+    </div>
+
+    <!-- 先生コメント -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl">💬 先生からのメッセージ（最新3件）</div>
+      <div id="parentMessages"></div>
+    </div>
+
+    <!-- おうちサポート -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl">🏠 おうちでできるサポート</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.88rem;line-height:1.9;color:var(--text2);" id="parentHomeSupport"></div>
+    </div>
+
+    <!-- レポートDL・LINEコピー -->
+    <div class="pp">
+      <div class="sec-ttl">📊 レポート</div>
+      <div style="display:flex;flex-direction:column;gap:.6rem;">
+        <button class="pbtn btn-teal" onclick="openMonthlyReport()" style="width:100%;font-size:.45rem;">📊 成長レポートをDL（HTMLファイル）</button>
+        <button class="pbtn btn-outline" onclick="copyLINEReport()" style="width:100%;font-size:.45rem;">📋 LINE用レポートをコピー</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
