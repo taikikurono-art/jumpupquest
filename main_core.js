@@ -229,11 +229,12 @@ async function createNewChar(){
   err.style.display='none';
   const id='JU-'+(chars.length+1).toString().padStart(3,'0');
   const joinYear=parseInt(document.getElementById('newJoinYear').value)||new Date().getFullYear();
-  // 入会年から入会日を算出（入会年の1月1日を基準）
-  const joinDate=joinYear+'-01-01';
+  const joinMonth=parseInt(document.getElementById('newJoinMonth').value)||new Date().getMonth()+1;
+  const joinDate=`${joinYear}-${String(joinMonth).padStart(2,'0')}-01`;
   const newChar={id,name,sprite:'🐕',job:'rookie',level:1,exp:0,
     joinDate,
     joinYear,
+    joinMonth,
     classroom:document.getElementById('newClass').value,
     stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},
     skills:[],skillRecords:{},messages:[]};
@@ -1014,11 +1015,17 @@ const BADGES = [
 
 // バッジ計算ヘルパー
 function monthsSinceJoin(c){
-  // joinYearがあればそちらを優先（入会年から計算）
-  const baseYear = c.joinYear || (c.joinDate ? new Date(c.joinDate).getFullYear() : new Date().getFullYear());
   const now = new Date();
-  const joinDate = new Date(baseYear, 0, 1); // 入会年の1月1日
-  return (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+  // joinYear + joinMonth があれば正確に計算
+  if(c.joinYear && c.joinMonth){
+    return (now.getFullYear() - c.joinYear) * 12 + (now.getMonth() + 1 - c.joinMonth);
+  }
+  // joinDateがあればそこから計算
+  if(c.joinDate){
+    const join = new Date(c.joinDate);
+    return (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
+  }
+  return 0;
 }
 function countChallenged(c){
   return Object.keys(c.skillRecords||{}).length;
