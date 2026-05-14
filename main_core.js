@@ -155,6 +155,8 @@ window.addEventListener('load',()=>{
     }
     i++;
   }
+  setTimeout(()=>{nextChara();setInterval(nextChara,1400);},300);
+});
 
 // ======== STARS ========
 (()=>{const c=document.getElementById('stars');for(let i=0;i<90;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*5)+'s');s.style.setProperty('--delay',(Math.random()*5)+'s');c.appendChild(s);}})();
