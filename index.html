@@ -59,6 +59,9 @@
       <a href="guide.html" target="_blank" class="menu-item view-all" style="border-color:rgba(0,229,255,.3);color:var(--teal);text-decoration:none;display:flex;align-items:center;">
         <span class="menu-arrow" style="font-size:.7rem;">▶</span>📖 保護者ガイドブック
       </a>
+      <button class="menu-item view-all" onclick="goPage('pg-admin')" style="border-color:var(--border);color:var(--text2);">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>🔐 管理者パネル
+      </button>
     </div>
     <div id="gasStatusTitle" style="display:none;"></div>
   </div>
@@ -530,7 +533,7 @@
 
 <!-- 管理者へのリンク（隠し） -->
 <div style="position:fixed;bottom:.5rem;left:.5rem;z-index:50;">
-  <button onclick="goPage('pg-admin')" style="font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.3rem .5rem;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text2);cursor:pointer;opacity:.4;">🔐</button>
+  <div id="gasStatusAdmin" style="display:none;"></div>
 </div>
 
 <div class="toast" id="toast"></div>
