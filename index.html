@@ -4,157 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JUMPUP クエスト</title>
-<!-- Firebase設定（GitHubのSecret Scanningを回避するためmeta要素に分離） -->
-<!--
-  Firestoreセキュリティルール（videos追加要）:
-  match /videos/{docId} { allow read: if true; allow write: if request.auth != null; }
--->
-<meta name="fb-api-key"            content="AIzaSyCVDRhFmGKncW0c3TM7zdx-wiYkzgfH3_M">
-<meta name="fb-auth-domain"        content="jumpuppupquest.firebaseapp.com">
-<meta name="fb-project-id"         content="jumpuppupquest">
-<meta name="fb-storage-bucket"     content="jumpuppupquest.firebasestorage.app">
-<meta name="fb-messaging-sender-id" content="830728135743">
-<meta name="fb-app-id"             content="1:830728135743:web:c79422603586f97092048a">
-<link rel="manifest" href="manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="JUMPUPクエスト">
 <link rel="stylesheet" href="style.css">
-<style>
-/* ===== 成長タイムライン ===== */
-.tl-month { margin-bottom: 1.6rem; }
-.tl-month-label {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-weight: 900;
-  font-size: 1rem;
-  color: var(--teal);
-  margin-bottom: .8rem;
-  padding-bottom: .5rem;
-  border-bottom: 2px solid var(--border);
-  letter-spacing: .04em;
-}
-.tl-month-items { padding-left: .8rem; }
-.tl-item {
-  display: flex;
-  align-items: flex-start;
-  padding: .8rem .8rem .8rem 1.2rem;
-  border-left: 3px solid var(--border);
-  position: relative;
-  margin-bottom: .6rem;
-  background: var(--bg3);
-  border-radius: 0 6px 6px 0;
-  transition: background .2s;
-}
-.tl-item.tl-msg { cursor: pointer; }
-.tl-item.tl-msg:hover { background: var(--bg); }
-.tl-dot {
-  width: 13px; height: 13px;
-  border-radius: 50%;
-  position: absolute;
-  left: -8px; top: 1rem;
-  flex-shrink: 0;
-  border: 2px solid var(--bg);
-}
-.tl-body { flex: 1; }
-.tl-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: .42rem;
-  margin-bottom: .35rem;
-}
-.tl-title {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-weight: 900;
-  font-size: 1.05rem;
-  margin-bottom: .25rem;
-  line-height: 1.4;
-}
-.tl-preview {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-size: .85rem;
-  color: var(--text2);
-  line-height: 1.5;
-}
-.tl-msg.unread { border-left-color: var(--teal); }
-.tl-msg.unread .tl-title { color: #fff; }
-.tl-master { border-left-color: var(--gold); }
-/* ===== メールモーダル ズームアニメーション ===== */
-@keyframes zoomIn {
-  from { opacity: 0; transform: scale(.85) translateY(20px); }
-  to   { opacity: 1; transform: scale(1)  translateY(0); }
-}
-@keyframes zoomOut {
-  from { opacity: 1; transform: scale(1)  translateY(0); }
-  to   { opacity: 0; transform: scale(.85) translateY(20px); }
-}
-.mail-modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.75);
-  backdrop-filter: blur(6px);
-  z-index: 200;
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem;
-  opacity: 0; pointer-events: none;
-  transition: opacity .25s;
-}
-.mail-modal-overlay.open {
-  opacity: 1; pointer-events: all;
-}
-.mail-modal-box {
-  background: var(--panel);
-  border: 3px solid var(--teal);
-  box-shadow: 0 0 40px rgba(0,229,255,.25), 0 8px 32px rgba(0,0,0,.8);
-  width: min(560px, 95vw);
-  max-height: 85vh;
-  overflow-y: auto;
-  border-radius: 4px;
-  padding: 1.5rem;
-  display: flex; flex-direction: column; gap: 1rem;
-  opacity: 0;
-  transform: scale(.85) translateY(20px);
-  transition: opacity .28s ease, transform .28s cubic-bezier(.34,1.56,.64,1);
-}
-.mail-modal-overlay.open .mail-modal-box {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-.mail-modal-header {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
-}
-.mail-modal-subject {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-weight: 900;
-  font-size: 1.3rem;
-  line-height: 1.4;
-  color: #fff;
-  flex: 1;
-}
-.mail-modal-meta {
-  font-family: 'Press Start 2P', monospace;
-  font-size: .38rem;
-  color: var(--teal);
-  padding: .5rem 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.mail-modal-body {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-size: 1rem;
-  line-height: 1.9;
-  color: var(--text);
-  white-space: pre-wrap;
-}
-.mail-modal-close {
-  background: transparent;
-  border: 2px solid var(--border);
-  color: var(--text2);
-  cursor: pointer;
-  border-radius: 4px;
-  flex-shrink: 0;
-  transition: border-color .2s, color .2s;
-}
-.mail-modal-close:hover { border-color: var(--pink); color: var(--pink); }
-</style>
 </head>
 <body>
 <div id="stars"></div>
@@ -163,7 +13,7 @@
 <div class="page active fadein" id="pg-title">
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;text-align:center;">
     <img
-      src="embedded_image_1.png"
+      src="logo.webp"
       alt="JUMPUP QUEST SKILL ADVENTURE"
       style="
         width:min(420px,92vw);
@@ -192,11 +42,6 @@
         "
       >
     </div>
-    <div id="titleGuildName" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--teal);margin-bottom:.6rem;letter-spacing:2px;min-height:1.4em;"></div>
-    <p style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1.4rem;letter-spacing:.04em;">技に挑戦して、君だけの冒険を進めよう！</p>
-    <!-- イベントバナー -->
-    <div id="eventBanner" style="display:none;background:rgba(255,215,0,.08);border:2px solid var(--gold);padding:.75rem 1rem;margin-bottom:1rem;max-width:380px;width:100%;"></div>
-
     <div class="menu-box">
       <button class="menu-item new-game" onclick="goPage('pg-newgame')">
         <span class="menu-arrow">▶</span>あたらしく始める
@@ -205,14 +50,12 @@
         <span class="menu-arrow">▶</span>つづきから
       </button>
       <div class="menu-sep"></div>
-      <div style="display:flex;gap:.5rem;">
-        <button class="menu-item view-all" onclick="goPage('pg-explorer')" style="flex:1;font-size:.42rem;">
-          <span class="menu-arrow" style="font-size:.6rem;">▶</span>みんなの冒険者
-        </button>
-        <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="flex:1;font-size:.42rem;border-color:var(--border);color:var(--text2);">
-          <span class="menu-arrow" style="font-size:.6rem;">▶</span>わざ図鑑
-        </button>
-      </div>
+      <button class="menu-item view-all" onclick="goPage('pg-explorer')">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>冒険者一覧を見る
+      </button>
+      <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
+      </button>
     </div>
     <div id="gasStatusTitle">🟡 接続中...</div>
   </div>
@@ -223,14 +66,14 @@
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;">
     <div style="background:var(--panel);border:3px solid var(--green);padding:2rem;max-width:400px;width:100%;position:relative;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--green);margin-bottom:1.5rem;text-align:center;">あたらしい冒険者</div>
-      <div id="newCharIcon" style="width:90px;height:90px;margin:0 auto 1.2rem;background:linear-gradient(135deg,var(--teal),var(--pink));border:3px solid rgba(0,229,255,.4);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;color:#fff;animation:bob 1s ease-in-out infinite alternate;">？</div>
+      <div style="text-align:center;font-size:3rem;margin-bottom:1rem;animation:bob 1s ease-in-out infinite alternate;">🐕</div>
       <div class="form-lbl">なまえを入れてね</div>
-      <input class="pinput" id="newName" type="text" placeholder="例：たろう" style="width:100%;margin-bottom:.8rem;" maxlength="10" oninput="updateNewCharIcon()">
+      <input class="pinput" id="newName" type="text" placeholder="例：たろう" style="width:100%;margin-bottom:.8rem;" maxlength="10">
       <div class="form-lbl">教室</div>
       <select class="fselect" id="newClass" style="margin-bottom:1.2rem;">
         <option>ルネック勝川（月）</option>
         <option>スタジオMy（木）</option>
-        <option>ココロネ学園（火）</option>
+        <option>ococoロネ学園（火）</option>
       </select>
       <button class="pbtn btn-green" onclick="createNewChar()" style="width:100%;height:56px;font-size:.58rem;">▶ ぼうけんを始める！</button>
       <div id="newCharErr" style="display:none;color:var(--pink);font-family:'Press Start 2P';font-size:.38rem;margin-top:.6rem;text-align:center;"></div>
@@ -260,36 +103,16 @@
     <span class="nav-title" id="stNavTitle">マイページ</span>
   </div>
 
-  <!-- ===== 🌐 全国リアルタイム進捗ログ ===== -->
-  <div id="activityLogPanel" style="background:var(--bg2);border-bottom:2px solid var(--border);padding:.6rem 1rem;display:none;">
-    <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.4rem;">🌐 全国の冒険者の活躍</div>
-    <div id="activityLogList" style="display:flex;flex-direction:column;gap:0;max-height:120px;overflow-y:auto;"></div>
-  </div>
-
-  <div id="stNextAction" class="pp" style="margin:0;border-bottom:none;border-left:4px solid var(--teal);display:none;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);">▶ 次のおすすめ技</div>
-      <div style="text-align:right;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">合計pt</div>
-        <div id="stMonthPt" style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--gold);"></div>
-      </div>
-    </div>
-    <div id="stNextCards" style="display:flex;flex-direction:column;gap:.55rem;"></div>
-  </div>
-
   <!-- ナビボタン -->
   <div class="st-nav-btns">
     <button class="st-nav-btn" onclick="goPage('pg-jobmap')">
       <span class="nav-icon">🗺️</span><span class="nav-label">ジョブマップ</span>
     </button>
     <button class="st-nav-btn" onclick="goPage('pg-matrix')">
-      <span class="nav-icon">⚔️</span><span class="nav-label">わざリスト</span>
+      <span class="nav-icon">⚔️</span><span class="nav-label">技マトリックス</span>
     </button>
     <button class="st-nav-btn" onclick="goPage('pg-explorer')">
-      <span class="nav-icon">🚪</span><span class="nav-label">ぼうけんしゃリスト</span>
-    </button>
-    <button class="st-nav-btn parent-btn" onclick="goParentPage()">
-      <span class="nav-icon">👪</span><span class="nav-label">保護者ページ</span>
+      <span class="nav-icon">🚪</span><span class="nav-label">冒険者一覧</span>
     </button>
   </div>
 
@@ -350,12 +173,6 @@
       </div>
     </div>
 
-    <!-- ===== 🏅 バッジ ===== -->
-    <div class="pp" style="margin-top:.8rem;">
-      <div class="sec-ttl">🏅 バッジ</div>
-      <div id="stBadgeRow" style="margin-top:.5rem;"></div>
-    </div>
-
     <!-- ===== SKILL RECORDS ===== -->
     <div class="pp" style="margin-top:.8rem;">
       <div class="sec-ttl">⚔ SKILL RECORDS</div>
@@ -381,11 +198,11 @@
 <div class="page fadein" id="pg-explorer">
   <div class="top-nav">
     <button class="nav-back" onclick="goBack()">◀ もどる</button>
-    <span class="nav-title">ぼうけんしゃリスト</span>
+    <span class="nav-title">冒険者一覧</span>
   </div>
   <div style="padding:1.2rem 0;">
     <div class="pp">
-      <div class="sec-ttl">ぼうけんしゃリスト</div>
+      <div class="sec-ttl">冒険者たち</div>
       <p style="color:var(--text2);font-size:.85rem;margin-bottom:1rem;">みんなの冒険者カードを見てみよう！</p>
       <div class="explorer-grid" id="explorerGrid"></div>
     </div>
@@ -411,12 +228,12 @@
 <div class="page fadein" id="pg-matrix">
   <div class="top-nav">
     <button class="nav-back" onclick="goBack()">◀ もどる</button>
-    <span class="nav-title">わざリスト</span>
+    <span class="nav-title">技マトリックス</span>
   </div>
   <div style="padding:1.2rem 0;">
     <div class="pp">
-      <div class="sec-ttl">わざリスト</div>
-      <p style="color:var(--text2);font-size:.83rem;margin-bottom:.9rem;">JOBを選んでわざを確認しよう！</p>
+      <div class="sec-ttl">技マトリックス</div>
+      <p style="color:var(--text2);font-size:.83rem;margin-bottom:.9rem;">JOBを選んで技を確認。2軸マップで難しさと安全度も一目でわかる！</p>
       <div class="job-tabs" id="matrixTabs"></div>
       <div class="view-toggle">
         <button class="pbtn btn-teal" id="btnMap" onclick="setView('map')" style="font-size:.38rem;padding:.42rem .75rem;">🗺️ マップ</button>
@@ -462,78 +279,14 @@
       </div>
       <div id="adminPanel" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:1.1rem;">
-          <div>
-            <div style="font-family:'Press Start 2P';font-size:.48rem;color:var(--green);">✅ 管理者モード</div>
-            <div id="adminModeLabel" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;color:var(--text2);margin-top:.3rem;"></div>
-          </div>
+          <div style="font-family:'Press Start 2P';font-size:.48rem;color:var(--green);">✅ 管理者モード</div>
           <button class="pbtn btn-outline" onclick="adminLogout()" style="font-size:.38rem;padding:.38rem .65rem;">ログアウト</button>
-        </div>
-
-        <!-- 本部分析ダッシュボード（スーパー管理者のみ） -->
-        <div class="pp" id="hqDashboard" style="margin-bottom:1.1rem;display:none;border-color:var(--gold);">
-          <div class="sec-ttl" style="margin-bottom:.9rem;color:var(--gold);">👑 本部分析ダッシュボード</div>
-          <div id="hqContent"></div>
-        </div>
-
-        <!-- 動画一括更新（スーパー管理者のみ） -->
-        <div class="pp" id="bulkVideoPanel" style="margin-bottom:1.1rem;display:none;border-color:var(--teal);">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">🎬 動画URL一括更新</div>
-          <div id="bulkVideoContent"></div>
-        </div>
-
-
-        <!-- ギルドイベント管理 -->
-        <div class="pp" style="margin-bottom:1.1rem;border-color:var(--gold);">
-          <div class="sec-ttl" style="margin-bottom:.9rem;color:var(--gold);">🎉 ギルドイベント管理</div>
-          <div id="eventAdminForm"></div>
-        </div>
-
-        <!-- 本部分析ダッシュボード（スーパー管理者のみ） -->
-        <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">📊 冒険者ダッシュボード</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--text2);margin-bottom:.7rem;">🌱フォロー推奨 → 修行中 → 順調 の順で表示</div>
-          <div id="dashboardContent"></div>
-        </div>
-
-        <!-- テスト結果入力 -->
-        <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">📝 月次テスト結果を入力</div>
-          <div class="admin-grid2">
-            <div><label class="form-lbl">冒険者を選択</label><select class="fselect" id="adminSel" onchange="loadAdminChar()"><option value="">-- 選んでね --</option></select></div>
-            <div><label class="form-lbl">テスト日</label><input class="pinput fselect" type="date" id="adminDate"></div>
-          </div>
-          <div id="adminCharInfo" style="display:none;margin-bottom:.75rem;">
-            <div style="background:var(--bg);border:2px solid var(--border);padding:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-              <span id="aSprite" style="font-size:1.8rem;"></span>
-              <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.56rem;margin-top:.2rem;" id="aJob"></div></div>
-              <div style="margin-left:auto;text-align:right;">
-                <div style="font-family:'Press Start 2P';font-size:.63rem;color:var(--gold);" id="aLv"></div>
-                <div style="font-family:'Press Start 2P';font-size:.56rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
-              </div>
-            </div>
-          </div>
-          <div id="adminSkillSec" style="display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
-              <label class="form-lbl" style="margin:0;">挑戦する技を選んで評価をつける</label>
-            </div>
-            <div style="background:var(--bg3);border:2px solid var(--border);padding:.7rem;margin-bottom:.8rem;font-size:.85rem;color:var(--text2);line-height:1.8;">
-              🏆 <span style="color:var(--gold);">累計10pt以上 かつ 今回⭐⭐⭐</span> → 技マスター！<br>
-              🌱 <span style="color:#8888ff;">2ヶ月連続🌱（土台づくり中）</span> → 修行クエストへ！
-            </div>
-            <div id="adminSkillList"></div>
-            <div style="margin-top:.8rem;">
-              <button class="pbtn btn-outline" onclick="addSkillRow()" style="font-size:.56rem;padding:.42rem .75rem;width:100%;">＋ 技を追加する</button>
-            </div>
-          </div>
-          <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
-            <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
-          </div>
         </div>
 
         <!-- メッセージ送信 -->
         <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">💬 先生からのメッセージを送る</div>
-          <div class="admin-grid2">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">💬 先生からのメッセージを送る</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.8rem;">
             <div><label class="form-lbl">送る冒険者</label>
               <select class="fselect" id="msgTarget"><option value="">-- 選んでね --</option></select>
             </div>
@@ -545,15 +298,6 @@
             <label class="form-lbl">件名</label>
             <input class="pinput" id="msgSubject" placeholder="例：4月のテスト結果について" style="width:100%;">
           </div>
-          <div style="margin-bottom:.5rem;">
-            <label class="form-lbl">テンプレートから選ぶ</label>
-            <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.6rem;">
-              <button class="pbtn btn-outline" onclick="insertTemplate('よく挑戦できたね！その調子で続けていこう！')" style="font-size:.38rem;padding:.3rem .55rem;">👍 よく挑戦できた</button>
-              <button class="pbtn btn-outline" onclick="insertTemplate('安定してきたね！次のレベルが見えてきたよ！')" style="font-size:.38rem;padding:.3rem .55rem;">📈 安定してきた</button>
-              <button class="pbtn btn-outline" onclick="insertTemplate('まずは土台を積み上げよう！焦らず一歩一歩ね。')" style="font-size:.38rem;padding:.3rem .55rem;">🌱 土台を積もう</button>
-              <button class="pbtn btn-outline" onclick="insertTemplate('自信を持ってきたね！その姿勢が大事だよ！')" style="font-size:.38rem;padding:.3rem .55rem;">✨ 自信が出てきた</button>
-            </div>
-          </div>
           <div style="margin-bottom:.8rem;">
             <label class="form-lbl">メッセージ内容</label>
             <textarea class="pinput" id="msgBody" rows="4" placeholder="例：前転がとても上手になったね！次は側転にチャレンジしよう！" style="width:100%;resize:vertical;"></textarea>
@@ -561,71 +305,51 @@
           <button class="pbtn btn-pink" onclick="sendMessage()" style="width:100%;">📬 メッセージを送る</button>
         </div>
 
-        <!-- 姿勢バッジ付与 -->
+        <!-- テスト結果入力 -->
         <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">🏅 姿勢バッジを付与する</div>
-          <div class="admin-grid2" style="margin-bottom:.7rem;">
-            <div>
-              <label class="form-lbl">冒険者を選択</label>
-              <select class="fselect" id="badgeCharSel"><option value="">-- 選んでね --</option></select>
-            </div>
-            <div>
-              <label class="form-lbl">バッジを選択</label>
-              <select class="fselect" id="badgeSel">
-                <option value="attitude_hello">👋 あいさつ名人</option>
-                <option value="attitude_never">💪 あきらめない心</option>
-                <option value="attitude_cheer">🤝 仲間応援マスター</option>
-                <option value="attitude_focus">🎯 集中の達人</option>
-              </select>
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">📝 月次テスト結果を入力</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.75rem;">
+            <div><label class="form-lbl">冒険者を選択</label><select class="fselect" id="adminSel" onchange="loadAdminChar()"><option value="">-- 選んでね --</option></select></div>
+            <div><label class="form-lbl">テスト日</label><input class="pinput fselect" type="date" id="adminDate"></div>
+          </div>
+          <div id="adminCharInfo" style="display:none;margin-bottom:.75rem;">
+            <div style="background:var(--bg);border:2px solid var(--border);padding:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+              <span id="aSprite" style="font-size:1.8rem;"></span>
+              <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.38rem;margin-top:.2rem;" id="aJob"></div></div>
+              <div style="margin-left:auto;text-align:right;">
+                <div style="font-family:'Press Start 2P';font-size:.45rem;color:var(--gold);" id="aLv"></div>
+                <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
+              </div>
             </div>
           </div>
-          <div style="display:flex;gap:.5rem;">
-            <button class="pbtn btn-green" onclick="grantBadgeFromAdmin()" style="flex:1;font-size:.48rem;">🏅 付与する</button>
-            <button class="pbtn btn-outline" onclick="revokeBadgeFromAdmin()" style="flex:1;font-size:.44rem;">↩️ 取り消す</button>
+          <div id="adminSkillSec" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
+              <label class="form-lbl" style="margin:0;">挑戦する技を選んで評価をつける</label>
+              <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);">⭐⭐⭐+3pt　⭐⭐+1pt　☆0pt（2連続☆→💀リセット）</div>
+            </div>
+            <div style="background:var(--bg3);border:2px solid var(--border);padding:.7rem;margin-bottom:.8rem;font-size:.78rem;color:var(--text2);line-height:1.8;">
+              🏆 <span style="color:var(--gold);">累計10pt以上 かつ 今回⭐⭐⭐</span> → 技マスター！<br>
+              💀 <span style="color:var(--pink);">2ヶ月連続☆</span> → ポイント全リセット
+            </div>
+            <div id="adminSkillList"></div>
+            <div style="margin-top:.8rem;">
+              <button class="pbtn btn-outline" onclick="addSkillRow()" style="font-size:.38rem;padding:.42rem .75rem;width:100%;">＋ 技を追加する</button>
+            </div>
+          </div>
+          <div id="adminSaveSec" style="display:none;margin-top:.9rem;">
+            <button class="pbtn btn-gold" onclick="saveResult()" style="width:100%;">💾 テスト結果を保存する</button>
           </div>
         </div>
 
         <!-- 新規登録 -->
-        <div class="pp" style="margin-bottom:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
-          <div class="admin-grid3">
+        <div class="pp">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
             <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
-            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>ココロネ学園（火）</option></select></div>
+            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>ococoロネ学園（火）</option></select></div>
             <div><label class="form-lbl">冒険者ID</label><input class="pinput" id="nId" placeholder="JU-001" style="width:100%;"></div>
           </div>
           <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
-        </div>
-
-        <!-- 冒険者アーカイブ管理 -->
-        <div class="pp" style="margin-top:1.1rem;">
-          <div class="sec-ttl" style="margin-bottom:.9rem;">📂 冒険者のステータス変更</div>
-          <div style="background:var(--bg3);border:2px solid var(--border);padding:.65rem;margin-bottom:.85rem;font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);line-height:1.9;">
-            休会・退会・卒業の冒険者をアーカイブできます。データは保持されます。
-          </div>
-          <div class="admin-grid2" style="margin-bottom:.75rem;">
-            <div>
-              <label class="form-lbl">冒険者を選択</label>
-              <select class="fselect" id="delSel"><option value="">-- 選んでね --</option></select>
-            </div>
-            <div>
-              <label class="form-lbl">ステータス変更</label>
-              <select class="fselect" id="archiveStatus">
-                <option value="active">✅ 在籍中</option>
-                <option value="leave">⏸️ 休会</option>
-                <option value="withdraw">📦 退会</option>
-                <option value="graduate">🎓 卒業</option>
-              </select>
-            </div>
-          </div>
-          <button class="pbtn btn-teal" onclick="archiveChar()" style="width:100%;margin-bottom:.6rem;">📂 ステータスを変更する</button>
-          <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.3rem;">
-            <div style="font-family:'Press Start 2P';font-size:.34rem;color:var(--pink);margin-bottom:.6rem;">⚠️ 完全削除（元に戻せません）</div>
-            <div style="margin-bottom:.6rem;">
-              <label class="form-lbl">確認のため名前を入力</label>
-              <input class="pinput" id="delConfirm" placeholder="削除する冒険者の名前" style="width:100%;">
-            </div>
-            <button class="pbtn btn-pink" onclick="deleteChar()" style="width:100%;font-size:.42rem;">🗑️ 完全に削除する</button>
-          </div>
         </div>
       </div>
     </div>
@@ -634,65 +358,7 @@
 
 </main>
 
-
-<!-- ==================== PARENT (保護者モード) ==================== -->
-<div class="page fadein" id="pg-parent">
-  <div class="top-nav">
-    <button class="nav-back" onclick="goBack()">◀ もどる</button>
-    <span class="nav-title">👪 保護者向けページ</span>
-  </div>
-  <div style="padding:1.2rem 0;">
-    <div class="pp" style="margin-bottom:.8rem;border-left:4px solid var(--teal);">
-      <div style="display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;">
-        <img id="parentSprite" src="" alt="" style="width:56px;height:56px;object-fit:contain;image-rendering:pixelated;display:none;">
-        <div id="parentSpriteEmoji" style="font-size:2.2rem;display:none;"></div>
-        <div>
-          <div id="parentName" style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:1.3rem;"></div>
-          <div id="parentJob" style="font-family:'Press Start 2P',monospace;font-size:.38rem;margin-top:.2rem;"></div>
-          <div id="parentClass" style="font-size:.8rem;color:var(--text2);margin-top:.2rem;"></div>
-        </div>
-        <div style="margin-left:auto;text-align:right;">
-          <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">マスター技数</div>
-          <div id="parentMasterCnt" style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--gold);"></div>
-        </div>
-      </div>
-    </div>
-    <div class="pp" style="margin-bottom:.8rem;">
-      <div class="sec-ttl" style="margin-bottom:.8rem;">📅 最近の取り組み</div>
-      <div id="parentThisMonth" style="display:flex;flex-direction:column;gap:.5rem;"></div>
-    </div>
-    <div class="pp" style="margin-bottom:.8rem;">
-      <div class="sec-ttl" style="margin-bottom:.8rem;">🌱 技ごとの成長段階</div>
-      <p style="font-size:.82rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;">お子さんが挑戦中の技と、今どの段階にいるかを確認できます。</p>
-      <div id="parentSkillStages" style="display:flex;flex-direction:column;gap:.45rem;"></div>
-    </div>
-    <div class="pp" style="margin-bottom:.8rem;">
-      <div class="sec-ttl" style="margin-bottom:.8rem;">🏅 がんばりバッジ</div>
-      <div id="parentBadges" style="margin-top:.4rem;"></div>
-    </div>
-    <div class="pp" style="margin-bottom:.8rem;">
-      <div class="sec-ttl" style="margin-bottom:.8rem;">💬 先生からのメッセージ</div>
-      <div id="parentMessages" style="display:flex;flex-direction:column;gap:.5rem;"></div>
-    </div>
-    <div class="pp" style="margin-bottom:.8rem;border-left:4px solid var(--green);">
-      <div class="sec-ttl" style="margin-bottom:.6rem;">🏠 おうちでできるサポート</div>
-      <div id="parentHomeSupport" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.9;color:var(--text);"></div>
-    </div>
-    <div style="padding:0 0 2rem;">
-      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-        <button class="pbtn btn-gold" onclick="openMonthlyReport()" style="flex:1;font-size:.44rem;">
-          📊 成長レポートDL
-        </button>
-        <button class="pbtn btn-green" onclick="copyLINEReport()" style="flex:1;font-size:.44rem;">
-          📋 LINE用コピー
-        </button>
-      </div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);text-align:center;">HTMLファイル / LINEに貼り付け可能なテキスト</div>
-    </div>
-  </div>
-</div>
-
-<!-- SKILL POPUP（ぼうけんしゃリスト用） -->
+<!-- SKILL POPUP（冒険者一覧用） -->
 <div class="popup-overlay" id="explorerSkillPopup" onclick="closeExplorerSkillPopup(event)">
   <div class="popup-box" style="max-width:420px;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
     <button class="popup-close" onclick="closeExplorerSkillPopup()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
@@ -701,26 +367,6 @@
     <div id="espJob" style="font-family:'Press Start 2P',monospace;font-size:.36rem;text-align:center;margin-bottom:.3rem;padding:.2rem .5rem;display:inline-block;border:2px solid;"></div>
     <div id="espStats" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);text-align:center;margin-bottom:1rem;"></div>
     <div id="espSkillList" style="display:flex;flex-direction:column;gap:.5rem;"></div>
-  </div>
-</div>
-
-<!-- 技詳細ポップアップ -->
-<div class="mail-modal-overlay" id="skillDetailOverlay" onclick="closeSkillDetail(event)">
-  <div class="mail-modal-box" onclick="event.stopPropagation()" style="max-width:480px;">
-    <div class="mail-modal-header">
-      <div>
-        <div class="mail-modal-subject" id="sdTitle"></div>
-        <div id="sdJob" style="font-family:'Press Start 2P',monospace;font-size:.38rem;margin-top:.3rem;"></div>
-      </div>
-      <button class="mail-modal-close" onclick="closeSkillDetail()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
-    </div>
-    <div id="sdVideoArea"></div>
-    <!-- 管理者のみ表示 -->
-    <div id="sdAdminSection" style="display:none;border-top:1px solid var(--border);padding-top:.8rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--text2);margin-bottom:.5rem;">🎬 YouTube URL を登録</div>
-      <input class="pinput" id="sdVideoUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;margin-bottom:.6rem;">
-      <button class="pbtn btn-teal" onclick="saveSkillVideo()" style="width:100%;font-size:.52rem;">💾 保存する</button>
-    </div>
   </div>
 </div>
 
@@ -743,22 +389,13 @@
 
 
 <!-- 管理者へのリンク（隠し） -->
-<div style="position:fixed;bottom:.8rem;left:.8rem;z-index:50;">
-  <button onclick="goPage('pg-admin')" style="font-family:'Press Start 2P',monospace;font-size:.75rem;padding:.8rem 1.2rem;background:rgba(0,0,0,.85);border:3px solid var(--border);color:var(--text2);cursor:pointer;opacity:.75;">🔐 管理者</button>
+<div style="position:fixed;bottom:.5rem;left:.5rem;z-index:50;">
+  <button onclick="goPage('pg-admin')" style="font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.3rem .5rem;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text2);cursor:pointer;opacity:.4;">🔐</button>
 </div>
 
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="main_optimized_cleaned.js"></script>
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/jumpupquest/sw.js')
-      .then(reg=>console.log('SW登録完了:',reg.scope))
-      .catch(e=>console.warn('SW登録失敗:',e));
-  });
-}
-</script>
+<script src="main.js"></script>
 </body>
 </html>
