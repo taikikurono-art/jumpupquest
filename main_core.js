@@ -672,7 +672,7 @@ function initExplorer(){
   const grid=document.getElementById('explorerGrid');
 
   // 教室フィルターUIを追加
-  const classrooms=['全員','ルネック勝川（月）','スタジオMy（木）','okokо学園（火）'];
+  const classrooms=['全員','ルネック勝川（月）','スタジオMy（木）','こころね学園（火）'];
   let filterEl=document.getElementById('explorerFilter');
   if(!filterEl){
     filterEl=document.createElement('div');
@@ -1311,7 +1311,7 @@ const ADMIN_ROOMS={
   'jumpup2025':     null,              // スーパー管理者（全教室）
   'runeck2025':     'ルネック勝川（月）',
   'studio2025':     'スタジオMy（木）',
-  'cocoro2025':     'ココロネ学園（火）',
+  'cocoro2025':     'こころね学園（火）',
 };
 let adminClassroom=null; // null=全教室、string=特定教室
 
@@ -1636,7 +1636,7 @@ function updateNewCharIcon(){
 async function addChar(){
   const name=document.getElementById('nName').value.trim();if(!name){showToast('❌ 名前を入力してね');return;}
   const classroom=document.getElementById('nClass').value;
-  const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','okokо学園（火）':'CK'}[classroom]||'JU';
+  const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','こころね学園（火）':'CK'}[classroom]||'JU';
   const existCount=chars.filter(c=>c.classroom===classroom).length+1;
   const defaultId=`${classPrefix}-${existCount.toString().padStart(3,'0')}`;
   const id=document.getElementById('nId').value.trim()||defaultId;
@@ -1672,7 +1672,7 @@ function renderHQDashboard(){
   if(!el)return;
 
   const active=chars.filter(c=>(c.status||'active')==='active');
-  const classrooms=['ルネック勝川（月）','スタジオMy（木）','コロネ学園（火）'];
+  const classrooms=['ルネック勝川（月）','スタジオMy（木）','こころね学園（火）'];
 
   // 教室別集計
   const classStats=classrooms.map(cls=>{

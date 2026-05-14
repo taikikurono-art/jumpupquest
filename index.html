@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260515-0723">
+<link rel="stylesheet" href="style.css?v=20260514">
 </head>
 <body>
 <div id="stars"></div>
@@ -92,7 +92,7 @@
       <select class="fselect" id="newClass" style="margin-bottom:.8rem;">
         <option>ルネック勝川（月）</option>
         <option>スタジオMy（木）</option>
-        <option>ココロネ学園（火）</option>
+        <option>こころね学園（火）</option>
       </select>
       <div class="form-lbl">入会年月</div>
       <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;">
@@ -483,7 +483,7 @@
           <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
             <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
-            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>ココロネ学園（火）</option></select></div>
+            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>こころね学園（火）</option></select></div>
             <div><label class="form-lbl">冒険者ID</label><input class="pinput" id="nId" placeholder="JU-001" style="width:100%;"></div>
           </div>
           <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
@@ -556,16 +556,16 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260515-0723"></script>
+<script src="data.js?v=20260514"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog
-  } from './firebase.js?v=20260515-0723';
+  } from './firebase.js?v=20260514';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog };
 </script>
-<script src="main_core.js?v=20260515-0723"></script>
+<script src="main_core.js?v=20260514"></script>
 </body>
 </html>

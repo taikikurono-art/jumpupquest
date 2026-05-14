@@ -243,7 +243,7 @@ const CLASSROOM_CONFIG = {
     emoji:      '🎭',
     greeting:   'スタジオMyの仲間たち、今日も美しい技を目指そう！',
   },
-  'ココロネ学園（火）': {
+  'こころね学園（火）': {
     guildName:  'ココロネ学園 勇者隊',
     themeColor: '#39ff14',   // green
     accentColor:'#00ccee',   // cyan
