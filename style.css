@@ -31,6 +31,18 @@ body::before{
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 .fadein{animation:fadeIn .35s ease;}
 
+/* PC表示：コンテンツを中央寄せ・最大幅制限 */
+@media(min-width:768px){
+  #pg-title > div { max-width:480px; margin:0 auto; }
+  #pg-login > div,
+  #pg-newgame > div { max-width:520px; margin:0 auto; }
+  #pg-status { max-width:720px; margin:0 auto; }
+  #pg-admin { max-width:860px; margin:0 auto; }
+  #pg-matrix,#pg-jobmap { max-width:960px; margin:0 auto; }
+  #pg-explorer { max-width:960px; margin:0 auto; }
+  #pg-parent { max-width:680px; margin:0 auto; }
+}
+
 /* ===== ピクセルボタン共通（影で浮き出し感） ===== */
 .pbtn{
   font-family:"Press Start 2P",monospace;font-size:1rem;
