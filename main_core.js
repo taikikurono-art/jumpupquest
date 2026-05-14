@@ -78,6 +78,9 @@ function cleanupOrphanedData(){
 }
 async function initGAS(){
   if(!GAS_URL){showGasStatus('offline');return;}
+  // GAS読み込み中はつづきからボタンを無効化
+  const continueBtn=document.querySelector('.menu-item.continue');
+  if(continueBtn){continueBtn.style.opacity='.4';continueBtn.style.pointerEvents='none';}
   try{
     showGasStatus('loading');
     const res=await fetch(GAS_URL+'?action=getAll');
@@ -95,6 +98,10 @@ async function initGAS(){
       showGasStatus('online');
     }
   }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
+  finally{
+    // 読み込み完了後にボタンを有効化
+    if(continueBtn){continueBtn.style.opacity='';continueBtn.style.pointerEvents='';}
+  }
 }
 function showGasStatus(s){
   const els=['gasStatusTitle','gasStatusAdmin'].map(i=>document.getElementById(i)).filter(Boolean);
