@@ -228,8 +228,12 @@ async function createNewChar(){
   if(chars.find(c=>c.name===name)){err.textContent='そのなまえはもう使われているよ！';err.style.display='block';return;}
   err.style.display='none';
   const id='JU-'+(chars.length+1).toString().padStart(3,'0');
+  const joinYear=parseInt(document.getElementById('newJoinYear').value)||new Date().getFullYear();
+  // 入会年から入会日を算出（入会年の1月1日を基準）
+  const joinDate=joinYear+'-01-01';
   const newChar={id,name,sprite:'🐕',job:'rookie',level:1,exp:0,
-    joinDate:new Date().toISOString().slice(0,10),
+    joinDate,
+    joinYear,
     classroom:document.getElementById('newClass').value,
     stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},
     skills:[],skillRecords:{},messages:[]};
@@ -985,9 +989,12 @@ function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-5
 // ======== バッジ・称号システム ========
 const BADGES = [
   // 継続バッジ
-  { id:'continue_3m',  icon:'🗓️', name:'3ヶ月の冒険者',   desc:'3ヶ月以上活動している',        type:'continue', check: c => monthsSinceJoin(c) >= 3 },
-  { id:'continue_6m',  icon:'🌟', name:'半年の勇者',       desc:'6ヶ月以上活動している',        type:'continue', check: c => monthsSinceJoin(c) >= 6 },
-  { id:'continue_12m', icon:'👑', name:'1年の伝説',        desc:'1年以上活動している',          type:'continue', check: c => monthsSinceJoin(c) >= 12 },
+  { id:'continue_3m',  icon:'🗓️', name:'3ヶ月の冒険者',   desc:'3ヶ月以上活動している',   type:'continue', check: c => monthsSinceJoin(c) >= 3 },
+  { id:'continue_6m',  icon:'🌟', name:'半年の勇者',       desc:'6ヶ月以上活動している',   type:'continue', check: c => monthsSinceJoin(c) >= 6 },
+  { id:'continue_12m', icon:'👑', name:'1年の伝説',        desc:'1年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 12 },
+  { id:'continue_24m', icon:'💫', name:'2年の探究者',      desc:'2年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 24 },
+  { id:'continue_36m', icon:'🔥', name:'3年の猛者',        desc:'3年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 36 },
+  { id:'continue_60m', icon:'🐉', name:'5年の覇者',        desc:'5年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 60 },
 
   // 挑戦バッジ
   { id:'try_3skills',  icon:'⚔️', name:'チャレンジャー',   desc:'3つの技に挑戦した',            type:'challenge', check: c => countChallenged(c) >= 3 },
@@ -1007,9 +1014,11 @@ const BADGES = [
 
 // バッジ計算ヘルパー
 function monthsSinceJoin(c){
-  if(!c.joinDate)return 0;
-  const join=new Date(c.joinDate);const now=new Date();
-  return (now.getFullYear()-join.getFullYear())*12+(now.getMonth()-join.getMonth());
+  // joinYearがあればそちらを優先（入会年から計算）
+  const baseYear = c.joinYear || (c.joinDate ? new Date(c.joinDate).getFullYear() : new Date().getFullYear());
+  const now = new Date();
+  const joinDate = new Date(baseYear, 0, 1); // 入会年の1月1日
+  return (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
 }
 function countChallenged(c){
   return Object.keys(c.skillRecords||{}).length;

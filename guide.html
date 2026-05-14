@@ -426,6 +426,40 @@ footer a {
     <h2>ポイントとマスターの仕組み</h2>
     <p>毎月の練習テストで先生が評価を入力します。3回の試技（チャレンジ）をそれぞれ評価し、ポイントが加算されます。</p>
 
+    <h3>テストの方法</h3>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:.7rem;">
+        <div style="display:flex;align-items:flex-start;gap:.8rem;">
+          <div style="font-size:1.4rem;flex-shrink:0;">📅</div>
+          <div>
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">月に1回（月末のレッスン）</div>
+            <div style="font-size:.88rem;color:var(--text2);">毎月末のレッスンでテストを実施します。</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:.8rem;">
+          <div style="font-size:1.4rem;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">1人ずつ個別にテスト</div>
+            <div style="font-size:.88rem;color:var(--text2);">お子さん1人ひとりに先生がついて確認します。</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:.8rem;">
+          <div style="font-size:1.4rem;flex-shrink:0;">🔁</div>
+          <div>
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">1技につき3回チャレンジ</div>
+            <div style="font-size:.88rem;color:var(--text2);">同じ技を3回試して、それぞれ⭐⭐⭐・⭐⭐・🌱で評価します。</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:.8rem;">
+          <div style="font-size:1.4rem;flex-shrink:0;">📝</div>
+          <div>
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">テストできる技の数はその日による</div>
+            <div style="font-size:.88rem;color:var(--text2);">レッスンの進み具合によって、その日にテストできる技の種類数は変わります。焦らず積み上げていきましょう。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <h3>評価の種類</h3>
     <div class="rating-row">
       <div class="rating-item">
@@ -461,8 +495,30 @@ footer a {
       <strong>累計10pt以上 かつ 最後の試技が⭐⭐⭐</strong> → マスター達成</p>
     </div>
 
+    <h3>具体的な例</h3>
+    <div class="card" style="margin-bottom:.8rem;">
+      <div class="sec-label" style="color:var(--accent);">✅ マスター達成の例（前転）</div>
+      <div style="font-size:.88rem;color:var(--text2);line-height:1.9;">
+        <strong style="color:var(--text);">5月のテスト：</strong>1回目⭐⭐（+1pt）、2回目⭐⭐（+1pt）、3回目⭐⭐⭐（+3pt）→ 累計5pt<br>
+        <strong style="color:var(--text);">6月のテスト：</strong>1回目⭐⭐⭐（+3pt）、2回目⭐⭐⭐（+3pt）、3回目⭐⭐（+1pt）→ 累計12pt<br>
+        <br>
+        累計10ptを超えており、かつ<strong style="color:var(--text);">10ptに到達したときの試技が⭐⭐⭐</strong>なので→ 🏆 <strong style="color:var(--accent);">マスター達成！</strong>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-label" style="color:var(--pink);">❌ マスターにならない例</div>
+      <div style="font-size:.88rem;color:var(--text2);line-height:1.9;">
+        ⭐⭐（+1pt）を繰り返して累計10ptを超えても、<strong style="color:var(--text);">最後の試技が⭐⭐⭐でなければマスターになりません。</strong><br>
+        しっかり「できた！」と認められる試技でゴールする必要があります。
+      </div>
+    </div>
+
     <div class="highlight hl-gold">
-      <strong>🌱 土台づくりモードについて：</strong> 2ヶ月連続で全回🌱になった場合、その技は「土台づくり中」モードになります。ポイントはリセットされず、基礎練習に切り替えるサインです。
+      <strong>💡 ポイントのイメージ：</strong>ポイントは「練習の積み重ね」、⭐⭐⭐は「本番で決めた証」です。両方揃ってはじめてマスターになります。
+    </div>
+
+    <div class="highlight hl-gold">
+      <strong>🌱 土台づくりモードについて：</strong> 2ヶ月連続で全回🌱になった場合、その技は「土台づくり中」モードになります。基礎をじっくり固めていくサインです。
     </div>
 
     <h3>ポイントの見方</h3>
@@ -521,11 +577,14 @@ footer a {
     </div>
 
     <h3>バッジ・称号について</h3>
-    <p>続けた期間や習得した技の数に応じてバッジが自動でもらえます。先生から「あいさつ名人」「あきらめない心」などの姿勢バッジがもらえることもあります。</p>
+    <p>続けた期間や習得した技の数に応じてバッジが自動でもらえます。先生から「あいさつ名人」などの姿勢バッジがもらえることもあります。登録時に入会年を入力することで、継続バッジが正しく付与されます。</p>
     <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;">
       <span class="tag tag-gold">🗓️ 3ヶ月の冒険者</span>
       <span class="tag tag-gold">🌟 半年の勇者</span>
       <span class="tag tag-gold">👑 1年の伝説</span>
+      <span class="tag tag-gold">💫 2年の探究者</span>
+      <span class="tag tag-gold">🔥 3年の猛者</span>
+      <span class="tag tag-gold">🐉 5年の覇者</span>
       <span class="tag tag-blue">⚔️ チャレンジャー</span>
       <span class="tag tag-blue">🏅 初マスター</span>
       <span class="tag tag-green">👋 あいさつ名人</span>
@@ -615,7 +674,7 @@ footer a {
 
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">土台づくり中になっても大丈夫ですか？</button>
-      <div class="faq-a">大丈夫です。「土台づくり中」は先生からの「基礎をじっくり固めましょう」というサインです。ポイントはリセットされず、段階的に取り組んでいきます。</div>
+      <div class="faq-a">大丈夫です。「土台づくり中」は先生からの「基礎をじっくり固めましょう」というサインです。段階的に取り組んでいきます。</div>
     </div>
 
     <div class="faq-item">
