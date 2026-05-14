@@ -9,6 +9,7 @@ on:
       - 'firebase.js'
       - 'style.css'
       - 'guide.html'
+  workflow_dispatch:
 
 jobs:
   update-version:
