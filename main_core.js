@@ -66,6 +66,7 @@ let gasReady=false;
 let currentUser=null;
 let prevPage='pg-title';
 
+function saveChars(){localStorage.setItem('jq5',JSON.stringify(chars));}
 function cleanupOrphanedData(){
   const photoKeys = Object.keys(localStorage).filter(k=>k.startsWith('jq_photo_')||k.startsWith('jq_useSprite_'));
   photoKeys.forEach(key=>{
