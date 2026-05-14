@@ -16,6 +16,8 @@ let _fb={
   saveEvent:()=>Promise.resolve(),
   deleteEvent:()=>Promise.resolve(),
   watchEvent:()=>()=>{},
+  postAdminLog:()=>Promise.resolve(),
+  watchAdminLog:()=>()=>{},
 };
 let fbLoaded=false;
 async function loadFirebase(){
@@ -41,6 +43,8 @@ async function loadFirebase(){
       saveEvent:m.fbSaveEvent,
       deleteEvent:m.fbDeleteEvent,
       watchEvent:m.fbWatchEvent,
+      postAdminLog:m.fbPostAdminLog,
+      watchAdminLog:m.fbWatchAdminLog,
     };
     fbLoaded=true;
     const fbChars=await m.fbGetAll();
@@ -1128,6 +1132,7 @@ async function grantBadge(charId, badgeId){
   if(!c.badges)c.badges={};
   c.badges[badgeId]=true;
   await saveCharsToGAS(c);
+  postAdminLog('badge_grant',{charName:c.name,charId,badgeId,badgeName:BADGES.find(b=>b.id===badgeId)?.name});
   renderDashboard();
   showToast(`🏅 「${BADGES.find(b=>b.id===badgeId)?.name}」バッジを付与しました！`);
 }
@@ -1136,6 +1141,7 @@ async function revokeBadge(charId, badgeId){
   if(!c||!c.badges)return;
   delete c.badges[badgeId];
   await saveCharsToGAS(c);
+  postAdminLog('badge_revoke',{charName:c.name,charId,badgeId});
   showToast('バッジを取り消しました');
 }
 
@@ -1195,6 +1201,7 @@ async function saveBulkVideos(){
   if(statusEl) statusEl.textContent = '💾 保存中...';
   localStorage.setItem('jq_videos', JSON.stringify(videos));
   await _fb.saveVideosBulk(videos);
+  postAdminLog('video_bulk',{count:Object.keys(videos).length});
   if(statusEl) statusEl.textContent = `✅ ${Object.keys(videos).length}本の動画URLを全デバイスに保存しました！`;
   showToast(`✅ 動画URL ${Object.keys(videos).length}本を一括保存しました！`);
   // ボーダーをリセット
@@ -1220,6 +1227,7 @@ function adminLogin(){
     if(modeEl) modeEl.textContent=adminClassroom?`📍 ${adminClassroom}`:'👑 全教室（スーパー管理者）';
     loadAdminSel();loadMsgTarget();loadDelSel();loadBadgeCharSel();
     renderDashboard();
+    postAdminLog('admin_login');
     // スーパー管理者のみ本部分析を表示
     const hqEl=document.getElementById('hqDashboard');
     if(hqEl) hqEl.style.display=adminClassroom?'none':'block';
@@ -1228,6 +1236,8 @@ function adminLogin(){
       const bulkEl=document.getElementById('bulkVideoPanel');
       if(bulkEl){ bulkEl.style.display='block'; renderBulkVideoAdmin(); }
     }
+    // 管理者ログを表示
+    renderAdminLog();
   }
   else{const e=document.getElementById('adminErr');e.style.display='block';setTimeout(()=>e.style.display='none',2000);}
 }
@@ -1285,6 +1295,7 @@ async function sendMessage(){
   if(!c.messages)c.messages=[];
   c.messages.push({id:Date.now(),date,subject:subject||'先生からのメッセージ',body,read:false});
   await saveCharsToGAS(c);
+  postAdminLog('msg_send',{charName:c.name,charId:c.id,subject:subject||'先生からのメッセージ'});
   document.getElementById('msgSubject').value='';
   document.getElementById('msgBody').value='';
   showToast('📬 「'+c.name+'」にメッセージを送りました！');
@@ -1503,6 +1514,7 @@ async function saveResult(){
   });
   c.skills=Object.entries(c.skillRecords).filter(([,r])=>r.mastered).map(([sk])=>sk);
   showToast('💾 保存中...');await saveTestToGAS(c,testDate);
+  postAdminLog('test_save',{charName:c.name,charId:c.id,testDate,skillCount:rows.length});
   if(newMasters.length>0){
     for(const m of newMasters){ await postMasterLog(c, m.name, m.instant); }
     const masterDelay=newMasters.length*3200+500;
@@ -1531,7 +1543,9 @@ async function addChar(){
   const defaultId=`${classPrefix}-${existCount.toString().padStart(3,'0')}`;
   const id=document.getElementById('nId').value.trim()||defaultId;
   const newChar={id,name,sprite:'🐕',job:'rookie',joinDate:new Date().toISOString().slice(0,10),classroom:document.getElementById('nClass').value,stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},skills:[],skillRecords:{},messages:[]};
-  chars.push(newChar);await saveCharsToGAS(newChar);loadAdminSel();loadMsgTarget();
+  chars.push(newChar);await saveCharsToGAS(newChar);
+  postAdminLog('char_add',{charName:name,charId:id,classroom:document.getElementById('nClass').value});
+  loadAdminSel();loadMsgTarget();
   document.getElementById('nName').value='';document.getElementById('nId').value='';
   showToast('✅ 「'+name+'」を登録しました！');
 }
@@ -1548,6 +1562,7 @@ async function deleteChar(){
   if(gasReady){try{await gasPost({action:'deleteChar',charId:id});}catch(e){}}
   loadAdminSel();loadMsgTarget();loadDelSel();
   document.getElementById('delConfirm').value='';
+  postAdminLog('char_delete',{charName:c.name,charId:id});
   showToast('🗑️ 「'+c.name+'」を削除しました');
 }
 
@@ -1940,6 +1955,61 @@ async function checkAndShowJobChange(c){
   }
 }
 let newMasters_delay=0;
+// ======== 管理者操作ログ ========
+async function postAdminLog(action, detail={}){
+  if(!adminClassroom && adminClassroom !== null) return;
+  const entry = {
+    action,
+    adminType: adminClassroom ? `教室管理者（${adminClassroom}）` : 'スーパー管理者',
+    classroom: adminClassroom || '全教室',
+    ...detail,
+    datetime: new Date().toLocaleString('ja-JP'),
+  };
+  await _fb.postAdminLog(entry).catch(()=>{});
+}
+
+function renderAdminLog(){
+  const el = document.getElementById('adminLogContent');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;">読み込み中...</div>';
+  _fb.watchAdminLog(logs => {
+    if(!logs || logs.length === 0){
+      el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;">まだ記録がありません</div>';
+      return;
+    }
+    const actionLabel = {
+      'test_save':    '📝 テスト結果保存',
+      'msg_send':     '💬 メッセージ送信',
+      'badge_grant':  '🏅 バッジ付与',
+      'badge_revoke': '🏅 バッジ取り消し',
+      'char_add':     '➕ 冒険者登録',
+      'char_delete':  '🗑️ 冒険者削除',
+      'char_archive': '📂 ステータス変更',
+      'event_start':  '🎉 イベント開始',
+      'event_end':    '🛑 イベント終了',
+      'video_bulk':   '🎬 動画URL一括更新',
+      'admin_login':  '🔐 管理者ログイン',
+    };
+    el.innerHTML = logs.map(log => {
+      const label = actionLabel[log.action] || log.action;
+      const detail = Object.entries(log)
+        .filter(([k])=>!['action','adminType','classroom','datetime','ts','id'].includes(k))
+        .map(([k,v])=>`${k}: ${v}`)
+        .join(' / ');
+      return `<div style="padding:.6rem .8rem;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:.4rem;align-items:flex-start;">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-weight:700;font-size:.9rem;">${label}</div>
+          ${detail?`<div style="font-size:.78rem;color:var(--text2);margin-top:.2rem;">${detail}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:.75rem;color:var(--text2);">${log.adminType}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.2rem;">${log.datetime}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }, 50);
+}
+
 // ======== テンプレコメント ========
 function insertTemplate(text){
   const el=document.getElementById('msgBody');
@@ -1962,6 +2032,7 @@ async function archiveChar(){
   if(!c){showToast('❌ 冒険者を選んでね');return;}
   c.status=status;
   await saveCharsToGAS(c);
+  postAdminLog('char_archive',{charName:c.name,charId:id,status,statusLabel:ARCHIVE_STATUS_LABEL[status]});
   renderDashboard();
   showToast(`📂 「${c.name}」を「${ARCHIVE_STATUS_LABEL[status]}」に変更しました`);
 }
@@ -2500,10 +2571,12 @@ async function startEvent(){
   if(startDate > endDate){ showToast('❌ 終了日は開始日より後にしてね'); return; }
   const event = { title, emoji, description:desc, targetSkill:skill, startDate, endDate };
   await _fb.saveEvent(event);
+  postAdminLog('event_start',{title,startDate,endDate});
   showToast(`🎉 「${title}」イベントを開始しました！`);
 }
 
 async function endEvent(){
   await _fb.deleteEvent();
+  postAdminLog('event_end',{});
   showToast('🛑 イベントを終了しました');
 }

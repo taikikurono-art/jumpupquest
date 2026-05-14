@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260514">
 </head>
 <body>
 <div id="stars"></div>
@@ -461,6 +464,14 @@
           </div>
         </div>
 
+        <!-- 管理者操作ログ -->
+        <div class="pp" id="adminLogPanel">
+          <div class="sec-ttl">🔍 管理者操作ログ</div>
+          <div id="adminLogContent" style="max-height:400px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);">
+            <div style="color:var(--text2);font-size:.85rem;padding:.8rem;">ログを読み込んでいます...</div>
+          </div>
+        </div>
+
         <!-- 新規登録 -->
         <div class="pp" style="margin-bottom:1.1rem;">
           <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
@@ -539,14 +550,16 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js"></script>
+<script src="data.js?v=20260514"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
-    fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent
-  } from './firebase.js';
+    fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
+    fbPostAdminLog, fbWatchAdminLog
+  } from './firebase.js?v=20260514';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
-    fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent };
+    fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
+    fbPostAdminLog, fbWatchAdminLog };
 </script>
-<script src="main_core.js"></script>
+<script src="main_core.js?v=20260514"></script>
 </body>
 </html>

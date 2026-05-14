@@ -156,4 +156,28 @@ async function fbSaveVideosBulk(videosObj){
 
 export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
   fbPostActivityLog, fbWatchActivityLog,
-  fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent };
+  fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
+  fbPostAdminLog, fbWatchAdminLog };
+
+// ======== 管理者操作ログ ========
+async function fbPostAdminLog(entry){
+  if(!fbReady)return;
+  try{
+    await addDoc(collection(db,'admin_log'),{
+      ...entry,
+      ts: Date.now(),
+    });
+  }catch(e){console.warn('fbPostAdminLog error',e);}
+}
+
+function fbWatchAdminLog(callback,limitCount=50){
+  if(!fbReady)return ()=>{};
+  try{
+    const q=query(collection(db,'admin_log'),orderBy('ts','desc'),limit(limitCount));
+    return onSnapshot(q,snap=>{
+      const logs=[];
+      snap.forEach(d=>logs.push({id:d.id,...d.data()}));
+      callback(logs);
+    });
+  }catch(e){console.warn('fbWatchAdminLog error',e);return ()=>{};}
+}
