@@ -261,7 +261,9 @@ async function createNewChar(){
   if(!name){err.textContent='なまえを入れてね！';err.style.display='block';return;}
   if(chars.find(c=>c.name===name)){err.textContent='そのなまえはもう使われているよ！';err.style.display='block';return;}
   err.style.display='none';
-  const id='JU-'+(chars.length+1).toString().padStart(3,'0');
+  // IDをタイムスタンプベースで生成（端末間の重複を防ぐ）
+  const ts = Date.now().toString(36).toUpperCase().slice(-4);
+  const id='JU-'+ts;
   const joinYear=parseInt(document.getElementById('newJoinYear').value)||new Date().getFullYear();
   const joinMonth=parseInt(document.getElementById('newJoinMonth').value)||new Date().getMonth()+1;
   const joinDate=`${joinYear}-${String(joinMonth).padStart(2,'0')}-01`;
