@@ -79,12 +79,9 @@ function cleanupOrphanedData(){
 }
 async function initGAS(){
   if(!GAS_URL){showGasStatus('offline');return;}
-  // GAS読み込み中はつづきから・冒険者一覧ボタンを無効化
-  const continueBtn=document.querySelector('.menu-item.continue');
-  const explorerBtn=document.querySelector('.menu-item.view-all');
-  [continueBtn, explorerBtn].forEach(btn=>{
-    if(btn){btn.style.opacity='.4';btn.style.pointerEvents='none';}
-  });
+  // GAS読み込み中はタイトルの全メニューボタンを無効化
+  const titleBtns=document.querySelectorAll('#pg-title .menu-item, #pg-title .menu-box a');
+  titleBtns.forEach(btn=>{btn.style.opacity='.4';btn.style.pointerEvents='none';});
   try{
     showGasStatus('loading');
     const res=await fetch(GAS_URL+'?action=getAll');
@@ -103,10 +100,8 @@ async function initGAS(){
     }
   }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
   finally{
-    // 読み込み完了後にボタンを有効化
-    [continueBtn, explorerBtn].forEach(btn=>{
-      if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
-    });
+    // 読み込み完了後に全ボタンを有効化
+    titleBtns.forEach(btn=>{btn.style.opacity='';btn.style.pointerEvents='';});
   }
 }
 function showGasStatus(s){
