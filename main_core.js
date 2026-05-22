@@ -1603,6 +1603,7 @@ async function addChar(){
   document.getElementById('nName').value='';document.getElementById('nId').value='';
   if(document.getElementById('nEmail')) document.getElementById('nEmail').value='';
   showToast('✅ 「'+name+'」を登録しました！');
+}
 
 async function deleteChar(){
   const id=document.getElementById('delSel').value;
