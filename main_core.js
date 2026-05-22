@@ -79,9 +79,9 @@ function cleanupOrphanedData(){
 }
 async function initGAS(){
   if(!GAS_URL){showGasStatus('offline');return;}
-  // GAS読み込み中はタイトルの全メニューボタンを無効化
-  const titleBtns=document.querySelectorAll('#pg-title .menu-item, #pg-title .menu-box a');
-  titleBtns.forEach(btn=>{btn.style.opacity='.4';btn.style.pointerEvents='none';});
+  // GAS読み込み中はつづきからボタンを無効化
+  const continueBtn=document.querySelector('.menu-item.continue');
+  if(continueBtn){continueBtn.style.opacity='.4';continueBtn.style.pointerEvents='none';}
   try{
     showGasStatus('loading');
     const res=await fetch(GAS_URL+'?action=getAll');
@@ -100,8 +100,8 @@ async function initGAS(){
     }
   }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
   finally{
-    // 読み込み完了後に全ボタンを有効化
-    titleBtns.forEach(btn=>{btn.style.opacity='';btn.style.pointerEvents='';});
+    // 読み込み完了後にボタンを有効化
+    if(continueBtn){continueBtn.style.opacity='';continueBtn.style.pointerEvents='';}
   }
 }
 function showGasStatus(s){
@@ -133,7 +133,7 @@ async function saveCharsToGAS(char){
     await addPendingToIDB({action:'saveChar',char});
   }
 }
-async function saveTestToGAS(char,testDate){
+async function saveTestToGAS(char,testDate,newMasters=[]){
   saveChars();
   if(!gasReady||!navigator.onLine){
     await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
@@ -141,8 +141,7 @@ async function saveTestToGAS(char,testDate){
     return;
   }
   try{
-    await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
-    // GAS保存成功後にFirebaseにも反映
+    await gasPost({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char,newMasters});
     _fb.saveChar(char).catch(()=>{});
   }
   catch(e){await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});}
@@ -283,10 +282,12 @@ async function createNewChar(){
   const joinYear=parseInt(document.getElementById('newJoinYear').value)||new Date().getFullYear();
   const joinMonth=parseInt(document.getElementById('newJoinMonth').value)||new Date().getMonth()+1;
   const joinDate=`${joinYear}-${String(joinMonth).padStart(2,'0')}-01`;
+  const email=(document.getElementById('newEmail')?.value||'').trim();
   const newChar={id,name,sprite:'🐕',job:'rookie',level:1,exp:0,
     joinDate,
     joinYear,
     joinMonth,
+    email,
     classroom:document.getElementById('newClass').value,
     stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},
     skills:[],skillRecords:{},messages:[]};
@@ -664,52 +665,7 @@ function renderStatus(c){
 
 // ======== EXPLORER ========
 function initExplorer(){
-  const grid=document.getElementById('explorerGrid');
-
-  // 教室フィルターUIを追加
-  const classrooms=['全員','ルネック勝川（月）','スタジオMy（木）','こころね学園（火）'];
-  let filterEl=document.getElementById('explorerFilter');
-  if(!filterEl){
-    filterEl=document.createElement('div');
-    filterEl.id='explorerFilter';
-    filterEl.style.cssText='display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;';
-    grid.parentNode.insertBefore(filterEl,grid);
-  }
-  filterEl.innerHTML=classrooms.map(cls=>`
-    <button onclick="filterExplorer('${cls}')" id="ef-${cls}"
-      class="pbtn ${cls==='全員'?'btn-teal':'btn-outline'}"
-      style="font-size:.42rem;padding:.35rem .7rem;">
-      ${cls}
-    </button>`).join('');
-
-  renderExplorer('全員');
-}
-
-function filterExplorer(classroom){
-  // ボタンのアクティブ状態を切り替え
-  document.querySelectorAll('[id^="ef-"]').forEach(btn=>{
-    btn.className='pbtn btn-outline';
-    btn.style.fontSize='.42rem';
-    btn.style.padding='.35rem .7rem';
-  });
-  const activeBtn=document.getElementById('ef-'+classroom);
-  if(activeBtn){activeBtn.className='pbtn btn-teal';}
-  renderExplorer(classroom);
-}
-
-function renderExplorer(classroom){
-  const filtered = classroom==='全員'
-    ? chars.filter(c=>(c.status||'active')==='active')
-    : chars.filter(c=>(c.status||'active')==='active' && c.classroom===classroom);
-
-  const grid=document.getElementById('explorerGrid');
-
-  if(filtered.length===0){
-    grid.innerHTML='<div style="color:var(--text2);font-size:.9rem;padding:1rem;">この教室の冒険者はまだいません</div>';
-    return;
-  }
-
-  grid.innerHTML=filtered.map(c=>{
+  document.getElementById('explorerGrid').innerHTML=chars.map(c=>{
     const j=JOBS[c.job]||JOBS.rookie;
     const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
@@ -1306,7 +1262,7 @@ const ADMIN_ROOMS={
   'jumpup2025':     null,              // スーパー管理者（全教室）
   'runeck2025':     'ルネック勝川（月）',
   'studio2025':     'スタジオMy（木）',
-  'cocoro2025':     'こころね学園（火）',
+  'cocoro2025':     'ココロネ学園（火）',
 };
 let adminClassroom=null; // null=全教室、string=特定教室
 
@@ -1389,6 +1345,10 @@ async function sendMessage(){
   c.messages.push({id:Date.now(),date,subject:subject||'先生からのメッセージ',body,read:false});
   await saveCharsToGAS(c);
   postAdminLog('msg_send',{charName:c.name,charId:c.id,subject:subject||'先生からのメッセージ'});
+  // 保護者メールアドレスがあればメール送信
+  if(c.email){
+    gasPost({action:'sendEmail',to:c.email,subject:subject||'先生からのメッセージ',body,charName:c.name}).catch(()=>{});
+  }
   document.getElementById('msgSubject').value='';
   document.getElementById('msgBody').value='';
   showToast('📬 「'+c.name+'」にメッセージを送りました！');
@@ -1606,7 +1566,7 @@ async function saveResult(){
     };
   });
   c.skills=Object.entries(c.skillRecords).filter(([,r])=>r.mastered).map(([sk])=>sk);
-  showToast('💾 保存中...');await saveTestToGAS(c,testDate);
+  showToast('💾 保存中...');await saveTestToGAS(c,testDate,newMasters.map(m=>m.name));
   postAdminLog('test_save',{charName:c.name,charId:c.id,testDate,skillCount:rows.length});
   if(newMasters.length>0){
     for(const m of newMasters){ await postMasterLog(c, m.name, m.instant); }
@@ -1631,17 +1591,18 @@ function updateNewCharIcon(){
 async function addChar(){
   const name=document.getElementById('nName').value.trim();if(!name){showToast('❌ 名前を入力してね');return;}
   const classroom=document.getElementById('nClass').value;
+  const email=(document.getElementById('nEmail')?.value||'').trim();
   const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','こころね学園（火）':'CK'}[classroom]||'JU';
   const existCount=chars.filter(c=>c.classroom===classroom).length+1;
   const defaultId=`${classPrefix}-${existCount.toString().padStart(3,'0')}`;
   const id=document.getElementById('nId').value.trim()||defaultId;
-  const newChar={id,name,sprite:'🐕',job:'rookie',joinDate:new Date().toISOString().slice(0,10),classroom:document.getElementById('nClass').value,stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},skills:[],skillRecords:{},messages:[]};
+  const newChar={id,name,sprite:'🐕',job:'rookie',joinDate:new Date().toISOString().slice(0,10),classroom,email,stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},skills:[],skillRecords:{},messages:[]};
   chars.push(newChar);await saveCharsToGAS(newChar);
-  postAdminLog('char_add',{charName:name,charId:id,classroom:document.getElementById('nClass').value});
+  postAdminLog('char_add',{charName:name,charId:id,classroom});
   loadAdminSel();loadMsgTarget();
   document.getElementById('nName').value='';document.getElementById('nId').value='';
+  if(document.getElementById('nEmail')) document.getElementById('nEmail').value='';
   showToast('✅ 「'+name+'」を登録しました！');
-}
 
 async function deleteChar(){
   const id=document.getElementById('delSel').value;
@@ -1667,7 +1628,7 @@ function renderHQDashboard(){
   if(!el)return;
 
   const active=chars.filter(c=>(c.status||'active')==='active');
-  const classrooms=['ルネック勝川（月）','スタジオMy（木）','こころね学園（火）'];
+  const classrooms=['ルネック勝川（月）','スタジオMy（木）','コロネ学園（火）'];
 
   // 教室別集計
   const classStats=classrooms.map(cls=>{
