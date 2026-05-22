@@ -1,5 +1,5 @@
 // ======== JUMPUPクエスト Service Worker ========
-const CACHE_NAME = 'jumpupquest-20260522-1604';
+const CACHE_NAME = 'jumpupquest-20260514-1700';
 const STATIC_ASSETS = [
   '/jumpupquest/',
   '/jumpupquest/index.html',
@@ -70,7 +70,7 @@ self.addEventListener('fetch', e => {
   );
 });
 // ======== オフライン入力同期 ========
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzB3fBWZzVBcAy2tnDFKlv2n_lkEDmyO7K4nZvbiYhoiUTLyFoawWJHV0li-R83j0P68g/exec';
 self.addEventListener('sync', e => {
   if (e.tag === 'sync-chars') {
     e.waitUntil(syncPendingChars());
