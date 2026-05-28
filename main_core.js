@@ -59,7 +59,7 @@ async function loadFirebase(){
   }catch(e){console.warn('Firebase失敗',e);}
 }
 
-const const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
 const DEMO=[];
 let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
 let gasReady=false;
