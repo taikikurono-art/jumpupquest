@@ -154,6 +154,32 @@ async function fbSaveVideosBulk(videosObj){
   }catch(e){ console.warn('fbSaveVideosBulk error', e); }
 }
 
+// ======== プロフィール写真（Firestoreに保存・全端末共有） ========
+async function fbSavePhoto(charId, base64DataUrl) {
+  if(!fbReady || !charId) return;
+  try {
+    await setDoc(doc(db, 'photos', charId), { photo: base64DataUrl, updatedAt: Date.now() });
+  } catch(e) { console.warn('fbSavePhoto error', e); }
+}
+
+async function fbGetPhoto(charId) {
+  if(!fbReady || !charId) return null;
+  try {
+    const snap = await getDoc(doc(db, 'photos', charId));
+    return snap.exists() ? snap.data().photo : null;
+  } catch(e) { console.warn('fbGetPhoto error', e); return null; }
+}
+
+async function fbGetAllPhotos() {
+  if(!fbReady) return {};
+  try {
+    const snap = await getDocs(collection(db, 'photos'));
+    const result = {};
+    snap.forEach(d => { result[d.id] = d.data().photo; });
+    return result;
+  } catch(e) { console.warn('fbGetAllPhotos error', e); return {}; }
+}
+
 // ======== 管理者操作ログ ========
 async function fbPostAdminLog(entry){
   if(!fbReady)return;
@@ -179,4 +205,5 @@ function fbWatchAdminLog(callback,limitCount=50){
 export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
   fbPostActivityLog, fbWatchActivityLog,
   fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
-  fbPostAdminLog, fbWatchAdminLog };
+  fbPostAdminLog, fbWatchAdminLog,
+  fbSavePhoto, fbGetPhoto, fbGetAllPhotos };

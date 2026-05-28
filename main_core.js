@@ -18,6 +18,9 @@ let _fb={
   watchEvent:()=>()=>{},
   postAdminLog:()=>Promise.resolve(),
   watchAdminLog:()=>()=>{},
+  savePhoto:()=>Promise.resolve(),
+  getPhoto:()=>Promise.resolve(null),
+  getAllPhotos:()=>Promise.resolve({}),
 };
 let fbLoaded=false;
 async function loadFirebase(){
@@ -45,6 +48,9 @@ async function loadFirebase(){
       watchEvent:m.fbWatchEvent,
       postAdminLog:m.fbPostAdminLog,
       watchAdminLog:m.fbWatchAdminLog,
+      savePhoto:m.fbSavePhoto,
+      getPhoto:m.fbGetPhoto,
+      getAllPhotos:m.fbGetAllPhotos,
     };
     fbLoaded=true;
     // ※ キャラデータはGASが正。Firebaseからは読み込まない
@@ -53,6 +59,14 @@ async function loadFirebase(){
     if(fbVideos&&Object.keys(fbVideos).length>0){
       localStorage.setItem('jq_videos',JSON.stringify(fbVideos));
       console.log('Firebase: 動画URL '+Object.keys(fbVideos).length+'件読み込み');
+    }
+    // 写真をFirestoreから一括読み込みしてlocalStorageに同期
+    const fbPhotos=await _fb.getAllPhotos();
+    if(fbPhotos&&Object.keys(fbPhotos).length>0){
+      Object.entries(fbPhotos).forEach(([charId,photo])=>{
+        if(photo) localStorage.setItem('jq_photo_'+charId, photo);
+      });
+      console.log('Firebase: 写真 '+Object.keys(fbPhotos).length+'件読み込み');
     }
     startActivityLogWatch();
     startEventWatch();
@@ -225,10 +239,24 @@ function uploadStatusPhoto(event){
   const c=currentUser;if(!c)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    const dataUrl=e.target.result;
-    localStorage.setItem('jq_photo_'+c.id,dataUrl);
-    renderStatus(c);
-    showToast('📷 写真を設定したよ！');
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=300;
+      let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.8);
+      localStorage.setItem('jq_photo_'+c.id,dataUrl);
+      _fb.savePhoto(c.id,dataUrl).catch(()=>{});
+      renderStatus(c);
+      showToast('写真を設定したよ！');
+    };
+    img.src=e.target.result;
   };
   reader.readAsDataURL(file);
 }
