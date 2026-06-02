@@ -73,7 +73,7 @@ async function loadFirebase(){
   }catch(e){console.warn('Firebase失敗',e);}
 }
 
-const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbyXID9FlLorC-GwbJ8g1UJZqVbeezl6ENkU8zJjmpbJe-6C3-Eeenbsmp1wNQ-yXswZlQ/exec';
 const DEMO=[];
 let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
 let gasReady=false;
@@ -539,30 +539,36 @@ function renderStatus(c){
     }
   }
 
-  // 顔写真 or キャラスプライト or イニシャル
-  const photo=localStorage.getItem('jq_photo_'+c.id);
-  const useSprite=localStorage.getItem('jq_useSprite_'+c.id)==='1';
+  // 顔写真 or キャラスプライト or イニシャル → アイコン設定に従う
   const stPhoto=document.getElementById('stPhoto');
   const stInitial=document.getElementById('stInitial');
-  if(useSprite&&SPRITES[c.job]){
-    stPhoto.src=SPRITES[c.job];
-    stPhoto.style.display='block';
-    stPhoto.style.objectFit='contain';
-    stPhoto.style.imageRendering='pixelated';
-    stPhoto.style.background=j.color+'18';
-    stInitial.style.display='none';
-  } else if(photo){
+  const iconSetting=getIconSetting(c.id);
+  const photo=localStorage.getItem('jq_photo_'+c.id);
+  if(iconSetting.type==='photo'&&photo){
     stPhoto.src=photo;stPhoto.style.display='block';
-    stPhoto.style.objectFit='cover';
-    stPhoto.style.imageRendering='auto';
-    stPhoto.style.background='none';
+    stPhoto.style.objectFit='cover';stPhoto.style.imageRendering='auto';stPhoto.style.background='none';
     stInitial.style.display='none';
-  } else {
+  } else if(iconSetting.type==='emoji'&&iconSetting.emoji){
     stPhoto.style.display='none';
     stInitial.style.display='flex';
-    stInitial.textContent=c.name.charAt(0);
+    stInitial.textContent=iconSetting.emoji;
     stInitial.style.background=`linear-gradient(135deg,${j.color},${j.color}88)`;
     stInitial.style.borderColor=j.color;
+    stInitial.style.fontSize='2rem';
+  } else {
+    const job=iconSetting.job||c.job;
+    if(SPRITES[job]){
+      stPhoto.src=SPRITES[job];stPhoto.style.display='block';
+      stPhoto.style.objectFit='contain';stPhoto.style.imageRendering='pixelated';
+      stPhoto.style.background=j.color+'18';
+      stInitial.style.display='none';
+    } else {
+      stPhoto.style.display='none';
+      stInitial.style.display='flex';
+      stInitial.textContent=c.name.charAt(0);
+      stInitial.style.background=`linear-gradient(135deg,${j.color},${j.color}88)`;
+      stInitial.style.borderColor=j.color;
+    }
   }
 
   document.getElementById('stName').textContent=c.name;
@@ -698,10 +704,7 @@ function initExplorer(){
     const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
     const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
-    const photo=localStorage.getItem('jq_photo_'+c.id);
-    const imgEl=photo
-      ?`<img src="${photo}" style="width:60px;height:60px;object-fit:cover;border-radius:50%;border:2px solid ${j.color};display:block;margin:0 auto .5rem;">`
-      :`<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);border:2px solid ${j.color};display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;color:#fff;margin:0 auto .5rem;">${c.name.charAt(0)}</div>`;
+    const imgEl=getIconDisplay(c,60,true);
     return `<div class="exp-card" onclick="openExplorerSkillPopup('${c.id}')">
       ${imgEl}
       <div style="font-weight:900;font-size:1rem;margin-bottom:.3rem;text-align:center;">${c.name}</div>
@@ -719,15 +722,9 @@ function openExplorerSkillPopup(charId){
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
   const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
 
-  // アバター（顔写真 or イニシャル）
+  // アバター（アイコン設定に従う）
   const spriteEl=document.getElementById('espSprite');
-  const espPhoto=localStorage.getItem('jq_photo_'+c.id);
-  const espJob=JOBS[c.job]||JOBS.rookie;
-  if(espPhoto){
-    spriteEl.innerHTML=`<img src="${espPhoto}" style="width:80px;height:80px;object-fit:cover;border-radius:50%;border:3px solid ${espJob.color};">`;
-  } else {
-    spriteEl.innerHTML=`<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,${espJob.color},${espJob.color}88);border:3px solid ${espJob.color};display:inline-flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#fff;">${c.name.charAt(0)}</div>`;
-  }
+  spriteEl.innerHTML=getIconDisplay(c,80,false);
 
   document.getElementById('espName').textContent=c.name;
   const jobEl=document.getElementById('espJob');
@@ -1905,12 +1902,167 @@ function renderDashboard(){
 }
 
 function toggleSpriteAvatar(){
+  openIconSelector();
+}
+
+// ======== アイコンセレクター ========
+function getIconSetting(charId){
+  const raw=localStorage.getItem('jq_icon_'+charId);
+  if(raw) return JSON.parse(raw);
+  return {type:'sprite', job: null}; // デフォルト：現在のジョブスプライト
+}
+function setIconSetting(charId, setting){
+  localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting));
+}
+function getUnlockedJobs(c){
+  // rookieは常に解放
+  // それ以外はskillRecordsにそのジョブの技が1つでもあれば解放
+  const recs=c.skillRecords||{};
+  const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
+  return jobOrder.filter(jk=>{
+    if(jk==='rookie') return true;
+    return SKILL_MAP.some(([n,j])=>j===jk&&recs[n]);
+  });
+}
+function isJobFullyMastered(c, jobKey){
+  const recs=c.skillRecords||{};
+  const jobSkills=SKILL_MAP.filter(([,j])=>j===jobKey).map(([n])=>n);
+  if(jobSkills.length===0) return false;
+  return jobSkills.every(sk=>recs[sk]&&recs[sk].mastered);
+}
+function getIconDisplay(c, size=60, border=true){
+  const j=JOBS[c.job]||JOBS.rookie;
+  const setting=getIconSetting(c.id);
+  const photo=localStorage.getItem('jq_photo_'+c.id);
+  const borderStyle=border?`border:2px solid ${j.color};`:'';
+
+  if(setting.type==='photo'&&photo){
+    return `<img src="${photo}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;${borderStyle}display:block;margin:0 auto .5rem;">`;
+  } else if(setting.type==='emoji'&&setting.emoji){
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;margin:0 auto .5rem;">${setting.emoji}</div>`;
+  } else {
+    // sprite（デフォルトまたは指定）
+    const job=setting.job||c.job;
+    if(SPRITES[job]){
+      const isMastered=isJobFullyMastered(c,job);
+      return `<div style="position:relative;width:${size}px;height:${size}px;margin:0 auto .5rem;">
+        <img src="${SPRITES[job]}" style="width:${size}px;height:${size}px;object-fit:contain;image-rendering:pixelated;display:block;">
+        ${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
+      </div>`;
+    } else {
+      return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;font-weight:900;color:#fff;margin:0 auto .5rem;">${c.name.charAt(0)}</div>`;
+    }
+  }
+}
+function openIconSelector(){
   if(!currentUser)return;
-  const key='jq_useSprite_'+currentUser.id;
-  const cur=localStorage.getItem(key)==='1';
-  localStorage.setItem(key,cur?'0':'1');
+  const c=currentUser;
+  const j=JOBS[c.job]||JOBS.rookie;
+  const unlockedJobs=getUnlockedJobs(c);
+  const photo=localStorage.getItem('jq_photo_'+c.id);
+  const currentSetting=getIconSetting(c.id);
+
+  const EMOJIS=['⭐','🌟','💫','❤️','🧡','💛','💚','💙','💜','🔥','🌈','🌸','🎯','⚡','🏅','👑','🦊','🐯','🐺','🦁','🐉','🦅','🌙','☀️','🎮','⚔️','🛡️','🎪','🎨','🎵'];
+
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML=`<div style="background:var(--panel);border:3px solid var(--teal);padding:1.5rem;width:min(480px,95vw);max-height:85vh;overflow-y:auto;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:.55rem;color:var(--teal);margin-bottom:1rem;">🎨 アイコンを変更</div>
+
+    <!-- 現在のアイコン -->
+    <div style="text-align:center;margin-bottom:1rem;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.5rem;">現在のアイコン</div>
+      <div id="iconPreview">${getIconDisplay(c,80,false)}</div>
+    </div>
+
+    <!-- スプライトアイコン -->
+    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">⚔️ 獲得済みキャラ</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+      ${unlockedJobs.map(jk=>{
+        const jb=JOBS[jk];
+        const isMastered=isJobFullyMastered(c,jk);
+        const isSelected=currentSetting.type==='sprite'&&(currentSetting.job===jk||(currentSetting.job===null&&jk===c.job));
+        return `<div onclick="selectIconSprite('${jk}')" style="cursor:pointer;padding:.4rem;border:2px solid ${isSelected?jb.color:'var(--border)'};background:${isSelected?jb.color+'22':'var(--bg)'};border-radius:4px;text-align:center;position:relative;min-width:60px;" id="icon-sprite-${jk}">
+          <img src="${SPRITES[jk]}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto;">
+          ${isMastered?'<span style="position:absolute;top:-6px;right:-6px;font-size:.8rem;">🏆</span>':''}
+          <div style="font-family:\'Press Start 2P\',monospace;font-size:.22rem;color:${jb.color};margin-top:.2rem;">${jb.name}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- 絵文字アイコン -->
+    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">✨ 絵文字</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;">
+      ${EMOJIS.map(em=>{
+        const isSelected=currentSetting.type==='emoji'&&currentSetting.emoji===em;
+        return `<div onclick="selectIconEmoji('${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ${isSelected?'var(--teal)':'var(--border)'};background:${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-${em.codePointAt(0)}">${em}</div>`;
+      }).join('')}
+    </div>
+
+    <!-- 写真 -->
+    ${photo?`
+    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">📷 写真</div>
+    <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">
+      <img src="${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid ${currentSetting.type==='photo'?'var(--teal)':'var(--border)'};" onclick="selectIconPhoto()" style="cursor:pointer;">
+      <button class="pbtn btn-outline" onclick="selectIconPhoto()" style="font-size:.38rem;">写真を選択</button>
+    </div>`:''}
+    <label class="pbtn btn-outline" style="font-size:.38rem;display:inline-block;cursor:pointer;margin-bottom:1rem;">
+      📷 写真をアップロード<input type="file" accept="image/*" style="display:none;" onchange="uploadAndSelectPhoto(event)">
+    </label>
+
+    <button class="pbtn btn-teal" onclick="closeIconSelector()" style="width:100%;margin-top:.5rem;">✕ 閉じる</button>
+  </div>`;
+  modal.id='iconSelectorModal';
+  document.body.appendChild(modal);
+}
+function selectIconSprite(jobKey){
+  if(!currentUser)return;
+  setIconSetting(currentUser.id,{type:'sprite',job:jobKey});
+  document.querySelectorAll('[id^="icon-sprite-"]').forEach(el=>{
+    const jk=el.id.replace('icon-sprite-','');
+    const jb=JOBS[jk];
+    const isSelected=jk===jobKey;
+    el.style.border=`2px solid ${isSelected?jb.color:'var(--border)'}`;
+    el.style.background=isSelected?jb.color+'22':'var(--bg)';
+  });
+  document.querySelectorAll('[id^="icon-emoji-"]').forEach(el=>{el.style.border='2px solid var(--border)';el.style.background='var(--bg)';});
+  updateIconPreview();
   renderStatus(currentUser);
-  showToast(cur?'📷 写真モードに切り替えたよ！':'🎮 キャラアイコンに切り替えたよ！');
+  initExplorer();
+}
+function selectIconEmoji(emoji){
+  if(!currentUser)return;
+  setIconSetting(currentUser.id,{type:'emoji',emoji});
+  document.querySelectorAll('[id^="icon-sprite-"]').forEach(el=>{
+    const jk=el.id.replace('icon-sprite-','');
+    const jb=JOBS[jk];
+    el.style.border=`2px solid var(--border)`;el.style.background='var(--bg)';
+  });
+  document.querySelectorAll('[id^="icon-emoji-"]').forEach(el=>{el.style.border='2px solid var(--border)';el.style.background='var(--bg)';});
+  const emojiEl=document.getElementById('icon-emoji-'+emoji.codePointAt(0));
+  if(emojiEl){emojiEl.style.border='2px solid var(--teal)';emojiEl.style.background='rgba(0,229,255,.1)';}
+  updateIconPreview();
+  renderStatus(currentUser);
+  initExplorer();
+}
+function selectIconPhoto(){
+  if(!currentUser)return;
+  setIconSetting(currentUser.id,{type:'photo'});
+  updateIconPreview();
+  renderStatus(currentUser);
+  initExplorer();
+}
+async function uploadAndSelectPhoto(event){
+  await uploadStatusPhoto(event);
+  setIconSetting(currentUser.id,{type:'photo'});
+  updateIconPreview();
+}
+function updateIconPreview(){
+  const el=document.getElementById('iconPreview');
+  if(el&&currentUser) el.innerHTML=getIconDisplay(currentUser,80,false);
+}
+function closeIconSelector(){
+  document.getElementById('iconSelectorModal')?.remove();
 }
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function showLvUp(){const o=document.getElementById('lvup');o.classList.add('show');setTimeout(()=>o.classList.remove('show'),2300);}
