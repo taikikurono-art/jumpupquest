@@ -73,7 +73,7 @@ async function loadFirebase(){
   }catch(e){console.warn('Firebase失敗',e);}
 }
 
-const GAS_URL='https://script.google.com/macros/s/AKfycbyXID9FlLorC-GwbJ8g1UJZqVbeezl6ENkU8zJjmpbJe-6C3-Eeenbsmp1wNQ-yXswZlQ/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
 const DEMO=[];
 let chars=[];  // GASから取得するまで空
 let gasReady=false;
