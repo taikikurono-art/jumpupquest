@@ -75,47 +75,51 @@ async function loadFirebase(){
 
 const GAS_URL='https://script.google.com/macros/s/AKfycbyXID9FlLorC-GwbJ8g1UJZqVbeezl6ENkU8zJjmpbJe-6C3-Eeenbsmp1wNQ-yXswZlQ/exec';
 const DEMO=[];
-let chars=JSON.parse(localStorage.getItem('jq5')||'null')||[];
+let chars=[];  // GASから取得するまで空
 let gasReady=false;
 let currentUser=null;
 let prevPage='pg-title';
 
-function saveChars(){localStorage.setItem('jq5',JSON.stringify(chars));}
+function saveChars(){} // LocalStorage保存は廃止（GASが正データ）
 function cleanupOrphanedData(){
   const photoKeys = Object.keys(localStorage).filter(k=>k.startsWith('jq_photo_')||k.startsWith('jq_useSprite_'));
   photoKeys.forEach(key=>{
     const charId = key.replace('jq_photo_','').replace('jq_useSprite_','');
     if(!chars.find(c=>c.id===charId)){
       localStorage.removeItem(key);
-      console.log('古い写真データを削除:', key);
     }
   });
+  // 古いjq5キャッシュを削除
+  localStorage.removeItem('jq5');
 }
 async function initGAS(){
   if(!GAS_URL){showGasStatus('offline');return;}
-  // GAS読み込み中はつづきからボタンを無効化
-  const continueBtn=document.querySelector('.menu-item.continue');
-  if(continueBtn){continueBtn.style.opacity='.4';continueBtn.style.pointerEvents='none';}
+  // GAS読み込み中はメニューボタンを全て無効化
+  const menuBtns=document.querySelectorAll('.menu-item');
+  menuBtns.forEach(btn=>{btn.style.opacity='.4';btn.style.pointerEvents='none';});
   try{
     showGasStatus('loading');
     const res=await fetch(GAS_URL+'?action=getAll');
     const data=await res.json();
     if(data.chars&&data.chars.length>0){
-      // GASが常に正。必ずGASのデータで上書き
       chars=data.chars;
-      localStorage.setItem('jq5',JSON.stringify(chars));
       gasReady=true;
       showGasStatus('online');
       console.log('GAS: '+data.chars.length+'件読み込み（正データ）');
       cleanupOrphanedData();
     } else {
+      chars=[];
       gasReady=true;
       showGasStatus('online');
     }
-  }catch(e){console.error('GAS接続エラー:',e);showGasStatus('offline');}
+  }catch(e){
+    console.error('GAS接続エラー:',e);
+    showGasStatus('offline');
+    showToast('⚠️ 接続に失敗しました。通信環境を確認してください。');
+  }
   finally{
     // 読み込み完了後にボタンを有効化
-    if(continueBtn){continueBtn.style.opacity='';continueBtn.style.pointerEvents='';}
+    menuBtns.forEach(btn=>{btn.style.opacity='';btn.style.pointerEvents='';});
   }
 }
 function showGasStatus(s){
@@ -132,8 +136,7 @@ async function gasPost(body){
   return await res.json();
 }
 async function saveCharsToGAS(char){
-  // GASが正：まずGASに保存、成功後にlocalStorage更新
-  saveChars();
+  // GASに保存（LocalStorageには書かない）
   if(!gasReady||!navigator.onLine){
     await addPendingToIDB({action:'saveChar',char});
     showToast('📦 オフライン保存しました（復帰後に同期）');
@@ -141,14 +144,12 @@ async function saveCharsToGAS(char){
   }
   try{
     await gasPost({action:'saveChar',char});
-    // GAS保存成功後にFirebaseにも反映（リアルタイム機能のため）
     _fb.saveChar(char).catch(()=>{});
   }catch(e){
     await addPendingToIDB({action:'saveChar',char});
   }
 }
 async function saveTestToGAS(char,testDate,newMasters=[]){
-  saveChars();
   if(!gasReady||!navigator.onLine){
     await addPendingToIDB({action:'saveTest',charId:char.id,charName:char.name,testDate,stats:char.stats,char});
     showToast('📦 オフライン保存しました（復帰後に同期）');
