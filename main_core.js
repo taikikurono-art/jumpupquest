@@ -2023,52 +2023,44 @@ function openIconSelector(){
 
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
-  modal.innerHTML=`<div style="background:var(--panel);border:3px solid var(--teal);padding:1.5rem;width:min(480px,95vw);max-height:85vh;overflow-y:auto;">
-    <div style="font-family:'Press Start 2P',monospace;font-size:.55rem;color:var(--teal);margin-bottom:1rem;">🎨 アイコンを変更</div>
+  const spritesHTML = unlockedJobs.map(jk => {
+    const jb=JOBS[jk];
+    const isMastered=isJobFullyMastered(c,jk);
+    const isSelected=currentSetting.type==='sprite'&&(currentSetting.job===jk||(currentSetting.job===null&&jk===c.job));
+    return '<div onclick="selectIconSprite(\'' + jk + '\')" style="cursor:pointer;padding:.4rem;border:2px solid ' + (isSelected?jb.color:'var(--border)') + ';background:' + (isSelected?jb.color+'22':'var(--bg)') + ';border-radius:4px;text-align:center;position:relative;min-width:60px;" id="icon-sprite-' + jk + '">' +
+      '<img src="' + SPRITES[jk] + '" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto;">' +
+      (isMastered?'<span style="position:absolute;top:-6px;right:-6px;font-size:.8rem;">🏆</span>':'') +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.22rem;color:' + jb.color + ';margin-top:.2rem;">' + jb.name + '</div>' +
+      '</div>';
+  }).join('');
 
-    <!-- 現在のアイコン -->
-    <div style="text-align:center;margin-bottom:1rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.5rem;">現在のアイコン</div>
-      <div id="iconPreview">${getIconDisplay(c,80,false)}</div>
-    </div>
+  const emojisHTML = EMOJIS.map(em => {
+    const isSelected=currentSetting.type==='emoji'&&currentSetting.emoji===em;
+    return '<div onclick="selectIconEmoji(\'' + em + '\')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ' + (isSelected?'var(--teal)':'var(--border)') + ';background:' + (isSelected?'rgba(0,229,255,.1)':'var(--bg)') + ';border-radius:4px;" id="icon-emoji-' + em.codePointAt(0) + '">' + em + '</div>';
+  }).join('');
 
-    <!-- スプライトアイコン -->
-    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">⚔️ 獲得済みキャラ</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
-      \${unlockedJobs.map(jk=>{
-        const jb=JOBS[jk];
-        const isMastered=isJobFullyMastered(c,jk);
-        const isSelected=currentSetting.type==='sprite'&&(currentSetting.job===jk||(currentSetting.job===null&&jk===c.job));
-        return `<div onclick="selectIconSprite('${jk}')" style="cursor:pointer;padding:.4rem;border:2px solid ${isSelected?jb.color:'var(--border)'};background:${isSelected?jb.color+'22':'var(--bg)'};border-radius:4px;text-align:center;position:relative;min-width:60px;" id="icon-sprite-${jk}">
-          <img src="${SPRITES[jk]}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto;">
-          ${isMastered?'<span style="position:absolute;top:-6px;right:-6px;font-size:.8rem;">🏆</span>':''}
-          <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:${jb.color};margin-top:.2rem;">${jb.name}</div>
-        </div>`;
-      }).join('')}
-    </div>
+  const photoHTML = photo ?
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">📷 写真</div>' +
+    '<div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">' +
+    '<img src="' + photo + '" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid ' + (currentSetting.type==='photo'?'var(--teal)':'var(--border)') + ';cursor:pointer;" onclick="selectIconPhoto()">' +
+    '<button class="pbtn btn-outline" onclick="selectIconPhoto()" style="font-size:.38rem;">写真を選択</button>' +
+    '</div>' : '';
 
-    <!-- 絵文字アイコン -->
-    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">✨ 絵文字</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;">
-      \${EMOJIS.map(em=>{
-        const isSelected=currentSetting.type==='emoji'&&currentSetting.emoji===em;
-        return `<div onclick="selectIconEmoji('${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ${isSelected?'var(--teal)':'var(--border)'};background:${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-${em.codePointAt(0)}">${em}</div>`;
-      }).join('')}
-    </div>
-
-    <!-- 写真 -->
-    \${photo?`
-    <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">📷 写真</div>
-    <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">
-      <img src="${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid ${currentSetting.type==='photo'?'var(--teal)':'var(--border)'};" onclick="selectIconPhoto()" style="cursor:pointer;">
-      <button class="pbtn btn-outline" onclick="selectIconPhoto()" style="font-size:.38rem;">写真を選択</button>
-    </div>`:''}
-    <label class="pbtn btn-outline" style="font-size:.38rem;display:inline-block;cursor:pointer;margin-bottom:1rem;">
-      📷 写真をアップロード<input type="file" accept="image/*" style="display:none;" onchange="uploadAndSelectPhoto(event)">
-    </label>
-
-    <button class="pbtn btn-teal" onclick="closeIconSelector()" style="width:100%;margin-top:.5rem;">✕ 閉じる</button>
-  </div>`;
+  modal.innerHTML =
+    '<div style="background:var(--panel);border:3px solid var(--teal);padding:1.5rem;width:min(480px,95vw);max-height:85vh;overflow-y:auto;">' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.55rem;color:var(--teal);margin-bottom:1rem;">🎨 アイコンを変更</div>' +
+    '<div style="text-align:center;margin-bottom:1rem;">' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.5rem;">現在のアイコン</div>' +
+    '<div id="iconPreview">' + getIconDisplay(c,80,false) + '</div>' +
+    '</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">⚔️ 獲得済みキャラ</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">' + spritesHTML + '</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">✨ 絵文字</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;">' + emojisHTML + '</div>' +
+    photoHTML +
+    '<label class="pbtn btn-outline" style="font-size:.38rem;display:inline-block;cursor:pointer;margin-bottom:1rem;">📷 写真をアップロード<input type="file" accept="image/*" style="display:none;" onchange="uploadAndSelectPhoto(event)"></label>' +
+    '<button class="pbtn btn-teal" onclick="closeIconSelector()" style="width:100%;margin-top:.5rem;">✕ 閉じる</button>' +
+    '</div>';
   modal.id='iconSelectorModal';
   document.body.appendChild(modal);
 }
