@@ -318,7 +318,7 @@ function loginSearch(){
   const res=document.getElementById('loginResults');
   if(!q){res.innerHTML='';return;}
   const found=chars.filter(c=>c.name.toLowerCase().includes(q));
-  if(found.length===0){res.innerHTML='<div style="font-family:'Press Start 2P';font-size:.4rem;color:var(--text2);margin-top:.5rem;">みつかりません…</div>';return;}
+  if(found.length===0){res.innerHTML='<div style="font-family:\'Press Start 2P\';font-size:.4rem;color:var(--text2);margin-top:.5rem;">みつかりません…</div>';return;}
   res.innerHTML=found.map(c=>{
     const j=JOBS[c.job]||JOBS.rookie;
     const imgSrc=SPRITES[c.job]?`<img src="${SPRITES[c.job]}" class="login-char-img" alt="">`:`<span style="font-size:2rem;">${c.sprite}</span>`;
@@ -803,7 +803,7 @@ function renderExplorerGrid() {
       ${imgEl}
       <div style="font-weight:900;font-size:1rem;margin-bottom:.3rem;text-align:center;">${c.name}</div>
       <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;padding:.2rem .5rem;border:2px solid ${j.color};color:${j.color};background:${j.color}18;display:inline-block;margin-bottom:.4rem;">${j.name}（${j.genre}）</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);">🏆${masterCnt}技　	ext{${totalPt}}pt</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);">🏆${masterCnt}技　${totalPt}pt</div>
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-top:.3rem;">▶ 技を見る</div>
     </div>`;
   }).join('');
@@ -2090,7 +2090,7 @@ function openIconSelector(){
     <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;">
       \${EMOJIS.map(em=>{
         const isSelected=currentSetting.type==='emoji'&&currentSetting.emoji===em;
-        return `<div onclick="selectIconEmoji('${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ${isSelected?'var(--teal)':'var(--border)'};background:${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-${em.codePointAt(0)}">	ext{${em}}</div>`;
+        return `<div onclick="selectIconEmoji('${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ${isSelected?'var(--teal)':'var(--border)'};background:${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-${em.codePointAt(0)}">${em}</div>`;
       }).join('')}
     </div>
 
@@ -2098,7 +2098,7 @@ function openIconSelector(){
     \${photo?`
     <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">📷 写真</div>
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">
-      <img src="${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid 	ext{${currentSetting.type==='photo'?'var(--teal)':'var(--border)'}};" onclick="selectIconPhoto()" style="cursor:pointer;">
+      <img src="${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid ${currentSetting.type==='photo'?'var(--teal)':'var(--border)'};" onclick="selectIconPhoto()" style="cursor:pointer;">
       <button class="pbtn btn-outline" onclick="selectIconPhoto()" style="font-size:.38rem;">写真を選択</button>
     </div>`:''}
     <label class="pbtn btn-outline" style="font-size:.38rem;display:inline-block;cursor:pointer;margin-bottom:1rem;">
@@ -2169,7 +2169,7 @@ function launchConfetti(count=40){
     const el=document.createElement('div');
     el.className='confetti';
     const size=6+Math.random()*8;
-    el.style.cssText=`left:${Math.random()*100}vw;width:	ext{${size}}px;height:	ext{${size*0.6}}px;background:${colors[i%colors.length]};animation-duration:${1.2+Math.random()*1.8}s;animation-delay:${Math.random()*.6}s;transform:rotate(${Math.random()*360}deg);`;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${size}px;height:${size*0.6}px;background:${colors[i%colors.length]};animation-duration:${1.2+Math.random()*1.8}s;animation-delay:${Math.random()*.6}s;transform:rotate(${Math.random()*360}deg);`;
     document.body.appendChild(el);
     setTimeout(()=>el.remove(),3000);
   }
@@ -2221,12 +2221,12 @@ function showJobChangeBanner(c,nextJob,onClose){
   const j=JOBS[nextJob];
   const overlay=document.createElement('div');
   overlay.className='jobchange-overlay';
-  const spriteHTML=SPRITES[nextJob]?`<img src="${SPRITES[nextJob]}" class="jobchange-sprite" alt="	ext{${j.name}}">`:`<div style="font-size:5rem;margin-bottom:.8rem;">${j.emoji}</div>`;
+  const spriteHTML=SPRITES[nextJob]?`<img src="${SPRITES[nextJob]}" class="jobchange-sprite" alt="${j.name}">`:`<div style="font-size:5rem;margin-bottom:.8rem;">${j.emoji}</div>`;
   overlay.innerHTML=`<div class="jobchange-box">
     <div class="jobchange-title">✨ JOB CHANGE ✨</div>
     ${spriteHTML}
     <div class="jobchange-name" style="color:${j.color};">${j.name}</div>
-    <div class="jobchange-genre" style="color:${j.color};">	ext{${j.genre}}</div>
+    <div class="jobchange-genre" style="color:${j.color};">${j.genre}</div>
     <div class="jobchange-desc">${j.desc}</div>
     <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;" id="jobchangeCloseBtn">▶ ${c.name}の新たな冒険が始まる！</button>
   </div>`;
@@ -2239,8 +2239,8 @@ function showJobSelectBanner(c,candidates,onSelect){
   overlay.className='jobchange-overlay';
   const cardsHTML=candidates.map(jk=>{
     const j=JOBS[jk];
-    const spriteHTML=SPRITES[jk]?`<img src="	ext{${SPRITES[jk]}}" alt="	ext{${j.name}}">`:`<div style="font-size:2.5rem;margin-bottom:.3rem;">${j.emoji}</div>`;
-    return `<div class="job-select-card" data-job="	ext{${jk}}" style="border-color:${j.color}44;" onclick="selectJobCard(this,'	ext{${jk}}')">${spriteHTML}<div class="jsc-name" style="color:${j.color};">${j.name}</div><div class="jsc-genre">${j.genre}</div></div>`;
+    const spriteHTML=SPRITES[jk]?`<img src="${SPRITES[jk]}" alt="${j.name}">`:`<div style="font-size:2.5rem;margin-bottom:.3rem;">${j.emoji}</div>`;
+    return `<div class="job-select-card" data-job="${jk}" style="border-color:${j.color}44;" onclick="selectJobCard(this,'${jk}')">${spriteHTML}<div class="jsc-name" style="color:${j.color};">${j.name}</div><div class="jsc-genre">${j.genre}</div></div>`;
   }).join('');
   overlay.innerHTML=`<div class="jobchange-box">
     <div class="jobchange-title">⚔️ JOB SELECT ⚔️</div>
@@ -2333,7 +2333,7 @@ function renderAdminLog(){
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:\.75rem;color:var(--text2);">${log.adminType}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.2rem;">	ext{${log.datetime}}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.2rem;">${log.datetime}</div>
         </div>
       </div>`;
     }).join('');
@@ -2453,7 +2453,7 @@ function renderParentPage(c){
       parentBadgeEl.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:.4rem;">'+
         earnedBadges.map(b=>`<div style="display:flex;align-items:center;gap:.4rem;padding:.4rem .6rem;background:${typeColor[b.type]}15;border:1px solid ${typeColor[b.type]};border-radius:2px;">
           <span style="font-size:1.1rem;">${b.icon}</span>
-          <span style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;font-weight:700;color:	ext{${typeColor[b.type]}};">${b.name}</span>
+          <span style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;font-weight:700;color:${typeColor[b.type]};">${b.name}</span>
         </div>`).join('')+
       '</div>';
     }
@@ -2527,7 +2527,7 @@ function generateMonthlyReport(c, targetMonth){
   .card::after{content:'';position:absolute;bottom:-4px;right:-4px;width:100%;height:100%;background:rgba(37,37,80,.6);z-index:-1;}
   .card-ttl{font-family:'Press Start 2P',monospace;font-size:.5rem;color:#00e5ff;margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1px solid #252550;}
   .gold{color:#ffd700;} .teal{color:#00e5ff;} .green{color:#39ff14;} .pink{color:#ff4081;}
-  .tag{font-family:'Press Start 2P',monospace;font-size:#3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}
+  .tag{font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}
   ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}
   li{font-size:.9rem;line-height:1.7;padding-left:1em;position:relative;}
   li::before{content:'▶';position:absolute;left:0;color:#00e5ff;font-size:.5em;top:.4em;}
@@ -2577,8 +2577,8 @@ function generateMonthlyReport(c, targetMonth){
   \${latestMsg ? `
   <div class="card">
     <div class="card-ttl">💬 先生からのメッセージ</div>
-    <div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 	ext{${latestMsg.date||''}}</div>
-    <div class="comment">	ext{${latestMsg.body||''}}</div>
+    <div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 ${latestMsg.date||''}</div>
+    <div class="comment">${latestMsg.body||''}</div>
   </div>` : ''}
 
   \${nextRec ? `
@@ -2636,7 +2636,7 @@ function generateLINEReport(c){
 
   if(challenged.length > 0){
     lines.push(`⚔️ 挑戦中（${challenged.length}個）`);
-    challenged.slice(0,3).forEach(([sk,r]) => lines.push(`  📈 ${sk}（	ext{${r.pts}}pt）`));
+    challenged.slice(0,3).forEach(([sk,r]) => lines.push(`  📈 ${sk}（${r.pts}pt）`));
     lines.push('');
   }
 
@@ -2708,7 +2708,7 @@ function renderActivityLog(logs){
           ${log.charName}さんが「${log.skillName}」をマスター${isInstant}
         </div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.24rem;color:var(--text2);margin-top:.2rem;">
-          ${log.classroom||''} · 	ext{${timeAgo}}
+          ${log.classroom||''} · ${timeAgo}
         </div>
       </div>
     </div>`;
@@ -2777,14 +2777,14 @@ function renderEventBanner(event){
     participationHTML = `
     <div style="margin-top:.6rem;padding:.5rem .7rem;background:rgba(255,215,0,.06);border:1px solid var(--gold);">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--gold);margin-bottom:.4rem;">
-        🎯 「	ext{${event.targetSkill}}」チャレンジ
+        🎯 「${event.targetSkill}」チャレンジ
       </div>
       <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
         <div style="flex:1;background:var(--bg3);height:8px;border:1px solid var(--border);min-width:80px;">
-          <div style="height:100%;background:var(--gold);width:	ext{${pct}}%;transition:width .8s;"></div>
+          <div style="height:100%;background:var(--gold);width:${pct}%;transition:width .8s;"></div>
         </div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);white-space:nowrap;">
-          🏆${masteredCount} / ⚔️${challengedCount} / 👥	ext{${total}}名
+          🏆${masteredCount} / ⚔️${challengedCount} / 👥${total}名
         </div>
       </div>
     </div>`;
@@ -2803,7 +2803,7 @@ function renderEventBanner(event){
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">残り</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.65rem;color:	ext{${remaining<=3?'var(--pink)':'var(--gold)'}};">${remaining}日</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.65rem;color:${remaining<=3?'var(--pink)':'var(--gold)'};">${remaining}日</div>
       </div>
     </div>
     ${participationHTML}
