@@ -69,7 +69,7 @@ async function loadFirebase(){
     if(fbPhotos&&Object.keys(fbPhotos).length>0){
       Object.entries(fbPhotos).forEach(([charId,photo])=>{
         if(photo) {
-          try { localStorage.setItem('jq_photo_'+charId, photo); } // 【修正】容量オーバー時のクラッシュ防止
+          try { try { localStorage.setItem('jq_photo_'+charId, photo); } catch(e) {} } // 【修正】容量オーバー時のクラッシュ防止
           catch(e) { console.warn('LocalStorage容量オーバー:', e); }
         }
       });
@@ -80,7 +80,7 @@ async function loadFirebase(){
     if(fbIcons&&Object.keys(fbIcons).length>0){
       Object.entries(fbIcons).forEach(([charId,setting])=>{
         if(setting) {
-          try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } // 【修正】容量オーバー防止
+          try { try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } catch(e) {} } // 【修正】容量オーバー防止
           catch(e) {}
         }
       });
@@ -1800,7 +1800,7 @@ function renderHQDashboard(){
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;">
               <div style="font-weight:900;font-size:.9rem;">${s.cls}</div>
               <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${s.stuck>0?'var(--pink)':'var(--text2)'};">
-                ${s.stuck>0?`⚠️ フォロー推奨 \${s.stuck}名`:'✅ 全員順調'}
+                ${s.stuck>0?`⚠️ フォロー推奨 ${s.stuck}名`:'✅ 全員順調'}
               </div>
             </div>
             <div style="display:flex;gap:.8rem;margin-top:.4rem;flex-wrap:wrap;">
@@ -1949,7 +1949,7 @@ function renderDashboard(){
       const suggestions=getInterventionSuggestion(sk.name,rec);
       interventionHTML=`<div style="width:100%;margin-top:.4rem;padding:.45rem .6rem;background:rgba(255,64,129,.06);border:1px solid rgba(255,64,129,.3);border-radius:2px;">
         <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--pink);margin-bottom:.3rem;">⚠️ 「${sk.name}」が${sk.consec}回連続🌱</div>
-        ${suggestions.map(s=>`<div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);line-height:1.7;">\${s}</div>`).join('')}
+        ${suggestions.map(s=>`<div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);line-height:1.7;">${s}</div>`).join('')}
       </div>`;
     }
 
@@ -2006,7 +2006,7 @@ function getIconSetting(charId){
   return {type:'sprite', job: null}; // デフォルト：現在のジョブスプライト
 }
 function setIconSetting(charId, setting){
-  localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting));
+  try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } catch(e) {}
   _fb.saveIcon(charId, setting).catch(()=>{});
 }
 function getUnlockedJobs(c){
@@ -2042,7 +2042,7 @@ function getIconDisplay(c, size=60, border=true){
       const isMastered=isJobFullyMastered(c,job);
       return `<div style="position:relative;width:${size}px;height:${size}px;margin:0 auto .5rem;">
         <img src="${SPRITES[job]}" style="width:${size}px;height:${size}px;object-fit:contain;image-rendering:pixelated;display:block;">
-        ${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:\${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
+        ${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
       </div>`;
     } else {
       return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;font-weight:900;color:#fff;margin:0 auto .5rem;">${c.name.charAt(0)}</div>`;
@@ -2329,7 +2329,7 @@ function renderAdminLog(){
       return `<div style="padding:.6rem .8rem;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:.4rem;align-items:flex-start;">
         <div style="flex:1;min-width:180px;">
           <div style="font-weight:700;font-size:.9rem;">${label}</div>
-          ${detail?`<div style="font-size:.78rem;color:var(--text2);margin-top:.2rem;">\${detail}</div>`:''}
+          ${detail?`<div style="font-size:.78rem;color:var(--text2);margin-top:.2rem;">${detail}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:\.75rem;color:var(--text2);">${log.adminType}</div>
@@ -2400,19 +2400,19 @@ function renderParentPage(c){
   if(mastered.length>0){
     monthHTML+=`<div style="background:rgba(255,215,0,.08);border:2px solid var(--gold);border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--gold);margin-bottom:.4rem;">🏆 できるようになったこと</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${mastered.map(([sk])=>`「\${sk}」`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${mastered.map(([sk])=>`「${sk}」`).join('　')}</div>
     </div>`;
   }
   if(challenged.length>0){
     monthHTML+=`<div style="background:rgba(0,229,255,.06);border:2px solid var(--teal);border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.4rem;">⚔️ 今まさに挑戦中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${challenged.map(([sk,r])=>`「\${sk}」（${r.pts}pt）`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${challenged.map(([sk,r])=>`「${sk}」（${r.pts}pt）`).join('　')}</div>
     </div>`;
   }
   if(trainingSkills.length>0){
     monthHTML+=`<div style="background:rgba(136,136,255,.08);border:2px solid #8888ff;border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:#8888ff;margin-bottom:.4rem;">🌱 土台づくり中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${trainingSkills.map(([sk])=>`「\${sk}」`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${trainingSkills.map(([sk])=>`「${sk}」`).join('　')}</div>
       <div style="font-size:.8rem;color:var(--text2);margin-top:.4rem;">焦らず一歩一歩、基礎を大切に積み上げています。</div>
     </div>`;
   }
@@ -2436,7 +2436,7 @@ function renderParentPage(c){
         <div style="flex:1;">
           <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.9rem;${r.mastered?'color:var(--gold);':''}">${sk}</div>
           <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:${stage.color};margin-top:.2rem;">${stage.label}${pts>0?' · '+pts+'pt':''}${!r.mastered&&pts>0?' · あと'+rem+'pt':''}</div>
-          ${logLine.length?`<div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:var(--text2);margin-top:.2rem;">\${logLine.join(' → ')}</div>`:''}
+          ${logLine.length?`<div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:var(--text2);margin-top:.2rem;">${logLine.join(' → ')}</div>`:''}
         </div>
       </div>`;
     }).join('');
@@ -2550,21 +2550,21 @@ function generateMonthlyReport(c, targetMonth){
   <div class="card">
     <div class="card-ttl">🏆 マスターした技（累計）</div>
     \${mastered.length>0
-      ? `<ul>${mastered.map(sk=>`<li>\${sk}</li>`).join('')}</ul>`
+      ? `<ul>${mastered.map(sk=>`<li>${sk}</li>`).join('')}</ul>`
       : '<p style="color:#6666aa;font-size:.85rem;">まだマスター技はありません。これからが楽しみ！</p>'}
   </div>
 
   <div class="card">
     <div class="card-ttl">⚔️ 今挑戦中の技</div>
     \${challenged.length>0
-      ? `<ul>${challenged.map(([sk,r])=>`<li>\${sk} <span class="teal" style="font-size:.75rem;">（${r.pts}pt）</span></li>`).join('')}</ul>`
+      ? `<ul>${challenged.map(([sk,r])=>`<li>${sk} <span class="teal" style="font-size:.75rem;">（${r.pts}pt）</span></li>`).join('')}</ul>`
       : '<p style="color:#6666aa;font-size:.85rem;">新しい技に挑戦しよう！</p>'}
   </div>
 
   \${training.length>0 ? `
   <div class="card">
     <div class="card-ttl">🌱 土台づくり中の技</div>
-    <ul>${training.map(([sk])=>`<li>\${sk}</li>`).join('')}</ul>
+    <ul>${training.map(([sk])=>`<li>${sk}</li>`).join('')}</ul>
     <p style="font-size:.8rem;color:#6666aa;margin-top:.5rem;">焦らず積み上げています。応援してください！</p>
   </div>` : ''}
 
@@ -2817,7 +2817,7 @@ function buildSkillOptions(){
   SKILL_MAP.forEach(([n,jk])=>{if(!grouped[jk])grouped[jk]=[];grouped[jk].push(n);});
   return jobOrder.filter(jk=>grouped[jk]).map(jk=>{
     const jb=JOBS[jk];
-    return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="\${sk}">${sk}</option>`).join('')}</optgroup>`;
+    return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</optgroup>`;
   }).join('');
 }
 
