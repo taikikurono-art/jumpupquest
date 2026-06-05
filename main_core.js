@@ -68,7 +68,10 @@ async function loadFirebase(){
     const fbPhotos=await _fb.getAllPhotos();
     if(fbPhotos&&Object.keys(fbPhotos).length>0){
       Object.entries(fbPhotos).forEach(([charId,photo])=>{
-        if(photo) localStorage.setItem('jq_photo_'+charId, photo);
+        if(photo) {
+          try { localStorage.setItem('jq_photo_'+charId, photo); } // 【修正】容量オーバー時のクラッシュ防止
+          catch(e) { console.warn('LocalStorage容量オーバー:', e); }
+        }
       });
       console.log('Firebase: 写真 '+Object.keys(fbPhotos).length+'件読み込み');
     }
@@ -76,7 +79,10 @@ async function loadFirebase(){
     const fbIcons=await _fb.getAllIcons();
     if(fbIcons&&Object.keys(fbIcons).length>0){
       Object.entries(fbIcons).forEach(([charId,setting])=>{
-        if(setting) localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting));
+        if(setting) {
+          try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } // 【修正】容量オーバー防止
+          catch(e) {}
+        }
       });
       console.log('Firebase: アイコン設定 '+Object.keys(fbIcons).length+'件読み込み');
     }
@@ -104,7 +110,23 @@ function cleanupOrphanedData(){
   // 古いjq5キャッシュを削除
   localStorage.removeItem('jq5');
 }
+
+// 【追加】最新のchars配列から、現在のcurrentUserの参照を繋ぎ直す（先祖返り防止）
+function updateCurrentUserRef() {
+  if (currentUser) {
+    const updated = chars.find(c => c.id === currentUser.id);
+    if (updated) {
+      currentUser = updated; // 最新データに更新
+    } else {
+      currentUser = null; // 削除されていた場合
+      goPage('pg-title');
+      showToast('⚠️ アカウントが削除されたか見つかりません');
+    }
+  }
+}
+
 async function initGAS(){
+
   if(!GAS_URL){showGasStatus('offline');return;}
   // GAS読み込み中はメニューボタンを全て無効化
   const menuBtns=document.querySelectorAll('.menu-item');
@@ -120,6 +142,7 @@ async function initGAS(){
       showGasStatus('online');
       console.log('GAS: '+data.chars.length+'件読み込み（正データ）');
       cleanupOrphanedData();
+      updateCurrentUserRef(); // 【追加】ログイン中のユーザー情報を最新化
     } else {
       chars=[];
       gasReady=true;
@@ -197,9 +220,16 @@ async function syncPendingData(){
     for(const item of items){
       const {id,...body}=item;
       try{
-        await gasPost(body);
-        const db2=await openIDB();const tx=db2.transaction('pending','readwrite');tx.objectStore('pending').delete(id);await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=j;});
-      }catch(e){}
+        const response = await gasPost(body);
+        // 【修正】GASから正常なレスポンス（エラーでない）が返ってきた場合のみ、手元のデータを削除する
+        if(response && !response.error) {
+          const db2=await openIDB();const tx=db2.transaction('pending','readwrite');tx.objectStore('pending').delete(id);await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=j;});
+        } else {
+          console.warn('GASへの同期が拒否されました', response);
+        }
+      }catch(e){
+        console.warn('同期通信エラー（再試行します）', e);
+      }
     }
     showToast('✅ 同期完了！');
     // 同期が終わったら最新データを再取得して冒険者一覧を更新
@@ -270,7 +300,7 @@ function uploadStatusPhoto(event){
       canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL('image/jpeg',0.8);
-      localStorage.setItem('jq_photo_'+c.id,dataUrl);
+      try { localStorage.setItem('jq_photo_'+c.id,dataUrl); } catch(e) { showToast('⚠️ 端末の保存容量が一杯です'); }
       _fb.savePhoto(c.id,dataUrl).catch(()=>{});
       renderStatus(c);
       showToast('写真を設定したよ！');
@@ -316,9 +346,12 @@ async function createNewChar(){
 
   // GASから最新データを取得して重複チェック
   try{
-    const res=await fetch(GAS_URL+'?action=getAll');
+    const res=await fetch(GAS_URL+'?action=getAll&t='+Date.now()); // 【修正】キャッシュバスター追加
     const data=await res.json();
-    if(data.chars) chars=data.chars; // 最新データで更新
+    if(data.chars) {
+      chars=data.chars;
+      updateCurrentUserRef(); // 【追加】
+    }
   }catch(e){}
 
   if(chars.find(c=>c.name===name)){err.textContent='そのなまえはもう使われているよ！';err.style.display='block';return;}
@@ -738,6 +771,7 @@ async function initExplorer(){
       const data = await res.json();
       if(data.chars && data.chars.length > 0){
         chars = data.chars; // 最新データで上書き
+        updateCurrentUserRef(); // 【追加】ログイン中のユーザー情報を最新化
       }
     } catch(e) {
       console.warn('バックグラウンドでの最新データ取得に失敗しました', e);
