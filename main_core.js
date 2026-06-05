@@ -1938,22 +1938,20 @@ function renderDashboard(){
   let archiveHTML='';
   if(archivedChars.length>0){
     const archiveLabel={leave:'⏸️ 休会',withdraw:'📦 退会',graduate:'🎓 卒業'};
-    archiveHTML=`<details style="margin-top:.8rem;">
-      <summary style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);cursor:pointer;padding:.4rem 0;">
-        📂 アーカイブ済み（${archivedChars.length}名）
-      </summary>
-      <div style="margin-top:.5rem;opacity:.6;">
-        \${archivedChars.map(c=>{
-          const j=JOBS[c.job]||JOBS.rookie;
-          const lbl=archiveLabel[c.status||'withdraw']||'';
-          return `<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .7rem;background:var(--bg3);border:1px solid var(--border);margin-bottom:.3rem;">
-            <span style="font-size:1rem;">${j.emoji}</span>
-            <span style="font-weight:700;font-size:.88rem;">${c.name}</span>
-            <span style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--text2);margin-left:auto;">${lbl}</span>
-          </div>`;
-        }).join('')}
-      </div>
-    </details>`;
+    const archiveRowsHTML = archivedChars.map(c => {
+      const j=JOBS[c.job]||JOBS.rookie;
+      const lbl=archiveLabel[c.status||'withdraw']||'';
+      return '<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .7rem;background:var(--bg3);border:1px solid var(--border);margin-bottom:.3rem;">' +
+        '<span style="font-size:1rem;">' + j.emoji + '</span>' +
+        '<span style="font-weight:700;font-size:.88rem;">' + c.name + '</span>' +
+        '<span style="font-family:\'Press Start 2P\',monospace;font-size:.26rem;color:var(--text2);margin-left:auto;">' + lbl + '</span>' +
+        '</div>';
+    }).join('');
+    archiveHTML =
+      '<details style="margin-top:.8rem;">' +
+      '<summary style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);cursor:pointer;padding:.4rem 0;">📂 アーカイブ済み（' + archivedChars.length + '名）</summary>' +
+      '<div style="margin-top:.5rem;opacity:.6;">' + archiveRowsHTML + '</div>' +
+      '</details>';
   }
 
   el.innerHTML=summaryHTML+rowsHTML+archiveHTML;
