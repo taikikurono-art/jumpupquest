@@ -2464,92 +2464,73 @@ function generateMonthlyReport(c, targetMonth){
     if(cands.length){nextRec=cands.sort((a,b)=>(recs[b[0]].pts||0)-(recs[a[0]].pts||0))[0][0];break;}
   }
 
-  // HTMLレポート生成
-  const html = `<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${c.name}さんの成長レポート ${monthLabel}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:#080818;color:#e8e8ff;font-family:'Zen Maru Gothic',sans-serif;padding:1.5rem;max-width:640px;margin:0 auto;}
-  h1{font-family:'Press Start 2P',monospace;font-size:.9rem;color:#ffd700;margin-bottom:.3rem;letter-spacing:2px;}
-  .sub{font-size:.8rem;color:#6666aa;margin-bottom:1.5rem;}
-  .card{background:#0f0f28;border:2px solid #252550;padding:1.1rem 1.2rem;margin-bottom:1rem;position:relative;}
-  .card::after{content:'';position:absolute;bottom:-4px;right:-4px;width:100%;height:100%;background:rgba(37,37,80,.6);z-index:-1;}
-  .card-ttl{font-family:'Press Start 2P',monospace;font-size:.5rem;color:#00e5ff;margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1px solid #252550;}
-  .gold{color:#ffd700;} .teal{color:#00e5ff;} .green{color:#39ff14;} .pink{color:#ff4081;}
-  .tag{font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}
-  ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}
-  li{font-size:.9rem;line-height:1.7;padding-left:1em;position:relative;}
-  li::before{content:'▶';position:absolute;left:0;color:#00e5ff;font-size:.5em;top:.4em;}
-  .pt-big{font-family:'Press Start 2P',monospace;font-size:1.6rem;color:#ffd700;}
-  .comment{background:#0d0d22;border-left:3px solid #ffd700;font-size:.9rem;line-height:1.9;white-space:pre-wrap;}
-  .next-box{background:rgba(0,229,255,.06);border:2px solid #00e5ff;padding:.8rem 1rem;}
-  .footer{font-family:'Press Start 2P',monospace;font-size:.32rem;color:#6666aa;margin-top:1.5rem;text-align:center;line-height:2;}
-  .print-btn{display:block;width:100%;padding:.9rem;background:#ffd700;color:#000;font-family:'Press Start 2P',monospace;font-size:.5rem;border:none;cursor:pointer;margin-bottom:1.5rem;letter-spacing:1px;}
-  @media print{.print-btn{display:none;}body{background:#fff;color:#000;}
-    .card{background:#f8f8f8;border:1px solid #ccc;}.card::after{display:none;}
-    .card-ttl{color:#0066aa;}.pt-big{color:#cc8800;}.comment{background:#f8f8f8;border-left:3px solid #cc8800;}
-  }
-</style>
-</head>
-<body>
-  <button class="print-btn" onclick="window.print()">🖨️ PDFとして保存する</button>
-  <h1>📊 成長レポート</h1>
-  <div class="sub">${c.name}さん ／ ${monthLabel} ／ ${c.classroom}</div>
+  // HTMLレポート生成（ネストを避けるため文字列連結）
+  const masteredHTML = mastered.length > 0
+    ? '<ul>' + mastered.map(sk => '<li>' + sk + '</li>').join('') + '</ul>'
+    : '<p style="color:#6666aa;font-size:.85rem;">まだマスター技はありません。これからが楽しみ！</p>';
 
-  <div class="card">
-    <div class="card-ttl">🏆 マスターした技（累計）</div>
-    \${mastered.length>0
-      ? `<ul>${mastered.map(sk=>`<li>${sk}</li>`).join('')}</ul>`
-      : '<p style="color:#6666aa;font-size:.85rem;">まだマスター技はありません。これからが楽しみ！</p>'}
-  </div>
+  const challengedHTML = challenged.length > 0
+    ? '<ul>' + challenged.map(([sk,r]) => '<li>' + sk + ' <span class="teal" style="font-size:.75rem;">（' + r.pts + 'pt）</span></li>').join('') + '</ul>'
+    : '<p style="color:#6666aa;font-size:.85rem;">新しい技に挑戦しよう！</p>';
 
-  <div class="card">
-    <div class="card-ttl">⚔️ 今挑戦中の技</div>
-    \${challenged.length>0
-      ? `<ul>${challenged.map(([sk,r])=>`<li>${sk} <span class="teal" style="font-size:.75rem;">（${r.pts}pt）</span></li>`).join('')}</ul>`
-      : '<p style="color:#6666aa;font-size:.85rem;">新しい技に挑戦しよう！</p>'}
-  </div>
+  const trainingCardHTML = training.length > 0
+    ? '<div class="card"><div class="card-ttl">🌱 土台づくり中の技</div>' +
+      '<ul>' + training.map(([sk]) => '<li>' + sk + '</li>').join('') + '</ul>' +
+      '<p style="font-size:.8rem;color:#6666aa;margin-top:.5rem;">焦らず積み上げています。応援してください！</p></div>'
+    : '';
 
-  \${training.length>0 ? `
-  <div class="card">
-    <div class="card-ttl">🌱 土台づくり中の技</div>
-    <ul>${training.map(([sk])=>`<li>${sk}</li>`).join('')}</ul>
-    <p style="font-size:.8rem;color:#6666aa;margin-top:.5rem;">焦らず積み上げています。応援してください！</p>
-  </div>` : ''}
+  const msgCardHTML = latestMsg
+    ? '<div class="card"><div class="card-ttl">💬 先生からのメッセージ</div>' +
+      '<div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 ' + (latestMsg.date||'') + '</div>' +
+      '<div class="comment">' + (latestMsg.body||'') + '</div></div>'
+    : '';
 
-  <div class="card">
-    <div class="card-ttl">📈 合計獲得ポイント</div>
-    <div class="pt-big">${totalPt}<span style="font-size:.7rem;color:#6666aa;">pt</span></div>
-    <p style="font-size:.8rem;color:#6666aa;margin-top:.4rem;">マスターまで 10pt 必要です</p>
-  </div>
+  const nextRecCardHTML = nextRec
+    ? '<div class="card"><div class="card-ttl">🎯 来月のおすすめ</div>' +
+      '<div class="next-box">' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.36rem;color:#00e5ff;margin-bottom:.4rem;">次の挑戦</div>' +
+      '<div style="font-weight:900;font-size:1.1rem;">「' + nextRec + '」</div>' +
+      '</div></div>'
+    : '';
 
-  \${latestMsg ? `
-  <div class="card">
-    <div class="card-ttl">💬 先生からのメッセージ</div>
-    <div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 ${latestMsg.date||''}</div>
-    <div class="comment">${latestMsg.body||''}</div>
-  </div>` : ''}
-
-  \${nextRec ? `
-  <div class="card">
-    <div class="card-ttl">🎯 来月のおすすめ</div>
-    <div class="next-box">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:#00e5ff;margin-bottom:.4rem;">次の挑戦</div>
-      <div style="font-weight:900;font-size:1.1rem;">「${nextRec}」</div>
-    </div>
-  </div>` : ''}
-
-  <div class="footer">
-    JUMPUPクエスト 成長レポート<br>
-    ${c.name}さんの挑戦を、これからも応援しています！
-  </div>
-</body>
-</html>`;
+  const html = '<!DOCTYPE html>\n<html lang="ja">\n<head>\n' +
+    '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+    '<title>' + c.name + 'さんの成長レポート ' + monthLabel + '</title>\n' +
+    '<style>\n' +
+    '  @import url(\'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap\');\n' +
+    '  *{margin:0;padding:0;box-sizing:border-box;}\n' +
+    '  body{background:#080818;color:#e8e8ff;font-family:\'Zen Maru Gothic\',sans-serif;padding:1.5rem;max-width:640px;margin:0 auto;}\n' +
+    '  h1{font-family:\'Press Start 2P\',monospace;font-size:.9rem;color:#ffd700;margin-bottom:.3rem;letter-spacing:2px;}\n' +
+    '  .sub{font-size:.8rem;color:#6666aa;margin-bottom:1.5rem;}\n' +
+    '  .card{background:#0f0f28;border:2px solid #252550;padding:1.1rem 1.2rem;margin-bottom:1rem;position:relative;}\n' +
+    '  .card::after{content:\'\';position:absolute;bottom:-4px;right:-4px;width:100%;height:100%;background:rgba(37,37,80,.6);z-index:-1;}\n' +
+    '  .card-ttl{font-family:\'Press Start 2P\',monospace;font-size:.5rem;color:#00e5ff;margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1px solid #252550;}\n' +
+    '  .gold{color:#ffd700;} .teal{color:#00e5ff;} .green{color:#39ff14;} .pink{color:#ff4081;}\n' +
+    '  .tag{font-family:\'Press Start 2P\',monospace;font-size:.3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}\n' +
+    '  ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}\n' +
+    '  li{font-size:.9rem;line-height:1.7;padding-left:1em;position:relative;}\n' +
+    '  li::before{content:\'▶\';position:absolute;left:0;color:#00e5ff;font-size:.5em;top:.4em;}\n' +
+    '  .pt-big{font-family:\'Press Start 2P\',monospace;font-size:1.6rem;color:#ffd700;}\n' +
+    '  .comment{background:#0d0d22;border-left:3px solid #ffd700;font-size:.9rem;line-height:1.9;white-space:pre-wrap;}\n' +
+    '  .next-box{background:rgba(0,229,255,.06);border:2px solid #00e5ff;padding:.8rem 1rem;}\n' +
+    '  .footer{font-family:\'Press Start 2P\',monospace;font-size:.32rem;color:#6666aa;margin-top:1.5rem;text-align:center;line-height:2;}\n' +
+    '  .print-btn{display:block;width:100%;padding:.9rem;background:#ffd700;color:#000;font-family:\'Press Start 2P\',monospace;font-size:.5rem;border:none;cursor:pointer;margin-bottom:1.5rem;letter-spacing:1px;}\n' +
+    '  @media print{.print-btn{display:none;}body{background:#fff;color:#000;}\n' +
+    '    .card{background:#f8f8f8;border:1px solid #ccc;}.card::after{display:none;}\n' +
+    '    .card-ttl{color:#0066aa;}.pt-big{color:#cc8800;}.comment{background:#f8f8f8;border-left:3px solid #cc8800;}\n' +
+    '  }\n</style>\n</head>\n<body>\n' +
+    '  <button class="print-btn" onclick="window.print()">🖨️ PDFとして保存する</button>\n' +
+    '  <h1>📊 成長レポート</h1>\n' +
+    '  <div class="sub">' + c.name + 'さん ／ ' + monthLabel + ' ／ ' + c.classroom + '</div>\n' +
+    '  <div class="card"><div class="card-ttl">🏆 マスターした技（累計）</div>' + masteredHTML + '</div>\n' +
+    '  <div class="card"><div class="card-ttl">⚔️ 今挑戦中の技</div>' + challengedHTML + '</div>\n' +
+    trainingCardHTML +
+    '  <div class="card"><div class="card-ttl">📈 合計獲得ポイント</div>' +
+    '  <div class="pt-big">' + totalPt + '<span style="font-size:.7rem;color:#6666aa;">pt</span></div>' +
+    '  <p style="font-size:.8rem;color:#6666aa;margin-top:.4rem;">マスターまで 10pt 必要です</p></div>\n' +
+    msgCardHTML + nextRecCardHTML +
+    '  <div class="footer">JUMPUPクエスト 成長レポート<br>' + c.name + 'さんの挑戦を、これからも応援しています！</div>\n' +
+    '</body>\n</html>';
 
   return html;
 }
