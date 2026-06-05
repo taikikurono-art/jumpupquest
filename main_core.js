@@ -314,7 +314,7 @@ function uploadRoomPhoto(event){ uploadStatusPhoto(event); } // 後方互換
 // ======== TITLE ========
 // ======== LOGIN ========
 function loginSearch(){
-  const q=document.getElementById('loginSearchInput').value.trim().toLowerCase();
+  const q=document.getElementById('loginSearch').value.trim().toLowerCase();
   const res=document.getElementById('loginResults');
   if(!q){res.innerHTML='';return;}
   const found=chars.filter(c=>c.name.toLowerCase().includes(q));
@@ -695,7 +695,7 @@ function renderStatus(c){
       return `<div class="st-trophy-item" style="border-color:${borderCol};background:${bg};">
         ${sprite}
         <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:${hasMastered?jb.color:'var(--border)'};text-align:center;">${jb.name}</div>
-        ${isFull?'<div style="font-family:'Press Start 2P',monospace;font-size:.2rem;color:var(--gold);">完全制覇</div>':''}
+        ${isFull?'<div style="font-family:\'Press Start 2P\',monospace;font-size:.2rem;color:var(--gold);">完全制覇</div>':''}
       </div>`;
     }).join('');
   }
