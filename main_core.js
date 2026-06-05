@@ -58,32 +58,22 @@ async function loadFirebase(){
     };
     fbLoaded=true;
     // ※ キャラデータはGASが正。Firebaseからは読み込まない
-    // 動画URLのみFirestoreから読み込み
+    // 動画URLをメモリキャッシュに読み込み
     const fbVideos=await _fb.getVideos();
     if(fbVideos&&Object.keys(fbVideos).length>0){
-      localStorage.setItem('jq_videos',JSON.stringify(fbVideos));
+      _videosCache=fbVideos;
       console.log('Firebase: 動画URL '+Object.keys(fbVideos).length+'件読み込み');
     }
-    // 写真をFirestoreから一括読み込みしてlocalStorageに同期
+    // 写真をメモリキャッシュに読み込み
     const fbPhotos=await _fb.getAllPhotos();
     if(fbPhotos&&Object.keys(fbPhotos).length>0){
-      Object.entries(fbPhotos).forEach(([charId,photo])=>{
-        if(photo) {
-          try { try { localStorage.setItem('jq_photo_'+charId, photo); } catch(e) {} } // 【修正】容量オーバー時のクラッシュ防止
-          catch(e) { console.warn('LocalStorage容量オーバー:', e); }
-        }
-      });
+      _photosCache=fbPhotos;
       console.log('Firebase: 写真 '+Object.keys(fbPhotos).length+'件読み込み');
     }
-    // アイコン設定をFirestoreから一括読み込みしてlocalStorageに同期
+    // アイコン設定をメモリキャッシュに読み込み
     const fbIcons=await _fb.getAllIcons();
     if(fbIcons&&Object.keys(fbIcons).length>0){
-      Object.entries(fbIcons).forEach(([charId,setting])=>{
-        if(setting) {
-          try { try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } catch(e) {} } // 【修正】容量オーバー防止
-          catch(e) {}
-        }
-      });
+      _iconsCache=fbIcons;
       console.log('Firebase: アイコン設定 '+Object.keys(fbIcons).length+'件読み込み');
     }
     startActivityLogWatch();
@@ -98,18 +88,13 @@ let gasReady=false;
 let currentUser=null;
 let prevPage='pg-title';
 
+// メモリキャッシュ（LocalStorage不使用）
+let _photosCache={};
+let _iconsCache={};
+let _videosCache={};
+
 function saveChars(){} // LocalStorage保存は廃止（GASが正データ）
-function cleanupOrphanedData(){
-  const photoKeys = Object.keys(localStorage).filter(k=>k.startsWith('jq_photo_')||k.startsWith('jq_useSprite_'));
-  photoKeys.forEach(key=>{
-    const charId = key.replace('jq_photo_','').replace('jq_useSprite_','');
-    if(!chars.find(c=>c.id===charId)){
-      localStorage.removeItem(key);
-    }
-  });
-  // 古いjq5キャッシュを削除
-  localStorage.removeItem('jq5');
-}
+function cleanupOrphanedData(){} // LocalStorage廃止につき不要
 
 // 【追加】最新のchars配列から、現在のcurrentUserの参照を繋ぎ直す（先祖返り防止）
 function updateCurrentUserRef() {
@@ -300,7 +285,7 @@ function uploadStatusPhoto(event){
       canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL('image/jpeg',0.8);
-      try { localStorage.setItem('jq_photo_'+c.id,dataUrl); } catch(e) { showToast('⚠️ 端末の保存容量が一杯です'); }
+      _photosCache[c.id]=dataUrl;
       _fb.savePhoto(c.id,dataUrl).catch(()=>{});
       renderStatus(c);
       showToast('写真を設定したよ！');
@@ -595,7 +580,7 @@ function renderStatus(c){
   const stPhoto=document.getElementById('stPhoto');
   const stInitial=document.getElementById('stInitial');
   const iconSetting=getIconSetting(c.id);
-  const photo=localStorage.getItem('jq_photo_'+c.id);
+  const photo=_photosCache[c.id]||null;
   if(iconSetting.type==='photo'&&photo){
     stPhoto.src=photo;stPhoto.style.display='block';
     stPhoto.style.objectFit='cover';stPhoto.style.imageRendering='auto';stPhoto.style.background='none';
@@ -1031,10 +1016,10 @@ function renderMatrix(){
   }
 }
 // ======== スキル動画 ========
-// 動画URL：Firestoreメイン（localStorageをキャッシュとして使用）
-function getSkillVideos(){ return JSON.parse(localStorage.getItem('jq_videos')||'{}'); }
+// 動画URL：Firestoreメイン（メモリキャッシュ使用）
+function getSkillVideos(){ return _videosCache; }
 async function saveSkillVideos(v){
-  localStorage.setItem('jq_videos',JSON.stringify(v));
+  _videosCache=v;
   // Firestoreに保存（全デバイス共有）
   try{ await _fb.saveVideos(v); }catch(e){ console.warn('動画URL保存失敗',e); }
 }
@@ -1321,36 +1306,36 @@ function renderBulkVideoAdmin(){
   const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer',
     'waterflow','striker','tracerunner','airmaster','illusionist'];
 
-  el.innerHTML = `
-    <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.7rem;">
-      全デバイスに即反映されます。URLを空にすると動画を削除します。
-    </div>
-    \${jobOrder.map(jk => {
-      const jb = JOBS[jk]; if(!jb) return '';
-      const jobSkills = SKILL_MAP.filter(([,k])=>k===jk);
-      return `<details style="margin-bottom:.5rem;">
-        <summary style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:${jb.color};cursor:pointer;padding:.4rem .2rem;">
-          ${jb.emoji} ${jb.name}（${jobSkills.filter(([n])=>videos[n]).length}/${jobSkills.length}本登録済）
-        </summary>
-        <div style="padding:.4rem 0 .4rem .6rem;display:flex;flex-direction:column;gap:.4rem;margin-top:.3rem;">
-          \${jobSkills.map(([sk])=>`
-            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-              <div style="font-weight:700;font-size:.82rem;min-width:120px;flex:1;">${sk}</div>
-              <input class="pinput" style="flex:2;min-width:160px;font-size:.78rem;padding:.4rem .6rem;"
-                placeholder="YouTube URL"
-                value="${videos[sk]||''}"
-                data-skill="${sk}"
-                oninput="markBulkDirty(this)">
-            </div>`).join('')}
-        </div>
-      </details>`;
-    }).join('')}
-    <div style="margin-top:.8rem;display:flex;gap:.5rem;">
-      <button class="pbtn btn-gold" onclick="saveBulkVideos()" style="flex:1;font-size:.48rem;">💾 一括保存する</button>
-      <button class="pbtn btn-outline" onclick="renderBulkVideoAdmin()" style="font-size:.44rem;padding:0 .8rem;">↺ リセット</button>
-    </div>
-    <div id="bulkSaveStatus" style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.5rem;text-align:center;"></div>
-  `;
+  const jobsHTML = jobOrder.map(jk => {
+    const jb = JOBS[jk]; if(!jb) return '';
+    const jobSkills = SKILL_MAP.filter(([,k])=>k===jk);
+    const skillsHTML = jobSkills.map(([sk]) =>
+      '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">' +
+      '<div style="font-weight:700;font-size:.82rem;min-width:120px;flex:1;">' + sk + '</div>' +
+      '<input class="pinput" style="flex:2;min-width:160px;font-size:.78rem;padding:.4rem .6rem;"' +
+      ' placeholder="YouTube URL"' +
+      ' value="' + (videos[sk]||'') + '"' +
+      ' data-skill="' + sk + '"' +
+      ' oninput="markBulkDirty(this)">' +
+      '</div>'
+    ).join('');
+    return '<details style="margin-bottom:.5rem;">' +
+      '<summary style="font-family:\'Press Start 2P\',monospace;font-size:.34rem;color:' + jb.color + ';cursor:pointer;padding:.4rem .2rem;">' +
+      jb.emoji + ' ' + jb.name + '（' + jobSkills.filter(([n])=>videos[n]).length + '/' + jobSkills.length + '本登録済）' +
+      '</summary>' +
+      '<div style="padding:.4rem 0 .4rem .6rem;display:flex;flex-direction:column;gap:.4rem;margin-top:.3rem;">' +
+      skillsHTML +
+      '</div></details>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.7rem;">全デバイスに即反映されます。URLを空にすると動画を削除します。</div>' +
+    jobsHTML +
+    '<div style="margin-top:.8rem;display:flex;gap:.5rem;">' +
+    '<button class="pbtn btn-gold" onclick="saveBulkVideos()" style="flex:1;font-size:.48rem;">💾 一括保存する</button>' +
+    '<button class="pbtn btn-outline" onclick="renderBulkVideoAdmin()" style="font-size:.44rem;padding:0 .8rem;">↺ リセット</button>' +
+    '</div>' +
+    '<div id="bulkSaveStatus" style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);margin-top:.5rem;text-align:center;"></div>';
 }
 
 function markBulkDirty(input){
@@ -1367,7 +1352,7 @@ async function saveBulkVideos(){
   });
   const statusEl = document.getElementById('bulkSaveStatus');
   if(statusEl) statusEl.textContent = '💾 保存中...';
-  localStorage.setItem('jq_videos', JSON.stringify(videos));
+  _videosCache = videos;
   await _fb.saveVideosBulk(videos);
   postAdminLog('video_bulk',{count:Object.keys(videos).length});
   if(statusEl) statusEl.textContent = `✅ ${Object.keys(videos).length}本の動画URLを全デバイスに保存しました！`;
@@ -2001,12 +1986,12 @@ function toggleSpriteAvatar(){
 
 // ======== アイコンセレクター ========
 function getIconSetting(charId){
-  const raw=localStorage.getItem('jq_icon_'+charId);
-  if(raw) return JSON.parse(raw);
+  const setting=_iconsCache[charId];
+  if(setting) return setting;
   return {type:'sprite', job: null}; // デフォルト：現在のジョブスプライト
 }
 function setIconSetting(charId, setting){
-  try { localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting)); } catch(e) {}
+  _iconsCache[charId]=setting;
   _fb.saveIcon(charId, setting).catch(()=>{});
 }
 function getUnlockedJobs(c){
@@ -2028,7 +2013,7 @@ function isJobFullyMastered(c, jobKey){
 function getIconDisplay(c, size=60, border=true){
   const j=JOBS[c.job]||JOBS.rookie;
   const setting=getIconSetting(c.id);
-  const photo=localStorage.getItem('jq_photo_'+c.id);
+  const photo=_photosCache[c.id]||null;
   const borderStyle=border?`border:2px solid ${j.color};`:'';
 
   if(setting.type==='photo'&&photo){
@@ -2054,7 +2039,7 @@ function openIconSelector(){
   const c=currentUser;
   const j=JOBS[c.job]||JOBS.rookie;
   const unlockedJobs=getUnlockedJobs(c);
-  const photo=localStorage.getItem('jq_photo_'+c.id);
+  const photo=_photosCache[c.id]||null;
   const currentSetting=getIconSetting(c.id);
 
   const EMOJIS=['⭐','🌟','💫','❤️','🧡','💛','💚','💙','💜','🔥','🌈','🌸','🎯','⚡','🏅','👑','🦊','🐯','🐺','🦁','🐉','🦅','🌙','☀️','🎮','⚔️','🛡️','🎪','🎨','🎵'];
