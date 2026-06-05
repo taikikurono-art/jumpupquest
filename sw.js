@@ -1,49 +1,25 @@
 // ======== JUMPUPクエスト Service Worker ========
-const CACHE_NAME = 'jumpupquest-20260605-1331';
-const STATIC_ASSETS = [
-  '/jumpupquest/',
-  '/jumpupquest/index.html',
-  '/jumpupquest/style.css',
-  '/jumpupquest/data.js',
-  '/jumpupquest/main_core.js',
-  '/jumpupquest/firebase.js',
-  '/jumpupquest/guide.html',
-  '/jumpupquest/manifest.json',
-  '/jumpupquest/logo.png',
-  '/jumpupquest/sprite_1.webp',
-  '/jumpupquest/sprite_2.webp',
-  '/jumpupquest/sprite_3.webp',
-  '/jumpupquest/sprite_4.webp',
-  '/jumpupquest/sprite_5.webp',
-  '/jumpupquest/sprite_6.webp',
-  '/jumpupquest/sprite_7.webp',
-  '/jumpupquest/sprite_8.webp',
-  '/jumpupquest/sprite_9.webp',
-  '/jumpupquest/sprite_10.webp',
-  '/jumpupquest/sprite_11.webp',
-];
-// インストール時：静的ファイルをキャッシュ
+// キャッシュしない設定（常に最新ファイルを取得）
+
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
-// アクティベート時：古いキャッシュを削除
+
 self.addEventListener('activate', e => {
+  // 古いキャッシュを全て削除
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
-// フェッチ：キャッシュ優先（静的）/ ネットワーク優先（API）
-self.addEventListener('fetch', e => {
-  // GETリクエストのみキャッシュ対象
-  if (e.request.method !== 'GET') return;
 
+self.addEventListener('fetch', e => {
+  // GETリクエストのみ処理
+  if (e.request.method !== 'GET') return;
+  
   const url = new URL(e.request.url);
+  
   // GAS・Firebase・YouTube は常にネットワーク
   if (
     url.hostname.includes('script.google.com') ||
@@ -55,27 +31,22 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('offline', { status: 503 })));
     return;
   }
-  // 静的ファイル：キャッシュ優先
+
+  // 全ファイルをネットワークから取得（キャッシュしない）
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match('/jumpupquest/'));
-    })
+    fetch(e.request).catch(() => new Response('offline', { status: 503 }))
   );
 });
+
 // ======== オフライン入力同期 ========
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyXID9FlLorC-GwbJ8g1UJZqVbeezl6ENkU8zJjmpbJe-6C3-Eeenbsmp1wNQ-yXswZlQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
+
 self.addEventListener('sync', e => {
   if (e.tag === 'sync-chars') {
     e.waitUntil(syncPendingChars());
   }
 });
+
 async function syncPendingChars() {
   const pending = await getPendingFromIDB();
   if (!pending || pending.length === 0) return;
@@ -92,6 +63,7 @@ async function syncPendingChars() {
     }
   }
 }
+
 function openIDB() {
   return new Promise((res, rej) => {
     const req = indexedDB.open('jumpupquest', 1);
@@ -102,6 +74,7 @@ function openIDB() {
     req.onerror = e => rej(e);
   });
 }
+
 async function getPendingFromIDB() {
   const db = await openIDB();
   return new Promise((res, rej) => {
@@ -111,6 +84,7 @@ async function getPendingFromIDB() {
     req.onerror = rej;
   });
 }
+
 async function removePendingFromIDB(id) {
   const db = await openIDB();
   return new Promise((res, rej) => {
