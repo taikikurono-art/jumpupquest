@@ -1226,40 +1226,30 @@ function renderBadges(c){
   const typeLabel={continue:'継続',challenge:'挑戦',attitude:'姿勢'};
   const typeColor={continue:'var(--teal)',challenge:'var(--gold)',attitude:'var(--green)'};
 
-  el.innerHTML=`
-    <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:.6rem;">
-      ${earned.map(b=>`
-        <div title="${b.desc}" style="
-          display:flex;flex-direction:column;align-items:center;gap:.25rem;
-          padding:.5rem .6rem;min-width:68px;
-          background:${typeColor[b.type]}18;
-          border:2px solid ${typeColor[b.type]};
-          position:relative;cursor:default;
-        ">
-          <div style="font-size:1.5rem;line-height:1;">${b.icon}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:${typeColor[b.type]};text-align:center;line-height:1.5;">${b.name}</div>
-          <div style="position:absolute;top:-7px;right:-7px;font-family:'Press Start 2P',monospace;font-size:.2rem;background:${typeColor[b.type]};color:#000;padding:.1rem .3rem;">${typeLabel[b.type]}</div>
-        </div>`).join('')}
-    </div>
-    ${notEarned.filter(b=>!b.manual).length>0?`
-    <details style="margin-top:.3rem;">
-      <summary style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);cursor:pointer;padding:.3rem 0;">
-        🔒 まだのバッジ（${notEarned.filter(b=>!b.manual).length}個）
-      </summary>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);">
-        ${notEarned.filter(b=>!b.manual).map(b=>`
-          <div title="${b.desc}" style="
-            display:flex;flex-direction:column;align-items:center;gap:.25rem;
-            padding:.5rem .6rem;min-width:68px;
-            background:var(--bg3);border:2px solid var(--border);
-            filter:grayscale(1);opacity:.45;cursor:default;
-          ">
-            <div style="font-size:1.5rem;line-height:1;">${b.icon}</div>
-            <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:var(--text2);text-align:center;line-height:1.5;">${b.name}</div>
-          </div>`).join('')}
-      </div>
-    </details>`:''
-  }`;
+  const earnedHTML = earned.map(b =>
+    '<div title="' + b.desc + '" style="display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.5rem .6rem;min-width:68px;background:' + typeColor[b.type] + '18;border:2px solid ' + typeColor[b.type] + ';position:relative;cursor:default;">' +
+    '<div style="font-size:1.5rem;line-height:1;">' + b.icon + '</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.22rem;color:' + typeColor[b.type] + ';text-align:center;line-height:1.5;">' + b.name + '</div>' +
+    '<div style="position:absolute;top:-7px;right:-7px;font-family:\'Press Start 2P\',monospace;font-size:.2rem;background:' + typeColor[b.type] + ';color:#000;padding:.1rem .3rem;">' + typeLabel[b.type] + '</div>' +
+    '</div>'
+  ).join('');
+
+  const notEarnedList = notEarned.filter(b=>!b.manual);
+  const notEarnedHTML = notEarnedList.length > 0 ?
+    '<details style="margin-top:.3rem;">' +
+    '<summary style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);cursor:pointer;padding:.3rem 0;">🔒 まだのバッジ（' + notEarnedList.length + '個）</summary>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);">' +
+    notEarnedList.map(b =>
+      '<div title="' + b.desc + '" style="display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.5rem .6rem;min-width:68px;background:var(--bg3);border:2px solid var(--border);filter:grayscale(1);opacity:.45;cursor:default;">' +
+      '<div style="font-size:1.5rem;line-height:1;">' + b.icon + '</div>' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.22rem;color:var(--text2);text-align:center;line-height:1.5;">' + b.name + '</div>' +
+      '</div>'
+    ).join('') +
+    '</div></details>' : '';
+
+  el.innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:.6rem;">' + earnedHTML + '</div>' +
+    notEarnedHTML;
 }
 
 // 称号を計算
@@ -1775,69 +1765,58 @@ function renderHQDashboard(){
     ? Math.round(active.filter(c=>monthsSinceJoin(c)>=3).length/active.length*100)
     : 0;
 
-  el.innerHTML = `
-    <!-- 教室別サマリー -->
-    <div style="margin-bottom:1rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">📊 教室別サマリー</div>
-      <div style="display:flex;flex-direction:column;gap:.4rem;">
-        \${classStats.map(s=>`
-          <div style="background:var(--bg);border:2px solid var(--border);padding:.6rem .8rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;">
-              <div style="font-weight:900;font-size:.9rem;">${s.cls}</div>
-              <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${s.stuck>0?'var(--pink)':'var(--text2)'};">
-                ${s.stuck>0?`⚠️ フォロー推奨 ${s.stuck}名`:'✅ 全員順調'}
-              </div>
-            </div>
-            <div style="display:flex;gap:.8rem;margin-top:.4rem;flex-wrap:wrap;">
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">👥 ${s.members}名</span>
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--gold);">🏆 ${s.masters}マスター</span>
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--teal);">平均 ${s.avgPt}pt</span>
-            </div>
-            <div style="margin-top:.4rem;background:var(--bg3);height:5px;border:1px solid var(--border);">
-              <div style="height:100%;background:var(--teal);width:${Math.min(100,s.avgPt)}%;transition:width .8s;"></div>
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>
+  const classStatsHTML = classStats.map(s =>
+    '<div style="background:var(--bg);border:2px solid var(--border);padding:.6rem .8rem;">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;">' +
+    '<div style="font-weight:900;font-size:.9rem;">' + s.cls + '</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.28rem;color:' + (s.stuck>0?'var(--pink)':'var(--text2)') + ';">' +
+    (s.stuck>0 ? '⚠️ フォロー推奨 ' + s.stuck + '名' : '✅ 全員順調') +
+    '</div></div>' +
+    '<div style="display:flex;gap:.8rem;margin-top:.4rem;flex-wrap:wrap;">' +
+    '<span style="font-family:\'Press Start 2P\',monospace;font-size:.28rem;color:var(--text2);">👥 ' + s.members + '名</span>' +
+    '<span style="font-family:\'Press Start 2P\',monospace;font-size:.28rem;color:var(--gold);">🏆 ' + s.masters + 'マスター</span>' +
+    '<span style="font-family:\'Press Start 2P\',monospace;font-size:.28rem;color:var(--teal);">平均 ' + s.avgPt + 'pt</span>' +
+    '</div>' +
+    '<div style="margin-top:.4rem;background:var(--bg3);height:5px;border:1px solid var(--border);">' +
+    '<div style="height:100%;background:var(--teal);width:' + Math.min(100,s.avgPt) + '%;transition:width .8s;"></div>' +
+    '</div></div>'
+  ).join('');
 
-    <!-- 継続率 -->
-    <div style="background:var(--bg);border:2px solid var(--border);padding:.7rem .8rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">3ヶ月以上継続率</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--green);">${continueRate}%</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">在籍人数</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--teal);">${active.length}名</div>
-      </div>
-    </div>
+  const topJobsHTML = topJobs.length > 0 ?
+    '<div style="margin-bottom:1rem;">' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">🏆 人気ジョブ TOP3</div>' +
+    '<div style="display:flex;gap:.5rem;flex-wrap:wrap;">' +
+    topJobs.map(item =>
+      '<div style="flex:1;min-width:90px;background:var(--bg);border:2px solid ' + item.j.color + '55;padding:.6rem;text-align:center;">' +
+      '<div style="font-size:1.3rem;">' + item.j.emoji + '</div>' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.28rem;color:' + item.j.color + ';margin:.25rem 0;">' + item.j.name + '</div>' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.36rem;color:var(--gold);">' + item.cnt + 'マスター</div>' +
+      '</div>'
+    ).join('') +
+    '</div></div>' : '';
 
-    <!-- 人気ジョブ -->
-    \${topJobs.length>0?`
-    <div style="margin-bottom:1rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">🏆 人気ジョブ TOP3</div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        \${topJobs.map((item,i)=>`
-          <div style="flex:1;min-width:90px;background:var(--bg);border:2px solid ${item.j.color}55;padding:.6rem;text-align:center;">
-            <div style="font-size:1.3rem;">${item.j.emoji}</div>
-            <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${item.j.color};margin:.25rem 0;">${item.j.name}</div>
-            <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--gold);">${item.cnt}マスター</div>
-          </div>`).join('')}
-      </div>
-    </div>`:''}
+  const topSkillsHTML = topSkills.length > 0 ?
+    '<div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">⚔️ みんながマスターした技 TOP5</div>' +
+    topSkills.map(([sk,cnt],i) =>
+      '<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;background:var(--bg);border:1px solid var(--border);margin-bottom:.3rem;">' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.32rem;color:var(--gold);min-width:20px;">' + (i+1) + '.</div>' +
+      '<div style="flex:1;font-weight:700;font-size:.85rem;">' + sk + '</div>' +
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);">' + cnt + '人</div>' +
+      '</div>'
+    ).join('') +
+    '</div>' : '';
 
-    <!-- 習得しやすい技 TOP5 -->
-    \${topSkills.length>0?`
-    <div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">⚔️ みんながマスターした技 TOP5</div>
-      \${topSkills.map(([sk,cnt],i)=>`
-        <div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;background:var(--bg);border:1px solid var(--border);margin-bottom:.3rem;">
-          <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--gold);min-width:20px;">${i+1}.</div>
-          <div style="flex:1;font-weight:700;font-size:.85rem;">${sk}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);">${cnt}人</div>
-        </div>`).join('')}
-    </div>`:''}
-  `;
+  el.innerHTML =
+    '<div style="margin-bottom:1rem;">' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">📊 教室別サマリー</div>' +
+    '<div style="display:flex;flex-direction:column;gap:.4rem;">' + classStatsHTML + '</div></div>' +
+    '<div style="background:var(--bg);border:2px solid var(--border);padding:.7rem .8rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">' +
+    '<div><div style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">3ヶ月以上継続率</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.9rem;color:var(--green);">' + continueRate + '%</div></div>' +
+    '<div style="text-align:right;"><div style="font-family:\'Press Start 2P\',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">在籍人数</div>' +
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:.9rem;color:var(--teal);">' + active.length + '名</div></div></div>' +
+    topJobsHTML + topSkillsHTML;
 }
 
 // ======== 停滞検知ロジック ========
