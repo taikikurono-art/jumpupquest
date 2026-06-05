@@ -111,7 +111,8 @@ async function initGAS(){
   menuBtns.forEach(btn=>{btn.style.opacity='.4';btn.style.pointerEvents='none';});
   try{
     showGasStatus('loading');
-    const res=await fetch(GAS_URL+'?action=getAll');
+    // キャッシュを回避するためにタイムスタンプを追加
+    const res=await fetch(GAS_URL+'?action=getAll&t='+Date.now());
     const data=await res.json();
     if(data.chars&&data.chars.length>0){
       chars=data.chars;
@@ -201,6 +202,11 @@ async function syncPendingData(){
       }catch(e){}
     }
     showToast('✅ 同期完了！');
+    // 同期が終わったら最新データを再取得して冒険者一覧を更新
+    await initGAS();
+    if(document.querySelector('.page.active')?.id === 'pg-explorer') {
+      initExplorer();
+    }
   }catch(e){}
 }
 // オンライン復帰時に自動同期
@@ -282,7 +288,7 @@ function loginSearch(){
   const res=document.getElementById('loginResults');
   if(!q){res.innerHTML='';return;}
   const found=chars.filter(c=>c.name.toLowerCase().includes(q));
-  if(found.length===0){res.innerHTML='<div style="font-family:\'Press Start 2P\';font-size:.4rem;color:var(--text2);margin-top:.5rem;">みつかりません…</div>';return;}
+  if(found.length===0){res.innerHTML='<div style="font-family:'Press Start 2P';font-size:.4rem;color:var(--text2);margin-top:.5rem;">みつかりません…</div>';return;}
   res.innerHTML=found.map(c=>{
     const j=JOBS[c.job]||JOBS.rookie;
     const imgSrc=SPRITES[c.job]?`<img src="${SPRITES[c.job]}" class="login-char-img" alt="">`:`<span style="font-size:2rem;">${c.sprite}</span>`;
@@ -493,7 +499,7 @@ function renderMailBox(c){
         const mRec=(c.skillRecords||{})[item.skill]||{};
         const mDate=mRec.masterDate||item.date||'';
         const mDays=mRec.firstDate&&mRec.masterDate?daysDiff(mRec.firstDate,mRec.masterDate):null;
-        return `<div class="tl-item tl-master" onclick="openSkillDetail('${item.skill.replace(/'/g,"\'")}','${jobKey||'rookie'}')" style="cursor:pointer;">
+        return `<div class="tl-item tl-master" onclick="openSkillDetail('${item.skill.replace(/'/g,"'")}','${jobKey||'rookie'}')" style="cursor:pointer;">
           <div class="tl-dot" style="background:var(--gold);box-shadow:0 0 8px var(--gold);"></div>
           <div class="tl-body">
             <div class="tl-label" style="color:var(--gold);">🏆 技マスター！${mRec.instantMaster?' ⚡一発':''}</div>
@@ -546,7 +552,7 @@ function renderStatus(c){
   const spriteBg=document.getElementById('stJobSpriteBg');
   if(spriteBg){
     if(SPRITES[c.job]){
-      spriteBg.innerHTML=`<img src="${SPRITES[c.job]}" style="width:110px;height:110px;object-fit:contain;image-rendering:pixelated;opacity:.12;filter:blur(.5px);">`;
+      spriteBg.innerHTML=`<img src="${SPRITES[c.job]}" style="width110px;height:110px;object-fit:contain;image-rendering:pixelated;opacity:.12;filter:blur(.5px);">`;
     } else {
       spriteBg.textContent=j.emoji;
     }
@@ -656,7 +662,7 @@ function renderStatus(c){
       return `<div class="st-trophy-item" style="border-color:${borderCol};background:${bg};">
         ${sprite}
         <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:${hasMastered?jb.color:'var(--border)'};text-align:center;">${jb.name}</div>
-        ${isFull?'<div style="font-family:\'Press Start 2P\',monospace;font-size:.2rem;color:var(--gold);">完全制覇</div>':''}
+        ${isFull?'<div style="font-family:'Press Start 2P',monospace;font-size:.2rem;color:var(--gold);">完全制覇</div>':''}
       </div>`;
     }).join('');
   }
@@ -711,8 +717,49 @@ function renderStatus(c){
 }
 
 // ======== EXPLORER ========
-function initExplorer(){
-  document.getElementById('explorerGrid').innerHTML=chars.map(c=>{
+// ローディング画面を挟んで、確実に最新データを取得してから描画する
+async function initExplorer(){
+  const grid = document.getElementById('explorerGrid');
+  if(!grid) return;
+
+  // 1. 画面を開いた瞬間にローディング表示にする
+  grid.innerHTML = `
+    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; font-family: 'Press Start 2P', monospace; color: var(--gold); font-size: 0.75rem; letter-spacing: 2px;">
+      <div style="font-size: 1.8rem; margin-bottom: 1rem; animation: bob 1s ease-in-out infinite alternate;">🟡</div>
+      LOADING...
+      <span style="font-family: 'Zen Maru Gothic', sans-serif; font-size: 0.85rem; color: var(--text2); display: block; margin-top: 0.8rem; letter-spacing: 0;">最新のぼうけんしゃデータを読み込んでいます</span>
+    </div>`;
+
+  // 2. GASからオンライン経由で最新データを取得する
+  if(gasReady && navigator.onLine) {
+    try {
+      const noCacheUrl = GAS_URL + '?action=getAll&t=' + Date.now();
+      const res = await fetch(noCacheUrl);
+      const data = await res.json();
+      if(data.chars && data.chars.length > 0){
+        chars = data.chars; // 最新データで上書き
+      }
+    } catch(e) {
+      console.warn('バックグラウンドでの最新データ取得に失敗しました', e);
+      if(typeof showToast === 'function') showToast('⚠️ 最新データの取得に失敗したため、一時データを使用します。');
+    }
+  }
+
+  // 3. 読み込みが完了したら、最新データで一覧を描画
+  renderExplorerGrid();
+}
+
+// 冒険者一覧の描画処理を独立した関数として定義
+function renderExplorerGrid() {
+  const grid = document.getElementById('explorerGrid');
+  if(!grid) return;
+
+  if(chars.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; color:var(--text2); text-align:center; font-size:.85rem; padding:3rem 1rem;">冒険者がいません</div>';
+    return;
+  }
+
+  grid.innerHTML = chars.map(c=>{
     const j=JOBS[c.job]||JOBS.rookie;
     const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
@@ -720,9 +767,9 @@ function initExplorer(){
     const imgEl=getIconDisplay(c,60,true);
     return `<div class="exp-card" onclick="openExplorerSkillPopup('${c.id}')">
       ${imgEl}
-      <div style="font-weight:900;font-size:1rem;margin-bottom:.3rem;text-align:center;">${c.name}</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;padding:.2rem .5rem;border:2px solid ${j.color};color:${j.color};background:${j.color}18;display:inline-block;margin-bottom:.4rem;">${j.name}（${j.genre}）</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);">🏆${masterCnt}技　${totalPt}pt</div>
+      <div style="font-weight:900;font-size:1rem;margin-bottom:.3rem;text-align:center;">\${c.name}</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;padding:.2rem .5rem;border:2px solid \${j.color};color:\${j.color};background:\${j.color}18;display:inline-block;margin-bottom:.4rem;">\${j.name}（\${j.genre}）</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);">🏆\${masterCnt}技　	ext{\${totalPt}}pt</div>
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-top:.3rem;">▶ 技を見る</div>
     </div>`;
   }).join('');
@@ -931,7 +978,7 @@ function renderMatrix(){
       const jb=JOBS[jk];if(!jb)return'';
       const sprite=SPRITES[jk]?`<img src="${SPRITES[jk]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`:`<span style="font-size:1.4rem;">${jb.emoji}</span>`;
       const skills=grouped[jk].map(({name})=>{
-        return `<div style="background:var(--bg3);border-left:3px solid ${jb.color};padding:.6rem .8rem;border-radius:0 6px 6px 0;cursor:pointer;" onclick="openSkillDetail('${name.replace(/'/g,"\\'")}','${jk}')">
+        return `<div style="background:var(--bg3);border-left:3px solid ${jb.color};padding:.6rem .8rem;border-radius:0 6px 6px 0;cursor:pointer;" onclick="openSkillDetail('${name.replace(/'/g,"\'")}','${jk}')">
           <div style="font-weight:700;font-size:.88rem;">${name}</div>
           <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-top:.2rem;">▶ タップして詳細を見る</div>
         </div>`;
@@ -1011,7 +1058,7 @@ function openSkillDetail(skillName, jobKey){
     const baseJobKey=SKILL_MAP.find(([n])=>n===meta.base)?.[1]||jobKey;
     videoHTML+=`<div style="background:rgba(255,215,0,.06);border-left:3px solid var(--gold);padding:.5rem .7rem;margin-bottom:.5rem;font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;line-height:1.7;">
       <span style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--gold);display:block;margin-bottom:.3rem;">📚 先に確認したい基礎技</span>
-      <span style="cursor:pointer;color:var(--gold);font-weight:700;text-decoration:underline;" onclick="closeSkillDetail();setTimeout(()=>openSkillDetail('${meta.base.replace(/'/g,"\'")}','${baseJobKey}'),200);">「${meta.base}」を見る →</span>
+      <span style="cursor:pointer;color:var(--gold);font-weight:700;text-decoration:underline;" onclick="closeSkillDetail();setTimeout(()=>openSkillDetail('${meta.base.replace(/'/g,"'")}','${baseJobKey}'),200);">「${meta.base}」を見る →</span>
     </div>`;
   }
 
@@ -1244,21 +1291,21 @@ function renderBulkVideoAdmin(){
     <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.7rem;">
       全デバイスに即反映されます。URLを空にすると動画を削除します。
     </div>
-    ${jobOrder.map(jk => {
+    \${jobOrder.map(jk => {
       const jb = JOBS[jk]; if(!jb) return '';
       const jobSkills = SKILL_MAP.filter(([,k])=>k===jk);
       return `<details style="margin-bottom:.5rem;">
-        <summary style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:${jb.color};cursor:pointer;padding:.4rem .2rem;">
-          ${jb.emoji} ${jb.name}（${jobSkills.filter(([n])=>videos[n]).length}/${jobSkills.length}本登録済）
+        <summary style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:\${jb.color};cursor:pointer;padding:.4rem .2rem;">
+          \${jb.emoji} \${jb.name}（\${jobSkills.filter(([n])=>videos[n]).length}/\${jobSkills.length}本登録済）
         </summary>
         <div style="padding:.4rem 0 .4rem .6rem;display:flex;flex-direction:column;gap:.4rem;margin-top:.3rem;">
-          ${jobSkills.map(([sk])=>`
+          \${jobSkills.map(([sk])=>`
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-              <div style="font-weight:700;font-size:.82rem;min-width:120px;flex:1;">${sk}</div>
+              <div style="font-weight:700;font-size:.82rem;min-width:120px;flex:1;">\${sk}</div>
               <input class="pinput" style="flex:2;min-width:160px;font-size:.78rem;padding:.4rem .6rem;"
                 placeholder="YouTube URL"
-                value="${videos[sk]||''}"
-                data-skill="${sk}"
+                value="\${videos[sk]||''}"
+                data-skill="\${sk}"
                 oninput="markBulkDirty(this)">
             </div>`).join('')}
         </div>
@@ -1289,8 +1336,8 @@ async function saveBulkVideos(){
   localStorage.setItem('jq_videos', JSON.stringify(videos));
   await _fb.saveVideosBulk(videos);
   postAdminLog('video_bulk',{count:Object.keys(videos).length});
-  if(statusEl) statusEl.textContent = `✅ ${Object.keys(videos).length}本の動画URLを全デバイスに保存しました！`;
-  showToast(`✅ 動画URL ${Object.keys(videos).length}本を一括保存しました！`);
+  if(statusEl) statusEl.textContent = `✅ \${Object.keys(videos).length}本の動画URLを全デバイスに保存しました！`;
+  showToast(`✅ 動画URL \${Object.keys(videos).length}本を一括保存しました！`);
   // ボーダーをリセット
   document.querySelectorAll('#bulkVideoContent input[data-skill]').forEach(i=>i.style.borderColor='');
 }
@@ -1311,7 +1358,7 @@ function adminLogin(){
     document.getElementById('adminLock').style.display='none';
     document.getElementById('adminPanel').style.display='block';
     const modeEl=document.getElementById('adminModeLabel');
-    if(modeEl) modeEl.textContent=adminClassroom?`📍 ${adminClassroom}`:'👑 全教室（スーパー管理者）';
+    if(modeEl) modeEl.textContent=adminClassroom?`📍 \${adminClassroom}`:'👑 全教室（スーパー管理者）';
     loadAdminSel();loadMsgTarget();loadDelSel();loadBadgeCharSel();
     renderDashboard();
     postAdminLog('admin_login');
@@ -1342,20 +1389,20 @@ function getAdminChars(){
 }
 function loadAdminSel(){
   const s=document.getElementById('adminSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="\${c.id}">\${c.name}（\${c.id}）</option>`).join('');
 }
 function loadMsgTarget(){
   const s=document.getElementById('msgTarget');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="\${c.id}">\${c.name}（\${c.id}）</option>`).join('');
   document.getElementById('msgDate').value=new Date().toISOString().slice(0,10);
 }
 function loadDelSel(){
   const s=document.getElementById('delSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="\${c.id}">\${c.name}（\${c.id}）</option>`).join('');
 }
 function loadBadgeCharSel(){
   const s=document.getElementById('badgeCharSel');if(!s)return;
-  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="\${c.id}">\${c.name}（\${c.id}）</option>`).join('');
 }
 async function grantBadgeFromAdmin(){
   const id=document.getElementById('badgeCharSel').value;
@@ -1409,7 +1456,7 @@ function calcSkillStatus(rec, ratings){
   const lastRating=ratings[ratings.length-1];
 
   if(allZero){
-    // 全☆→リセットではなく「修行モード」へ（ポイントは維持）
+    // 全☆→リresetではなく「修行モード」へ（ポイントは維持）
     newConsec0=consec0+1;
   } else {
     newConsec0=0;
@@ -1430,7 +1477,7 @@ function loadAdminChar(){
   const recs=getSkillRecords(c);
   const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
-  document.getElementById('aTotalPt').textContent=`総${totalPt}pt　🏆マスター${masterCnt}技`;
+  document.getElementById('aTotalPt').textContent=`総\${totalPt}pt　🏆マスター\${masterCnt}技`;
   document.getElementById('adminSkillList').innerHTML='';
 
   // 前回挑戦した技を自動表示（未マスター・pt>0の技を最大3件）
@@ -1464,10 +1511,10 @@ function addSkillRow(preselect=null){
   sel.innerHTML='<option value="">-- 技を選ぶ --</option>'+jobOrder.filter(jk=>grouped[jk]).map(jk=>{
     const jb=JOBS[jk];if(!jb)return'';
     const opts=grouped[jk].map(sk=>{
-      const r=recs[sk]||{};const m=r.mastered?'🏆 ':'';const p=r.pts?` (${r.pts}pt)`:'';
-      return `<option value="${sk}">${m}${sk}${p}</option>`;
+      const r=recs[sk]||{};const m=r.mastered?'🏆 ':'';const p=r.pts?` (\${r.pts}pt)`:'';
+      return `<option value="\${sk}">\${m}\${sk}\${p}</option>`;
     }).join('');
-    return `<optgroup label="【${jb.name}】${jb.genre}">${opts}</optgroup>`;
+    return `<optgroup label="【\${jb.name}】\${jb.genre}">\${opts}</optgroup>`;
   }).join('');
   if(preselect&&[...sel.options].some(o=>o.value===preselect)){sel.value=preselect;}
   sel.onchange=()=>updateSkillRow(rowId,c);
@@ -1481,12 +1528,12 @@ function addSkillRow(preselect=null){
     trialDiv.className='trial-col';
     const label=document.createElement('div');
     label.className='trial-label';
-    label.textContent=`${trial}回目`;
+    label.textContent=`\${trial}回目`;
     const btnWrap=document.createElement('div');
     btnWrap.style.cssText='display:flex;flex-direction:column;gap:.2rem;';
     [{v:3,label:'⭐⭐⭐'},{v:1,label:'⭐⭐'},{v:0,label:'🌱'}].forEach(({v,label:bl})=>{
       const b=document.createElement('button');
-      b.className=`rbtn r${v}`;b.textContent=bl;
+      b.className=`rbtn r\${v}`;b.textContent=bl;
       b.dataset.trial=trial;b.dataset.val=v;
       b.onclick=()=>{
         trialDiv.querySelectorAll('.rbtn').forEach(x=>x.classList.remove('sel'));
@@ -1513,14 +1560,14 @@ function updateSkillRow(rowId,c){
   if(!sk){ptDisp.textContent='--';prevEl.textContent='';return;}
   const recs=getSkillRecords(c);const rec=recs[sk]||{};
   const prevPts=rec.pts||0,isMastered=rec.mastered||false,prevConsec=rec.consec0||0;
-  let prevStr=`現在${prevPts}pt`;
+  let prevStr=`現在\${prevPts}pt`;
   if(isMastered)prevStr+=' 🏆マスター済';else if(prevConsec===1)prevStr+=' 🌱土台づくり中（もう一度がんばろう）';
-  if(rec.lastResult!==undefined){const ll=rec.lastResult===3?'⭐⭐⭐':rec.lastResult===1?'⭐⭐':'🌱';prevStr+=`　前回：${ll}`;}
+  if(rec.lastResult!==undefined){const ll=rec.lastResult===3?'⭐⭐⭐':rec.lastResult===1?'⭐⭐':'🌱';prevStr+=`　前回：\${ll}`;}
   prevEl.textContent=prevStr;
 
   // 3試技分の評価を収集
   const ratings=[1,2,3].map(trial=>{
-    const selBtn=div.querySelector(`.rbtn.sel[data-trial="${trial}"]`);
+    const selBtn=div.querySelector(`.rbtn.sel[data-trial="\${trial}"]`);
     return selBtn?parseInt(selBtn.dataset.val):null;
   });
   const allSelected=ratings.every(r=>r!==null);
@@ -1529,8 +1576,8 @@ function updateSkillRow(rowId,c){
   const result=calcSkillStatus(rec,ratings);
   if(result.training){ptDisp.textContent='🌱 修行クエストへ！';div.className='skill-row';}
   else if(result.instantMaster){ptDisp.textContent='🏆⚡ 一発マスター！';div.className='skill-row master-ready';}
-  else if(result.mastered&&!isMastered){ptDisp.textContent=`🏆 ${result.pts}pt`;div.className='skill-row master-ready';}
-  else{ptDisp.textContent=`→${result.pts}pt (+${ratings.reduce((s,r)=>s+r,0)}pt)`;div.className='skill-row';}
+  else if(result.mastered&&!isMastered){ptDisp.textContent=`🏆 \${result.pts}pt`;div.className='skill-row master-ready';}
+  else{ptDisp.textContent=`→\${result.pts}pt (+\${ratings.reduce((s,r)=>s+r,0)}pt)`;div.className='skill-row';}
 
   // ===== 練習サジェスト =====
   let suggestEl=div.querySelector('.suggest-box');
@@ -1548,7 +1595,7 @@ function updateSkillRow(rowId,c){
     if(nextSkill){
       suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(255,215,0,.1);border:2px solid var(--gold);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.6;">
         🏆 マスター！次の挑戦 →<br>
-        <strong style="color:var(--gold);">「${nextSkill}」</strong>にチャレンジしよう！
+        <strong style="color:var(--gold);">「\${nextSkill}」</strong>にチャレンジしよう！
       </div>`;
     } else {
       suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(255,215,0,.1);border:2px solid var(--gold);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;">
@@ -1559,14 +1606,14 @@ function updateSkillRow(rowId,c){
     // 🌱が2回以上 → 一つ下の技を提案
     if(prevSkill){
       suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(136,136,255,.1);border:2px solid #8888ff;border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.6;">
-        🌱 まずは<strong style="color:#8888ff;">「${prevSkill}」</strong>をしっかり練習しよう！
+        🌱 まずは<strong style="color:#8888ff;">「\${prevSkill}」</strong>をしっかり練習しよう！
       </div>`;
     }
   } else if(ratings.some(r=>r===1)){
     // ⭐⭐あり → 2択提案
-    const prevTxt=prevSkill?`<strong style="color:var(--teal);">「${prevSkill}」</strong>で基礎固め`:'基礎練習を重点的に';
+    const prevTxt=prevSkill?`<strong style="color:var(--teal);">「\${prevSkill}」</strong>で基礎固め`:'基礎練習を重点的に';
     suggestHTML=`<div style="margin-top:.5rem;padding:.5rem .7rem;background:rgba(0,229,255,.08);border:2px solid var(--teal);border-radius:4px;font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;line-height:1.7;">
-      💡 この技を続ける？<br>or ${prevTxt}する？
+      💡 この技を続ける？<br>or \${prevTxt}する？
     </div>`;
   }
   suggestEl.innerHTML=suggestHTML;
@@ -1584,7 +1631,7 @@ async function saveResult(){
     const sk=row.querySelector('.skill-name-sel').value;
     if(!sk)return;
     const ratings=[1,2,3].map(trial=>{
-      const selBtn=row.querySelector(`.rbtn.sel[data-trial="${trial}"]`);
+      const selBtn=row.querySelector(`.rbtn.sel[data-trial="\${trial}"]`);
       return selBtn?parseInt(selBtn.dataset.val):null;
     });
     if(ratings.some(r=>r===null))return; // 未入力はスキップ
@@ -1612,7 +1659,7 @@ async function saveResult(){
     newMasters_delay=masterDelay;
     setTimeout(()=>{
       newMasters.forEach((m,i)=>setTimeout(()=>showMasterBanner(m.name,m.instant),i*3200));
-      showToast(`🏆 マスター！${newMasters.map(m=>m.name).join('・')}`);
+      showToast(`🏆 マスター！\${newMasters.map(m=>m.name).join('・')}`);
     },500);
     setTimeout(()=>checkAndShowJobChange(c),masterDelay+500);
   } else {
@@ -1632,7 +1679,7 @@ async function addChar(){
   const email=(document.getElementById('nEmail')?.value||'').trim();
   const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','こころね学園（火）':'CK'}[classroom]||'JU';
   const existCount=chars.filter(c=>c.classroom===classroom).length+1;
-  const defaultId=`${classPrefix}-${existCount.toString().padStart(3,'0')}`;
+  const defaultId=`\${classPrefix}-\${existCount.toString().padStart(3,'0')}`;
   const id=document.getElementById('nId').value.trim()||defaultId;
   const newChar={id,name,sprite:'🐕',job:'rookie',joinDate:new Date().toISOString().slice(0,10),classroom,email,stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},skills:[],skillRecords:{},messages:[]};
   chars.push(newChar);await saveCharsToGAS(newChar);
@@ -1709,26 +1756,26 @@ function renderHQDashboard(){
     ? Math.round(active.filter(c=>monthsSinceJoin(c)>=3).length/active.length*100)
     : 0;
 
-  el.innerHTML=`
+  el.innerHTML = `
     <!-- 教室別サマリー -->
     <div style="margin-bottom:1rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">📊 教室別サマリー</div>
       <div style="display:flex;flex-direction:column;gap:.4rem;">
-        ${classStats.map(s=>`
+        \${classStats.map(s=>`
           <div style="background:var(--bg);border:2px solid var(--border);padding:.6rem .8rem;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;">
-              <div style="font-weight:900;font-size:.9rem;">${s.cls}</div>
-              <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${s.stuck>0?'var(--pink)':'var(--text2)'};">
-                ${s.stuck>0?`⚠️ フォロー推奨 ${s.stuck}名`:'✅ 全員順調'}
+              <div style="font-weight:900;font-size:.9rem;">\${s.cls}</div>
+              <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:\${s.stuck>0?'var(--pink)':'var(--text2)'};">
+                \${s.stuck>0?`⚠️ フォロー推奨 \${s.stuck}名`:'✅ 全員順調'}
               </div>
             </div>
             <div style="display:flex;gap:.8rem;margin-top:.4rem;flex-wrap:wrap;">
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">👥 ${s.members}名</span>
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--gold);">🏆 ${s.masters}マスター</span>
-              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--teal);">平均 ${s.avgPt}pt</span>
+              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">👥 \${s.members}名</span>
+              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--gold);">🏆 \${s.masters}マスター</span>
+              <span style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--teal);">平均 \${s.avgPt}pt</span>
             </div>
             <div style="margin-top:.4rem;background:var(--bg3);height:5px;border:1px solid var(--border);">
-              <div style="height:100%;background:var(--teal);width:${Math.min(100,s.avgPt)}%;transition:width .8s;"></div>
+              <div style="height:100%;background:var(--teal);width:\${Math.min(100,s.avgPt)}%;transition:width .8s;"></div>
             </div>
           </div>`).join('')}
       </div>
@@ -1738,37 +1785,37 @@ function renderHQDashboard(){
     <div style="background:var(--bg);border:2px solid var(--border);padding:.7rem .8rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">3ヶ月以上継続率</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--green);">${continueRate}%</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--green);">\${continueRate}%</div>
       </div>
       <div style="text-align:right;">
         <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-bottom:.3rem;">在籍人数</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--teal);">${active.length}名</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--teal);">\${active.length}名</div>
       </div>
     </div>
 
     <!-- 人気ジョブ -->
-    ${topJobs.length>0?`
+    \${topJobs.length>0?`
     <div style="margin-bottom:1rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">🏆 人気ジョブ TOP3</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        ${topJobs.map((item,i)=>`
-          <div style="flex:1;min-width:90px;background:var(--bg);border:2px solid ${item.j.color}55;padding:.6rem;text-align:center;">
-            <div style="font-size:1.3rem;">${item.j.emoji}</div>
-            <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${item.j.color};margin:.25rem 0;">${item.j.name}</div>
-            <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--gold);">${item.cnt}マスター</div>
+        \${topJobs.map((item,i)=>`
+          <div style="flex:1;min-width:90px;background:var(--bg);border:2px solid \${item.j.color}55;padding:.6rem;text-align:center;">
+            <div style="font-size:1.3rem;">\${item.j.emoji}</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:\${item.j.color};margin:.25rem 0;">\${item.j.name}</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--gold);">\${item.cnt}マスター</div>
           </div>`).join('')}
       </div>
     </div>`:''}
 
     <!-- 習得しやすい技 TOP5 -->
-    ${topSkills.length>0?`
+    \${topSkills.length>0?`
     <div>
       <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--teal);margin-bottom:.6rem;">⚔️ みんながマスターした技 TOP5</div>
-      ${topSkills.map(([sk,cnt],i)=>`
+      \${topSkills.map(([sk,cnt],i)=>`
         <div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;background:var(--bg);border:1px solid var(--border);margin-bottom:.3rem;">
-          <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--gold);min-width:20px;">${i+1}.</div>
-          <div style="flex:1;font-weight:700;font-size:.85rem;">${sk}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);">${cnt}人</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--gold);min-width:20px;">\${i+1}.</div>
+          <div style="flex:1;font-weight:700;font-size:.85rem;">\${sk}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);">\${cnt}人</div>
         </div>`).join('')}
     </div>`:''}
   `;
@@ -1801,8 +1848,8 @@ function getInterventionSuggestion(skillName, rec){
   const easierSkill = jobSkills[currentIdx-1]?.[0]||null;
 
   const suggestions = [];
-  if(easierSkill) suggestions.push(`📚 「${easierSkill}」で基礎を固め直そう`);
-  if(meta?.fail) suggestions.push(`⚠️ よくある失敗：${meta.fail.slice(0,30)}…`);
+  if(easierSkill) suggestions.push(`📚 「\${easierSkill}」で基礎を固め直そう`);
+  if(meta?.fail) suggestions.push(`⚠️ よくある失敗：\${meta.fail.slice(0,30)}…`);
   suggestions.push('💬 補助練習を取り入れてみよう');
   suggestions.push('🎯 まず成功体験を1回作ることを目標に');
   return suggestions.slice(0,2);
@@ -1828,19 +1875,19 @@ function renderDashboard(){
   const summaryHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem;">
     <div style="background:var(--bg);border:2px solid var(--border);padding:.6rem;text-align:center;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-bottom:.3rem;">在籍</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--teal);">${totalActive}名</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--teal);">\${totalActive}名</div>
     </div>
     <div style="background:var(--bg);border:2px solid var(--border);padding:.6rem;text-align:center;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-bottom:.3rem;">総マスター</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--gold);">${totalMasters}技</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--gold);">\${totalMasters}技</div>
     </div>
-    <div style="background:var(--bg);border:2px solid ${stuckCount>0?'var(--pink)':'var(--border)'};padding:.6rem;text-align:center;">
+    <div style="background:var(--bg);border:2px solid \${stuckCount>0?'var(--pink)':'var(--border)'};padding:.6rem;text-align:center;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-bottom:.3rem;">フォロー推奨</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:${stuckCount>0?'var(--pink)':'var(--text2)'};">${stuckCount}名</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:\${stuckCount>0?'var(--pink)':'var(--text2)'};">\${stuckCount}名</div>
     </div>
-    <div style="background:var(--bg);border:2px solid ${noInputCount>0?'var(--gold)':'var(--border)'};padding:.6rem;text-align:center;">
+    <div style="background:var(--bg);border:2px solid \${noInputCount>0?'var(--gold)':'var(--border)'};padding:.6rem;text-align:center;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);margin-bottom:.3rem;">今月未入力</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:${noInputCount>0?'var(--gold)':'var(--text2)'};">${noInputCount}名</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.7rem;color:\${noInputCount>0?'var(--gold)':'var(--text2)'};">\${noInputCount}名</div>
     </div>
   </div>`;
 
@@ -1857,8 +1904,8 @@ function renderDashboard(){
     const statusColor=isStuck?'var(--pink)':isTraining?'#8888ff':'var(--green)';
     const statusLabel=isStuck?'🌱 フォロー推奨':isTraining?'🌱 修行中':'✅ 順調';
     const sprite=SPRITES[c.job]
-      ?`<img src="${SPRITES[c.job]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`
-      :`<span style="font-size:1.2rem;">${j.emoji}</span>`;
+      ?`<img src="\${SPRITES[c.job]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`
+      :`<span style="font-size:1.2rem;">\${j.emoji}</span>`;
 
     // 停滞検知：介入提案を展開表示
     let interventionHTML='';
@@ -1867,25 +1914,25 @@ function renderDashboard(){
       const rec=(c.skillRecords||{})[sk.name]||{};
       const suggestions=getInterventionSuggestion(sk.name,rec);
       interventionHTML=`<div style="width:100%;margin-top:.4rem;padding:.45rem .6rem;background:rgba(255,64,129,.06);border:1px solid rgba(255,64,129,.3);border-radius:2px;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--pink);margin-bottom:.3rem;">⚠️ 「${sk.name}」が${sk.consec}回連続🌱</div>
-        ${suggestions.map(s=>`<div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);line-height:1.7;">${s}</div>`).join('')}
+        <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--pink);margin-bottom:.3rem;">⚠️ 「\${sk.name}」が\${sk.consec}回連続🌱</div>
+        \${suggestions.map(s=>`<div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);line-height:1.7;">\${s}</div>`).join('')}
       </div>`;
     }
 
-    return `<div style="padding:.6rem .8rem;background:var(--bg);border:2px solid ${isStuck?'var(--pink)':'var(--border)'};border-left:4px solid ${statusColor};margin-bottom:.4rem;flex-wrap:wrap;">
+    return `<div style="padding:.6rem .8rem;background:var(--bg);border:2px solid \${isStuck?'var(--pink)':'var(--border)'};border-left:4px solid \${statusColor};margin-bottom:.4rem;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:.7rem;">
-        ${sprite}
+        \${sprite}
         <div style="flex:1;min-width:120px;">
-          <div style="font-weight:900;font-size:.95rem;">${c.name}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:${j.color};margin-top:.2rem;">${j.name}</div>
+          <div style="font-weight:900;font-size:.95rem;">\${c.name}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:\${j.color};margin-top:.2rem;">\${j.name}</div>
         </div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;text-align:right;">
-          <div style="color:var(--gold);">🏆 ${masterCnt}技</div>
-          <div style="color:var(--teal);margin-top:.2rem;">${totalPt}pt</div>
+          <div style="color:var(--gold);">🏆 \${masterCnt}技</div>
+          <div style="color:var(--teal);margin-top:.2rem;">\${totalPt}pt</div>
         </div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:${statusColor};min-width:90px;text-align:right;">${statusLabel}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:\${statusColor};min-width:90px;text-align:right;">\${statusLabel}</div>
       </div>
-      ${interventionHTML}
+      \${interventionHTML}
     </div>`;
   }).join('');
 
@@ -1895,16 +1942,16 @@ function renderDashboard(){
     const archiveLabel={leave:'⏸️ 休会',withdraw:'📦 退会',graduate:'🎓 卒業'};
     archiveHTML=`<details style="margin-top:.8rem;">
       <summary style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);cursor:pointer;padding:.4rem 0;">
-        📂 アーカイブ済み（${archivedChars.length}名）
+        📂 アーカイブ済み（\${archivedChars.length}名）
       </summary>
       <div style="margin-top:.5rem;opacity:.6;">
-        ${archivedChars.map(c=>{
+        \${archivedChars.map(c=>{
           const j=JOBS[c.job]||JOBS.rookie;
           const lbl=archiveLabel[c.status||'withdraw']||'';
           return `<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem .7rem;background:var(--bg3);border:1px solid var(--border);margin-bottom:.3rem;">
-            <span style="font-size:1rem;">${j.emoji}</span>
-            <span style="font-weight:700;font-size:.88rem;">${c.name}</span>
-            <span style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--text2);margin-left:auto;">${lbl}</span>
+            <span style="font-size:1rem;">\${j.emoji}</span>
+            <span style="font-weight:700;font-size:.88rem;">\${c.name}</span>
+            <span style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:var(--text2);margin-left:auto;">\${lbl}</span>
           </div>`;
         }).join('')}
       </div>
@@ -1948,23 +1995,23 @@ function getIconDisplay(c, size=60, border=true){
   const j=JOBS[c.job]||JOBS.rookie;
   const setting=getIconSetting(c.id);
   const photo=localStorage.getItem('jq_photo_'+c.id);
-  const borderStyle=border?`border:2px solid ${j.color};`:'';
+  const borderStyle=border?`border:2px solid \${j.color};`:'';
 
   if(setting.type==='photo'&&photo){
-    return `<img src="${photo}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;${borderStyle}display:block;margin:0 auto .5rem;">`;
+    return `<img src="\${photo}" style="width:\${size}px;height:\${size}px;object-fit:cover;border-radius:50%;\${borderStyle}display:block;margin:0 auto .5rem;">`;
   } else if(setting.type==='emoji'&&setting.emoji){
-    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;margin:0 auto .5rem;">${setting.emoji}</div>`;
+    return `<div style="width:\${size}px;height:\${size}px;border-radius:50%;background:linear-gradient(135deg,\${j.color},\${j.color}88);\${borderStyle}display:flex;align-items:center;justify-content:center;font-size:\${size*0.45}px;margin:0 auto .5rem;">\${setting.emoji}</div>`;
   } else {
     // sprite（デフォルトまたは指定）
     const job=setting.job||c.job;
     if(SPRITES[job]){
       const isMastered=isJobFullyMastered(c,job);
-      return `<div style="position:relative;width:${size}px;height:${size}px;margin:0 auto .5rem;">
-        <img src="${SPRITES[job]}" style="width:${size}px;height:${size}px;object-fit:contain;image-rendering:pixelated;display:block;">
-        ${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
+      return `<div style="position:relative;width:\${size}px;height:\${size}px;margin:0 auto .5rem;">
+        <img src="\${SPRITES[job]}" style="width:\${size}px;height:\${size}px;object-fit:contain;image-rendering:pixelated;display:block;">
+        \${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:\${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
       </div>`;
     } else {
-      return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;font-weight:900;color:#fff;margin:0 auto .5rem;">${c.name.charAt(0)}</div>`;
+      return `<div style="width:\${size}px;height:\${size}px;border-radius:50%;background:linear-gradient(135deg,\${j.color},\${j.color}88);\${borderStyle}display:flex;align-items:center;justify-content:center;font-size:\${size*0.45}px;font-weight:900;color:#fff;margin:0 auto .5rem;">\${c.name.charAt(0)}</div>`;
     }
   }
 }
@@ -1986,20 +2033,20 @@ function openIconSelector(){
     <!-- 現在のアイコン -->
     <div style="text-align:center;margin-bottom:1rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);margin-bottom:.5rem;">現在のアイコン</div>
-      <div id="iconPreview">${getIconDisplay(c,80,false)}</div>
+      <div id="iconPreview">\${getIconDisplay(c,80,false)}</div>
     </div>
 
     <!-- スプライトアイコン -->
     <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">⚔️ 獲得済みキャラ</div>
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
-      ${unlockedJobs.map(jk=>{
+      \${unlockedJobs.map(jk=>{
         const jb=JOBS[jk];
         const isMastered=isJobFullyMastered(c,jk);
         const isSelected=currentSetting.type==='sprite'&&(currentSetting.job===jk||(currentSetting.job===null&&jk===c.job));
-        return `<div onclick="selectIconSprite('${jk}')" style="cursor:pointer;padding:.4rem;border:2px solid ${isSelected?jb.color:'var(--border)'};background:${isSelected?jb.color+'22':'var(--bg)'};border-radius:4px;text-align:center;position:relative;min-width:60px;" id="icon-sprite-${jk}">
-          <img src="${SPRITES[jk]}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto;">
-          ${isMastered?'<span style="position:absolute;top:-6px;right:-6px;font-size:.8rem;">🏆</span>':''}
-          <div style="font-family:\'Press Start 2P\',monospace;font-size:.22rem;color:${jb.color};margin-top:.2rem;">${jb.name}</div>
+        return `<div onclick="selectIconSprite('\${jk}')" style="cursor:pointer;padding:.4rem;border:2px solid \${isSelected?jb.color:'var(--border)'};background:\${isSelected?jb.color+'22':'var(--bg)'};border-radius:4px;text-align:center;position:relative;min-width:60px;" id="icon-sprite-\${jk}">
+          <img src="\${SPRITES[jk]}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto;">
+          \${isMastered?'<span style="position:absolute;top:-6px;right:-6px;font-size:.8rem;">🏆</span>':''}
+          <div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:\${jb.color};margin-top:.2rem;">\${jb.name}</div>
         </div>`;
       }).join('')}
     </div>
@@ -2007,17 +2054,17 @@ function openIconSelector(){
     <!-- 絵文字アイコン -->
     <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">✨ 絵文字</div>
     <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;">
-      ${EMOJIS.map(em=>{
+      \${EMOJIS.map(em=>{
         const isSelected=currentSetting.type==='emoji'&&currentSetting.emoji===em;
-        return `<div onclick="selectIconEmoji('${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid ${isSelected?'var(--teal)':'var(--border)'};background:${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-${em.codePointAt(0)}">${em}</div>`;
+        return `<div onclick="selectIconEmoji('\${em}')" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid \${isSelected?'var(--teal)':'var(--border)'};background:\${isSelected?'rgba(0,229,255,.1)':'var(--bg)'};border-radius:4px;" id="icon-emoji-\${em.codePointAt(0)}">	ext{\${em}}</div>`;
       }).join('')}
     </div>
 
     <!-- 写真 -->
-    ${photo?`
+    \${photo?`
     <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.6rem;">📷 写真</div>
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">
-      <img src="${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid ${currentSetting.type==='photo'?'var(--teal)':'var(--border)'};" onclick="selectIconPhoto()" style="cursor:pointer;">
+      <img src="\${photo}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid 	ext{\${currentSetting.type==='photo'?'var(--teal)':'var(--border)'}};" onclick="selectIconPhoto()" style="cursor:pointer;">
       <button class="pbtn btn-outline" onclick="selectIconPhoto()" style="font-size:.38rem;">写真を選択</button>
     </div>`:''}
     <label class="pbtn btn-outline" style="font-size:.38rem;display:inline-block;cursor:pointer;margin-bottom:1rem;">
@@ -2036,7 +2083,7 @@ function selectIconSprite(jobKey){
     const jk=el.id.replace('icon-sprite-','');
     const jb=JOBS[jk];
     const isSelected=jk===jobKey;
-    el.style.border=`2px solid ${isSelected?jb.color:'var(--border)'}`;
+    el.style.border=`2px solid \${isSelected?jb.color:'var(--border)'}`;
     el.style.background=isSelected?jb.color+'22':'var(--bg)';
   });
   document.querySelectorAll('[id^="icon-emoji-"]').forEach(el=>{el.style.border='2px solid var(--border)';el.style.background='var(--bg)';});
@@ -2088,7 +2135,7 @@ function launchConfetti(count=40){
     const el=document.createElement('div');
     el.className='confetti';
     const size=6+Math.random()*8;
-    el.style.cssText=`left:${Math.random()*100}vw;width:${size}px;height:${size*0.6}px;background:${colors[i%colors.length]};animation-duration:${1.2+Math.random()*1.8}s;animation-delay:${Math.random()*.6}s;transform:rotate(${Math.random()*360}deg);`;
+    el.style.cssText=`left:\${Math.random()*100}vw;width:	ext{\${size}}px;height:	ext{\${size*0.6}}px;background:\${colors[i%colors.length]};animation-duration:\${1.2+Math.random()*1.8}s;animation-delay:\${Math.random()*.6}s;transform:rotate(\${Math.random()*360}deg);`;
     document.body.appendChild(el);
     setTimeout(()=>el.remove(),3000);
   }
@@ -2100,8 +2147,8 @@ function showMasterBanner(skillName,isInstant=false){
   // バナー
   const banner=document.createElement('div');banner.className='master-banner';
   banner.innerHTML=`
-    <div style="font-family:'Press Start 2P',monospace;font-size:clamp(.7rem,3vw,1.1rem);color:var(--gold);text-shadow:0 0 20px var(--gold),4px 4px 0 #6b3500;margin-bottom:.5rem;">${isInstant?'⚡ 一発 ':''}🏆 MASTER！</div>
-    <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:clamp(1rem,4vw,1.5rem);color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.8);max-width:80vw;">${skillName}</div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:clamp(.7rem,3vw,1.1rem);color:var(--gold);text-shadow:0 0 20px var(--gold),4px 4px 0 #6b3500;margin-bottom:.5rem;">\${isInstant?'⚡ 一発 ':''}🏆 MASTER！</div>
+    <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:clamp(1rem,4vw,1.5rem);color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.8);max-width:80vw;">\${skillName}</div>
     <div style="font-size:1.8rem;margin-top:.4rem;animation:titleGlow 1s ease-in-out infinite alternate;">✨🏆✨</div>`;
   document.body.appendChild(banner);
   setTimeout(()=>banner.remove(),3000);
@@ -2140,14 +2187,14 @@ function showJobChangeBanner(c,nextJob,onClose){
   const j=JOBS[nextJob];
   const overlay=document.createElement('div');
   overlay.className='jobchange-overlay';
-  const spriteHTML=SPRITES[nextJob]?`<img src="${SPRITES[nextJob]}" class="jobchange-sprite" alt="${j.name}">`:`<div style="font-size:5rem;margin-bottom:.8rem;">${j.emoji}</div>`;
+  const spriteHTML=SPRITES[nextJob]?`<img src="\${SPRITES[nextJob]}" class="jobchange-sprite" alt="	ext{\${j.name}}">`:`<div style="font-size:5rem;margin-bottom:.8rem;">\${j.emoji}</div>`;
   overlay.innerHTML=`<div class="jobchange-box">
     <div class="jobchange-title">✨ JOB CHANGE ✨</div>
-    ${spriteHTML}
-    <div class="jobchange-name" style="color:${j.color};">${j.name}</div>
-    <div class="jobchange-genre" style="color:${j.color};">${j.genre}</div>
-    <div class="jobchange-desc">${j.desc}</div>
-    <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;" id="jobchangeCloseBtn">▶ ${c.name}の新たな冒険が始まる！</button>
+    \${spriteHTML}
+    <div class="jobchange-name" style="color:\${j.color};">\${j.name}</div>
+    <div class="jobchange-genre" style="color:\${j.color};">	ext{\${j.genre}}</div>
+    <div class="jobchange-desc">\${j.desc}</div>
+    <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;" id="jobchangeCloseBtn">▶ \${c.name}の新たな冒険が始まる！</button>
   </div>`;
   document.body.appendChild(overlay);
   launchConfetti(80);
@@ -2158,13 +2205,13 @@ function showJobSelectBanner(c,candidates,onSelect){
   overlay.className='jobchange-overlay';
   const cardsHTML=candidates.map(jk=>{
     const j=JOBS[jk];
-    const spriteHTML=SPRITES[jk]?`<img src="${SPRITES[jk]}" alt="${j.name}">`:`<div style="font-size:2.5rem;margin-bottom:.3rem;">${j.emoji}</div>`;
-    return `<div class="job-select-card" data-job="${jk}" style="border-color:${j.color}44;" onclick="selectJobCard(this,'${jk}')">${spriteHTML}<div class="jsc-name" style="color:${j.color};">${j.name}</div><div class="jsc-genre">${j.genre}</div></div>`;
+    const spriteHTML=SPRITES[jk]?`<img src="	ext{\${SPRITES[jk]}}" alt="	ext{\${j.name}}">`:`<div style="font-size:2.5rem;margin-bottom:.3rem;">\${j.emoji}</div>`;
+    return `<div class="job-select-card" data-job="	ext{\${jk}}" style="border-color:\${j.color}44;" onclick="selectJobCard(this,'	ext{\${jk}}')">\${spriteHTML}<div class="jsc-name" style="color:\${j.color};">\${j.name}</div><div class="jsc-genre">\${j.genre}</div></div>`;
   }).join('');
   overlay.innerHTML=`<div class="jobchange-box">
     <div class="jobchange-title">⚔️ JOB SELECT ⚔️</div>
-    <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1rem;line-height:1.7;">${c.name}よ、次のジョブを選べ！<br><span style="font-family:'Press Start 2P',monospace;font-size:.3rem;">どのジョブに進化する？</span></div>
-    <div class="job-select-grid" id="jobSelectGrid">${cardsHTML}</div>
+    <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:1rem;line-height:1.7;">\${c.name}よ、次のジョブを選べ！<br><span style="font-family:'Press Start 2P',monospace;font-size:.3rem;">どのジョブに進化する？</span></div>
+    <div class="job-select-grid" id="jobSelectGrid">\${cardsHTML}</div>
     <div id="jobSelectDesc" style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;color:var(--text2);min-height:2.5rem;margin-bottom:.8rem;line-height:1.7;"></div>
     <button class="pbtn btn-gold" style="width:100%;font-size:.5rem;opacity:.4;" id="jobSelectConfirmBtn" disabled onclick="confirmJobSelect()">▶ このジョブに進化する！</button>
   </div>`;
@@ -2209,7 +2256,7 @@ async function postAdminLog(action, detail={}){
   if(!adminClassroom && adminClassroom !== null) return;
   const entry = {
     action,
-    adminType: adminClassroom ? `教室管理者（${adminClassroom}）` : 'スーパー管理者',
+    adminType: adminClassroom ? `教室管理者（\${adminClassroom}）` : 'スーパー管理者',
     classroom: adminClassroom || '全教室',
     ...detail,
     datetime: new Date().toLocaleString('ja-JP'),
@@ -2243,16 +2290,16 @@ function renderAdminLog(){
       const label = actionLabel[log.action] || log.action;
       const detail = Object.entries(log)
         .filter(([k])=>!['action','adminType','classroom','datetime','ts','id'].includes(k))
-        .map(([k,v])=>`${k}: ${v}`)
+        .map(([k,v])=>`\${k}: \${v}`)
         .join(' / ');
       return `<div style="padding:.6rem .8rem;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:.4rem;align-items:flex-start;">
         <div style="flex:1;min-width:180px;">
-          <div style="font-weight:700;font-size:.9rem;">${label}</div>
-          ${detail?`<div style="font-size:.78rem;color:var(--text2);margin-top:.2rem;">${detail}</div>`:''}
+          <div style="font-weight:700;font-size:.9rem;">\${label}</div>
+          \${detail?`<div style="font-size:.78rem;color:var(--text2);margin-top:.2rem;">\${detail}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:.75rem;color:var(--text2);">${log.adminType}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.2rem;">${log.datetime}</div>
+          <div style="font-size:\.75rem;color:var(--text2);">\${log.adminType}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--text2);margin-top:.2rem;">	ext{\${log.datetime}}</div>
         </div>
       </div>`;
     }).join('');
@@ -2283,10 +2330,10 @@ async function archiveChar(){
   await saveCharsToGAS(c);
   postAdminLog('char_archive',{charName:c.name,charId:id,status,statusLabel:ARCHIVE_STATUS_LABEL[status]});
   renderDashboard();
-  showToast(`📂 「${c.name}」を「${ARCHIVE_STATUS_LABEL[status]}」に変更しました`);
+  showToast(`📂 「\${c.name}」を「\${ARCHIVE_STATUS_LABEL[status]}」に変更しました`);
 }
 
-// ======== 保護者モード ========
+// ======== 保護者ページ ========
 function goParentPage(){
   if(!currentUser){showToast('❌ ログインしてね');return;}
   renderParentPage(currentUser);
@@ -2319,19 +2366,19 @@ function renderParentPage(c){
   if(mastered.length>0){
     monthHTML+=`<div style="background:rgba(255,215,0,.08);border:2px solid var(--gold);border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--gold);margin-bottom:.4rem;">🏆 できるようになったこと</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${mastered.map(([sk])=>`「${sk}」`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">\${mastered.map(([sk])=>`「\${sk}」`).join('　')}</div>
     </div>`;
   }
   if(challenged.length>0){
     monthHTML+=`<div style="background:rgba(0,229,255,.06);border:2px solid var(--teal);border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.4rem;">⚔️ 今まさに挑戦中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${challenged.map(([sk,r])=>`「${sk}」（${r.pts}pt）`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">\${challenged.map(([sk,r])=>`「\${sk}」（\${r.pts}pt）`).join('　')}</div>
     </div>`;
   }
   if(trainingSkills.length>0){
     monthHTML+=`<div style="background:rgba(136,136,255,.08);border:2px solid #8888ff;border-radius:4px;padding:.6rem .8rem;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:#8888ff;margin-bottom:.4rem;">🌱 土台づくり中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${trainingSkills.map(([sk])=>`「${sk}」`).join('　')}</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">\${trainingSkills.map(([sk])=>`「\${sk}」`).join('　')}</div>
       <div style="font-size:.8rem;color:var(--text2);margin-top:.4rem;">焦らず一歩一歩、基礎を大切に積み上げています。</div>
     </div>`;
   }
@@ -2350,12 +2397,12 @@ function renderParentPage(c){
       const logLine=[];
       if(r.firstDate)logLine.push('初挑戦 '+r.firstDate);
       if(r.masterDate)logLine.push('マスター '+r.masterDate);
-      return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;background:var(--bg);border:2px solid ${r.mastered?'var(--gold)':'var(--border)'};border-radius:4px;">
-        <div style="font-size:1.1rem;">${stage.icon}</div>
+      return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;background:var(--bg);border:2px solid \${r.mastered?'var(--gold)':'var(--border)'};border-radius:4px;">
+        <div style="font-size:1.1rem;">\${stage.icon}</div>
         <div style="flex:1;">
-          <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.9rem;${r.mastered?'color:var(--gold);':''}">${sk}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:${stage.color};margin-top:.2rem;">${stage.label}${pts>0?' · '+pts+'pt':''}${!r.mastered&&pts>0?' · あと'+rem+'pt':''}</div>
-          ${logLine.length?`<div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:var(--text2);margin-top:.2rem;">${logLine.join(' → ')}</div>`:''}
+          <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.9rem;\${r.mastered?'color:var(--gold);':''}">\${sk}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.26rem;color:\${stage.color};margin-top:.2rem;">\${stage.label}\${pts>0?' · '+pts+'pt':''}\${!r.mastered&&pts>0?' · あと'+rem+'pt':''}</div>
+          \${logLine.length?`<div style="font-family:'Press Start 2P',monospace;font-size:.22rem;color:var(--text2);margin-top:.2rem;">\${logLine.join(' → ')}</div>`:''}
         </div>
       </div>`;
     }).join('');
@@ -2370,9 +2417,9 @@ function renderParentPage(c){
     } else {
       const typeColor={continue:'var(--teal)',challenge:'var(--gold)',attitude:'var(--green)'};
       parentBadgeEl.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:.4rem;">'+
-        earnedBadges.map(b=>`<div style="display:flex;align-items:center;gap:.4rem;padding:.4rem .6rem;background:${typeColor[b.type]}15;border:1px solid ${typeColor[b.type]};border-radius:2px;">
-          <span style="font-size:1.1rem;">${b.icon}</span>
-          <span style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;font-weight:700;color:${typeColor[b.type]};">${b.name}</span>
+        earnedBadges.map(b=>`<div style="display:flex;align-items:center;gap:.4rem;padding:.4rem .6rem;background:\${typeColor[b.type]}15;border:1px solid \${typeColor[b.type]};border-radius:2px;">
+          <span style="font-size:1.1rem;">\${b.icon}</span>
+          <span style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;font-weight:700;color:	ext{\${typeColor[b.type]}};">\${b.name}</span>
         </div>`).join('')+
       '</div>';
     }
@@ -2386,18 +2433,18 @@ function renderParentPage(c){
   } else {
     msgsEl.innerHTML=msgs.map(m=>`
       <div style="border:2px solid var(--border);border-radius:4px;padding:.65rem .8rem;background:var(--bg);">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--teal);margin-bottom:.35rem;">💬 ${m.date||''}</div>
-        <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.95rem;margin-bottom:.3rem;">${m.subject||'先生からのメッセージ'}</div>
-        <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;line-height:1.7;color:var(--text2);">${(m.body||'').slice(0,80)}${(m.body||'').length>80?'…':''}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--teal);margin-bottom:.35rem;">💬 \${m.date||''}</div>
+        <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.95rem;margin-bottom:.3rem;">\${m.subject||'先生からのメッセージ'}</div>
+        <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;line-height:1.7;color:var(--text2);">\${(m.body||'').slice(0,80)}\${(m.body||'').length>80?'…':''}</div>
       </div>`).join('');
   }
 
   // おうちサポート
   const supportEl=document.getElementById('parentHomeSupport');
   const supportMsgs=[];
-  if(trainingSkills.length>0)supportMsgs.push(`🌱 「${trainingSkills[0][0]}」の練習を見守ってあげてください。できたときは思いっきり褒めてあげましょう！`);
-  if(challenged.length>0){const best=challenged.sort((a,b)=>(b[1].pts||0)-(a[1].pts||0))[0];supportMsgs.push(`⭐ 「${best[0]}」はもう少しでマスターです。おうちでも「がんばってるね！」の一言が力になります。`);}
-  if(masterCnt>0)supportMsgs.push(`🏆 ${masterCnt}個の技をマスターしました！ぜひ「見せて！」と声をかけてあげてください。`);
+  if(trainingSkills.length>0)supportMsgs.push(`🌱 「\${trainingSkills[0][0]}」の練習を見守ってあげてください。できたときは思いっきり褒めてあげましょう！`);
+  if(challenged.length>0){const best=challenged.sort((a,b)=>(b[1].pts||0)-(a[1].pts||0))[0];supportMsgs.push(`⭐ 「\${best[0]}」はもう少しでマスターです。おうちでも「がんばってるね！」の一言が力になります。`);}
+  if(masterCnt>0)supportMsgs.push(`🏆 \${masterCnt}個の技をマスターしました！ぜひ「見せて！」と声をかけてあげてください。`);
   if(supportMsgs.length===0)supportMsgs.push('🌟 これからどんどん技を覚えていきます。焦らず、楽しみながら応援してあげてください！');
   supportEl.innerHTML=supportMsgs.join('<br><br>');
 }
@@ -2406,9 +2453,9 @@ function renderParentPage(c){
 function generateMonthlyReport(c, targetMonth){
   // targetMonth: 'YYYY-MM' 形式。未指定なら当月
   const now = new Date();
-  const ym = targetMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const ym = targetMonth || `\${now.getFullYear()}-\${String(now.getMonth()+1).padStart(2,'0')}`;
   const [y, m] = ym.split('-');
-  const monthLabel = `${y}年${parseInt(m)}月`;
+  const monthLabel = `\${y}年\${parseInt(m)}月`;
   const j = JOBS[c.job] || JOBS.rookie;
   const recs = c.skillRecords || {};
 
@@ -2435,7 +2482,7 @@ function generateMonthlyReport(c, targetMonth){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${c.name}さんの成長レポート ${monthLabel}</title>
+<title>\${c.name}さんの成長レポート \${monthLabel}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -2446,12 +2493,12 @@ function generateMonthlyReport(c, targetMonth){
   .card::after{content:'';position:absolute;bottom:-4px;right:-4px;width:100%;height:100%;background:rgba(37,37,80,.6);z-index:-1;}
   .card-ttl{font-family:'Press Start 2P',monospace;font-size:.5rem;color:#00e5ff;margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1px solid #252550;}
   .gold{color:#ffd700;} .teal{color:#00e5ff;} .green{color:#39ff14;} .pink{color:#ff4081;}
-  .tag{font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}
+  .tag{font-family:'Press Start 2P',monospace;font-size:#3rem;padding:.15rem .4rem;border:1px solid;display:inline-block;margin-bottom:.5rem;}
   ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}
   li{font-size:.9rem;line-height:1.7;padding-left:1em;position:relative;}
   li::before{content:'▶';position:absolute;left:0;color:#00e5ff;font-size:.5em;top:.4em;}
   .pt-big{font-family:'Press Start 2P',monospace;font-size:1.6rem;color:#ffd700;}
-  .comment{background:#0d0d22;border-left:3px solid #ffd700;padding:.8rem 1rem;font-size:.9rem;line-height:1.9;white-space:pre-wrap;}
+  .comment{background:#0d0d22;border-left:3px solid #ffd700;font-size:.9rem;line-height:1.9;white-space:pre-wrap;}
   .next-box{background:rgba(0,229,255,.06);border:2px solid #00e5ff;padding:.8rem 1rem;}
   .footer{font-family:'Press Start 2P',monospace;font-size:.32rem;color:#6666aa;margin-top:1.5rem;text-align:center;line-height:2;}
   .print-btn{display:block;width:100%;padding:.9rem;background:#ffd700;color:#000;font-family:'Press Start 2P',monospace;font-size:.5rem;border:none;cursor:pointer;margin-bottom:1.5rem;letter-spacing:1px;}
@@ -2464,54 +2511,54 @@ function generateMonthlyReport(c, targetMonth){
 <body>
   <button class="print-btn" onclick="window.print()">🖨️ PDFとして保存する</button>
   <h1>📊 成長レポート</h1>
-  <div class="sub">${c.name}さん ／ ${monthLabel} ／ ${c.classroom}</div>
+  <div class="sub">\${c.name}さん ／ \${monthLabel} ／ \${c.classroom}</div>
 
   <div class="card">
     <div class="card-ttl">🏆 マスターした技（累計）</div>
-    ${mastered.length>0
-      ? `<ul>${mastered.map(sk=>`<li>${sk}</li>`).join('')}</ul>`
+    \${mastered.length>0
+      ? `<ul>\${mastered.map(sk=>`<li>\${sk}</li>`).join('')}</ul>`
       : '<p style="color:#6666aa;font-size:.85rem;">まだマスター技はありません。これからが楽しみ！</p>'}
   </div>
 
   <div class="card">
     <div class="card-ttl">⚔️ 今挑戦中の技</div>
-    ${challenged.length>0
-      ? `<ul>${challenged.map(([sk,r])=>`<li>${sk} <span class="teal" style="font-size:.75rem;">（${r.pts}pt）</span></li>`).join('')}</ul>`
+    \${challenged.length>0
+      ? `<ul>\${challenged.map(([sk,r])=>`<li>\${sk} <span class="teal" style="font-size:.75rem;">（\${r.pts}pt）</span></li>`).join('')}</ul>`
       : '<p style="color:#6666aa;font-size:.85rem;">新しい技に挑戦しよう！</p>'}
   </div>
 
-  ${training.length>0 ? `
+  \${training.length>0 ? `
   <div class="card">
     <div class="card-ttl">🌱 土台づくり中の技</div>
-    <ul>${training.map(([sk])=>`<li>${sk}</li>`).join('')}</ul>
+    <ul>\${training.map(([sk])=>`<li>\${sk}</li>`).join('')}</ul>
     <p style="font-size:.8rem;color:#6666aa;margin-top:.5rem;">焦らず積み上げています。応援してください！</p>
   </div>` : ''}
 
   <div class="card">
     <div class="card-ttl">📈 合計獲得ポイント</div>
-    <div class="pt-big">${totalPt}<span style="font-size:.7rem;color:#6666aa;">pt</span></div>
+    <div class="pt-big">\${totalPt}<span style="font-size:.7rem;color:#6666aa;">pt</span></div>
     <p style="font-size:.8rem;color:#6666aa;margin-top:.4rem;">マスターまで 10pt 必要です</p>
   </div>
 
-  ${latestMsg ? `
+  \${latestMsg ? `
   <div class="card">
     <div class="card-ttl">💬 先生からのメッセージ</div>
-    <div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 ${latestMsg.date||''}</div>
-    <div class="comment">${latestMsg.body||''}</div>
+    <div style="font-size:.75rem;color:#6666aa;margin-bottom:.5rem;">📅 	ext{\${latestMsg.date||''}}</div>
+    <div class="comment">	ext{\${latestMsg.body||''}}</div>
   </div>` : ''}
 
-  ${nextRec ? `
+  \${nextRec ? `
   <div class="card">
     <div class="card-ttl">🎯 来月のおすすめ</div>
     <div class="next-box">
       <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:#00e5ff;margin-bottom:.4rem;">次の挑戦</div>
-      <div style="font-weight:900;font-size:1.1rem;">「${nextRec}」</div>
+      <div style="font-weight:900;font-size:1.1rem;">「\${nextRec}」</div>
     </div>
   </div>` : ''}
 
   <div class="footer">
     JUMPUPクエスト 成長レポート<br>
-    ${c.name}さんの挑戦を、これからも応援しています！
+    \${c.name}さんの挑戦を、これからも応援しています！
   </div>
 </body>
 </html>`;
@@ -2541,31 +2588,31 @@ function generateLINEReport(c){
   const titleData = calcTitle(c);
 
   const lines = [];
-  lines.push(`🎮 ${c.name}さんの成長レポート`);
-  lines.push(`📍 ${c.classroom} ／ ${j.name}`);
-  if(titleData) lines.push(`👑 称号：${titleData.title}`);
+  lines.push(`🎮 \${c.name}さんの成長レポート`);
+  lines.push(`📍 \${c.classroom} ／ \${j.name}`);
+  if(titleData) lines.push(`👑 称号：\${titleData.title}`);
   lines.push('');
 
   if(mastered.length > 0){
-    lines.push(`🏆 マスター技（${mastered.length}個）`);
-    mastered.slice(0,5).forEach(sk => lines.push(`  ✅ ${sk}`));
-    if(mastered.length > 5) lines.push(`  …他${mastered.length-5}個`);
+    lines.push(`🏆 マスター技（\${mastered.length}個）`);
+    mastered.slice(0,5).forEach(sk => lines.push(`  ✅ \${sk}`));
+    if(mastered.length > 5) lines.push(`  …他\${mastered.length-5}個`);
     lines.push('');
   }
 
   if(challenged.length > 0){
-    lines.push(`⚔️ 挑戦中（${challenged.length}個）`);
-    challenged.slice(0,3).forEach(([sk,r]) => lines.push(`  📈 ${sk}（${r.pts}pt）`));
+    lines.push(`⚔️ 挑戦中（\${challenged.length}個）`);
+    challenged.slice(0,3).forEach(([sk,r]) => lines.push(`  📈 \${sk}（	ext{\${r.pts}}pt）`));
     lines.push('');
   }
 
   if(training.length > 0){
     lines.push(`🌱 土台づくり中`);
-    training.slice(0,2).forEach(([sk]) => lines.push(`  🌱 ${sk}`));
+    training.slice(0,2).forEach(([sk]) => lines.push(`  🌱 \${sk}`));
     lines.push('');
   }
 
-  lines.push(`📊 合計 ${totalPt}pt`);
+  lines.push(`📊 合計 \${totalPt}pt`);
 
   const latestMsg = (c.messages||[]).slice(-1)[0];
   if(latestMsg){
@@ -2576,7 +2623,8 @@ function generateLINEReport(c){
 
   lines.push('');
   lines.push('JUMPUPクエスト 🗡️');
-  return lines.join('\n');
+  return lines.join('
+');
 }
 
 async function copyLINEReport(){
@@ -2591,7 +2639,7 @@ async function copyLINEReport(){
     modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;';
     modal.innerHTML=`<div style="background:var(--panel);border:3px solid var(--teal);padding:1.5rem;width:min(500px,95vw);max-height:80vh;overflow-y:auto;">
       <div style="font-family:'Press Start 2P',monospace;font-size:.5rem;color:var(--teal);margin-bottom:.8rem;">📋 LINEレポート</div>
-      <textarea style="width:100%;height:200px;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:.7rem;font-size:.9rem;line-height:1.8;resize:none;" readonly>${text}</textarea>
+      <textarea style="width:100%;height:200px;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:.7rem;font-size:.9rem;line-height:1.8;resize:none;" readonly>\${text}</textarea>
       <button class="pbtn btn-teal" onclick="this.parentNode.parentNode.remove()" style="width:100%;margin-top:.8rem;">✕ 閉じる</button>
     </div>`;
     document.body.appendChild(modal);
@@ -2620,13 +2668,13 @@ function renderActivityLog(logs){
     const timeAgo = formatTimeAgo(log.ts);
     const isInstant = log.instant ? ' ⚡' : '';
     return `<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-bottom:1px solid var(--border);animation:fadeIn .4s ease;">
-      <div style="font-size:1rem;flex-shrink:0;">${log.emoji||'🏆'}</div>
+      <div style="font-size:1rem;flex-shrink:0;">\${log.emoji||'🏆'}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.85rem;line-height:1.4;">
-          ${log.charName}さんが「${log.skillName}」をマスター${isInstant}
+          \${log.charName}さんが「\${log.skillName}」をマスター\${isInstant}
         </div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.24rem;color:var(--text2);margin-top:.2rem;">
-          ${log.classroom||''} · ${timeAgo}
+          \${log.classroom||''} · 	ext{\${timeAgo}}
         </div>
       </div>
     </div>`;
@@ -2640,9 +2688,9 @@ function formatTimeAgo(ts){
   const hour = Math.floor(diff/3600000);
   const day = Math.floor(diff/86400000);
   if(min < 1) return 'たった今';
-  if(min < 60) return `${min}分前`;
-  if(hour < 24) return `${hour}時間前`;
-  return `${day}日前`;
+  if(min < 60) return `\${min}分前`;
+  if(hour < 24) return `\${hour}時間前`;
+  return `\${day}日前`;
 }
 
 // マスター達成時に全国ログに投稿
@@ -2695,14 +2743,14 @@ function renderEventBanner(event){
     participationHTML = `
     <div style="margin-top:.6rem;padding:.5rem .7rem;background:rgba(255,215,0,.06);border:1px solid var(--gold);">
       <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--gold);margin-bottom:.4rem;">
-        🎯 「${event.targetSkill}」チャレンジ
+        🎯 「	ext{\${event.targetSkill}}」チャレンジ
       </div>
       <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
         <div style="flex:1;background:var(--bg3);height:8px;border:1px solid var(--border);min-width:80px;">
-          <div style="height:100%;background:var(--gold);width:${pct}%;transition:width .8s;"></div>
+          <div style="height:100%;background:var(--gold);width:	ext{\${pct}}%;transition:width .8s;"></div>
         </div>
         <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);white-space:nowrap;">
-          🏆${masteredCount} / ⚔️${challengedCount} / 👥${total}名
+          🏆\${masteredCount} / ⚔️\${challengedCount} / 👥	ext{\${total}}名
         </div>
       </div>
     </div>`;
@@ -2710,21 +2758,21 @@ function renderEventBanner(event){
   el.style.display = 'block';
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
-      <div style="font-size:1.6rem;">${event.emoji||'🎉'}</div>
+      <div style="font-size:1.6rem;">\${event.emoji||'🎉'}</div>
       <div style="flex:1;">
         <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--gold);margin-bottom:.25rem;">
-          ${event.title}
+          \${event.title}
         </div>
         <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.82rem;color:var(--text2);line-height:1.6;">
-          ${event.description||''}
+          \${event.description||''}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text2);">残り</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.65rem;color:${remaining<=3?'var(--pink)':'var(--gold)'};">${remaining}日</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.65rem;color:	ext{\${remaining<=3?'var(--pink)':'var(--gold)'}};">\${remaining}日</div>
       </div>
     </div>
-    ${participationHTML}
+    \${participationHTML}
   `;
 }
 
@@ -2735,7 +2783,7 @@ function buildSkillOptions(){
   SKILL_MAP.forEach(([n,jk])=>{if(!grouped[jk])grouped[jk]=[];grouped[jk].push(n);});
   return jobOrder.filter(jk=>grouped[jk]).map(jk=>{
     const jb=JOBS[jk];
-    return `<optgroup label="【${jb.name}】">${grouped[jk].map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</optgroup>`;
+    return `<optgroup label="【\${jb.name}】">\${grouped[jk].map(sk=>`<option value="\${sk}">\${sk}</option>`).join('')}</optgroup>`;
   }).join('');
 }
 
@@ -2745,8 +2793,8 @@ function renderEventAdmin(event){
   if(event && isEventActive(event)){
     el.innerHTML = `
       <div style="background:rgba(255,215,0,.08);border:2px solid var(--gold);padding:.7rem .8rem;margin-bottom:.7rem;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--gold);margin-bottom:.4rem;">🎉 開催中：${event.title}</div>
-        <div style="font-size:.82rem;color:var(--text2);">${event.startDate} 〜 ${event.endDate}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--gold);margin-bottom:.4rem;">🎉 開催中：\${event.title}</div>
+        <div style="font-size:.82rem;color:var(--text2);">\${event.startDate} 〜 \${event.endDate}</div>
       </div>
       <button class="pbtn btn-pink" onclick="endEvent()" style="width:100%;font-size:.44rem;">🛑 イベントを終了する</button>
     `;
@@ -2770,7 +2818,7 @@ function renderEventAdmin(event){
         <label class="form-lbl">イベント対象技（任意）</label>
         <select class="fselect" id="evSkill">
           <option value="">-- 技を指定しない --</option>
-          ${buildSkillOptions()}
+          \${buildSkillOptions()}
         </select>
       </div>
       <div class="admin-grid2" style="margin-bottom:.7rem;">
@@ -2821,7 +2869,7 @@ async function startEvent(){
   const event = { title, emoji, description:desc, targetSkill:skill, startDate, endDate };
   await _fb.saveEvent(event);
   postAdminLog('event_start',{title,startDate,endDate});
-  showToast(`🎉 「${title}」イベントを開始しました！`);
+  showToast(`🎉 「\${title}」イベントを開始しました！`);
 }
 
 async function endEvent(){
