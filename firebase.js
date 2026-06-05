@@ -180,6 +180,24 @@ async function fbGetAllPhotos() {
   } catch(e) { console.warn('fbGetAllPhotos error', e); return {}; }
 }
 
+// ======== アイコン設定（Firestoreに保存・全端末共有） ========
+async function fbSaveIcon(charId, setting) {
+  if(!fbReady || !charId) return;
+  try {
+    await setDoc(doc(db, 'icons', charId), { setting, updatedAt: Date.now() });
+  } catch(e) { console.warn('fbSaveIcon error', e); }
+}
+
+async function fbGetAllIcons() {
+  if(!fbReady) return {};
+  try {
+    const snap = await getDocs(collection(db, 'icons'));
+    const result = {};
+    snap.forEach(d => { result[d.id] = d.data().setting; });
+    return result;
+  } catch(e) { console.warn('fbGetAllIcons error', e); return {}; }
+}
+
 // ======== 管理者操作ログ ========
 async function fbPostAdminLog(entry){
   if(!fbReady)return;
@@ -206,4 +224,5 @@ export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, 
   fbPostActivityLog, fbWatchActivityLog,
   fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
   fbPostAdminLog, fbWatchAdminLog,
-  fbSavePhoto, fbGetPhoto, fbGetAllPhotos };
+  fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
+  fbSaveIcon, fbGetAllIcons };

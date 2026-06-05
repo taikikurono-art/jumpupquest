@@ -21,6 +21,8 @@ let _fb={
   savePhoto:()=>Promise.resolve(),
   getPhoto:()=>Promise.resolve(null),
   getAllPhotos:()=>Promise.resolve({}),
+  saveIcon:()=>Promise.resolve(),
+  getAllIcons:()=>Promise.resolve({}),
 };
 let fbLoaded=false;
 async function loadFirebase(){
@@ -51,6 +53,8 @@ async function loadFirebase(){
       savePhoto:m.fbSavePhoto,
       getPhoto:m.fbGetPhoto,
       getAllPhotos:m.fbGetAllPhotos,
+      saveIcon:m.fbSaveIcon,
+      getAllIcons:m.fbGetAllIcons,
     };
     fbLoaded=true;
     // ※ キャラデータはGASが正。Firebaseからは読み込まない
@@ -68,12 +72,20 @@ async function loadFirebase(){
       });
       console.log('Firebase: 写真 '+Object.keys(fbPhotos).length+'件読み込み');
     }
+    // アイコン設定をFirestoreから一括読み込みしてlocalStorageに同期
+    const fbIcons=await _fb.getAllIcons();
+    if(fbIcons&&Object.keys(fbIcons).length>0){
+      Object.entries(fbIcons).forEach(([charId,setting])=>{
+        if(setting) localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting));
+      });
+      console.log('Firebase: アイコン設定 '+Object.keys(fbIcons).length+'件読み込み');
+    }
     startActivityLogWatch();
     startEventWatch();
   }catch(e){console.warn('Firebase失敗',e);}
 }
 
-const GAS_URL='https://script.google.com/macros/s/AKfycbylpcb5Apcve7j06th8Lh0XB7w-bTfXDwKfT2CA_MBBr0-I0aVSniIkXw9Hy2cRCWCHdg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbyXID9FlLorC-GwbJ8g1UJZqVbeezl6ENkU8zJjmpbJe-6C3-Eeenbsmp1wNQ-yXswZlQ/exec';
 const DEMO=[];
 let chars=[];  // GASから取得するまで空
 let gasReady=false;
@@ -1914,6 +1926,7 @@ function getIconSetting(charId){
 }
 function setIconSetting(charId, setting){
   localStorage.setItem('jq_icon_'+charId, JSON.stringify(setting));
+  _fb.saveIcon(charId, setting).catch(()=>{});
 }
 function getUnlockedJobs(c){
   // rookieは常に解放
