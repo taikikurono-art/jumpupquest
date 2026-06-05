@@ -314,7 +314,7 @@ function uploadRoomPhoto(event){ uploadStatusPhoto(event); } // 後方互換
 // ======== TITLE ========
 // ======== LOGIN ========
 function loginSearch(){
-  const q=document.getElementById('loginSearch').value.trim().toLowerCase();
+  const q=document.getElementById('loginSearchInput').value.trim().toLowerCase();
   const res=document.getElementById('loginResults');
   if(!q){res.innerHTML='';return;}
   const found=chars.filter(c=>c.name.toLowerCase().includes(q));
