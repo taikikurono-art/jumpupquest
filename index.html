@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260608-1830">
+<link rel="stylesheet" href="style.css?v=20260608-1831">
 </head>
 <body>
 <div id="stars"></div>
@@ -148,7 +148,7 @@
     <div class="login-box">
       <div class="login-title">つづきから</div>
       <div class="form-lbl">なまえで検索</div>
-      <input class="login-input" id="loginSearchInput" type="text" placeholder="名前を入れてね..." oninput="loginSearch()" maxlength="20">
+      <input class="login-input" id="loginSearch" type="text" placeholder="名前を入れてね..." oninput="loginSearch()" maxlength="20">
       <div class="login-results" id="loginResults"></div>
     </div>
     <button class="back-link" onclick="goPage('pg-title')">◀ タイトルにもどる</button>
@@ -563,20 +563,20 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260608-1830"></script>
+<script src="data.js?v=20260608-1831"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
     fbSaveIcon, fbGetAllIcons
-  } from './firebase.js?v=20260608-1830';
+  } from './firebase.js?v=20260608-1831';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
     fbSaveIcon, fbGetAllIcons };
 </script>
-<script src="main_core.js?v=20260608-1830"></script>
+<script src="main_core.js?v=20260608-1831"></script>
 </body>
 </html>
