@@ -236,10 +236,55 @@ async function fbSaveFeatured(data) {
   } catch(e) { console.warn('fbSaveFeatured error', e); }
 }
 
+// ======== JUMP CLASSROOMスタンプ ========
+async function fbPostStamp(toCharId, fromCharId, fromName, stamp) {
+  if(!fbReady) return;
+  try {
+    await addDoc(collection(db, 'stamps'), {
+      toCharId, fromCharId, fromName, stamp,
+      ts: Date.now(),
+    });
+  } catch(e) { console.warn('fbPostStamp error', e); }
+}
+
+async function fbGetStamps(toCharId) {
+  if(!fbReady) return [];
+  try {
+    const q = query(
+      collection(db, 'stamps'),
+      orderBy('ts', 'desc'),
+      limit(20)
+    );
+    const snap = await getDocs(q);
+    const result = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if(data.toCharId === toCharId) result.push(data);
+    });
+    return result;
+  } catch(e) { console.warn('fbGetStamps error', e); return []; }
+}
+
+async function fbGetAllStampsLatest() {
+  // 全員の最新スタンプを一括取得（直近100件から各キャラの最新1件を抽出）
+  if(!fbReady) return {};
+  try {
+    const q = query(collection(db, 'stamps'), orderBy('ts', 'desc'), limit(100));
+    const snap = await getDocs(q);
+    const result = {};
+    snap.forEach(d => {
+      const data = d.data();
+      if(!result[data.toCharId]) result[data.toCharId] = data;
+    });
+    return result;
+  } catch(e) { console.warn('fbGetAllStampsLatest error', e); return {}; }
+}
+
 export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
   fbPostActivityLog, fbWatchActivityLog,
   fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
   fbPostAdminLog, fbWatchAdminLog,
   fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
   fbSaveIcon, fbGetAllIcons,
-  fbGetFeatured, fbSaveFeatured };
+  fbGetFeatured, fbSaveFeatured,
+  fbPostStamp, fbGetStamps, fbGetAllStampsLatest };

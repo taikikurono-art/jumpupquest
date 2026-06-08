@@ -263,6 +263,7 @@ function goPage(id){
   if(id==='pg-explorer') initExplorer();
   if(id==='pg-admin') loadAdminSel();
   if(id==='pg-ranking') initRanking();
+  if(id==='pg-classroom') initClassroom();
   if(id==='pg-status'&&currentUser) renderStatus(currentUser);
 }
 function goBack(){goPage(prevPage);}
@@ -3044,4 +3045,139 @@ async function loadFeaturedAdmin(){
       list.appendChild(div);
     });
   } catch(e) { console.warn('loadFeaturedAdmin error', e); }
+}
+
+// ============================================================
+// JUMP CLASSROOM
+// ============================================================
+
+let _currentClassroom = 'ルネック勝川（月）';
+let _stampTargetId = null;
+let _stampsCache = {};
+
+async function initClassroom(){
+  // ログインしていればそのクラスをデフォルトに
+  if(currentUser && currentUser.classroom){
+    _currentClassroom = currentUser.classroom;
+  }
+  // タブをアクティブに
+  document.querySelectorAll('.classroom-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.classroom === _currentClassroom);
+  });
+  await renderClassroomBoard();
+}
+
+function switchClassroomTab(el){
+  document.querySelectorAll('.classroom-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  _currentClassroom = el.dataset.classroom;
+  renderClassroomBoard();
+}
+
+async function renderClassroomBoard(){
+  const board = document.getElementById('classroomBoard');
+  if(!board) return;
+  board.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">読み込み中...</div>';
+
+  // 最新スタンプを一括取得
+  try {
+    _stampsCache = await window._fbModule.fbGetAllStampsLatest() || {};
+  } catch(e) { _stampsCache = {}; }
+
+  const classChars = chars.filter(c =>
+    c.classroom === _currentClassroom &&
+    c.status !== 'leave' && c.status !== 'withdraw' && c.status !== 'graduate'
+  );
+
+  if(classChars.length === 0){
+    board.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">このクラスの冒険者はまだいません</div>';
+    return;
+  }
+
+  board.innerHTML = classChars.map(c => {
+    const job = JOBS[c.job] || JOBS['rookie'];
+    const totalMasters = Object.values(c.skillRecords || {}).filter(r => r.mastered).length;
+    const thisMonth = new Date().toISOString().slice(0,7);
+    const monthMasters = Object.values(c.skillRecords || {}).filter(r => r.mastered && r.masterDate && r.masterDate.startsWith(thisMonth)).length;
+    const sprite = SPRITES[c.job]
+      ? `<img src="${SPRITES[c.job]}" style="width:52px;height:52px;object-fit:contain;image-rendering:pixelated;">`
+      : `<span style="font-size:2.2rem;">${c.sprite}</span>`;
+
+    // 写真があれば表示
+    const photo = _photosCache[c.id];
+    const avatar = photo
+      ? `<img src="${photo}" style="width:52px;height:52px;object-fit:cover;border:2px solid rgba(0,229,255,.4);">`
+      : sprite;
+
+    // 最新スタンプ
+    const latestStamp = _stampsCache[c.id];
+    const stampBubble = latestStamp
+      ? `<div class="stamp-bubble">💬 ${latestStamp.fromName}さん「${latestStamp.stamp}」</div>`
+      : '';
+
+    // 自分以外にはスタンプボタン表示
+    const isMe = currentUser && currentUser.id === c.id;
+    const stampBtn = !isMe
+      ? `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;" onclick="openStampPopup('${c.id}','${c.name}')">💬 スタンプを送る</button>`
+      : `<div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--teal);margin-top:.5rem;">← あなた</div>`;
+
+    return `<div class="classroom-card">
+      <div style="flex-shrink:0;">${avatar}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+          <div style="font-weight:900;font-size:1rem;">${c.name}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;padding:.15rem .4rem;border:2px solid ${job.color};color:${job.color};">${job.name}</div>
+        </div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-top:.2rem;">
+          🏆 累計${totalMasters}個マスター
+          ${monthMasters > 0 ? `<span style="color:var(--pink);margin-left:.5rem;">🔥 今月${monthMasters}個</span>` : ''}
+        </div>
+        ${stampBubble}
+        ${stampBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openStampPopup(charId, charName){
+  if(!currentUser){
+    showToast('❌ スタンプを送るにはログインしてね');
+    return;
+  }
+  _stampTargetId = charId;
+  document.getElementById('stampTargetName').textContent = charName + 'さんへ';
+  document.getElementById('stampPopup').classList.add('open');
+}
+
+function closeStampPopup(e){
+  if(e && e.target !== document.getElementById('stampPopup')) return;
+  document.getElementById('stampPopup').classList.remove('open');
+  _stampTargetId = null;
+}
+
+async function sendStamp(stampText){
+  if(!currentUser || !_stampTargetId) return;
+  document.getElementById('stampPopup').classList.remove('open');
+  try {
+    await window._fbModule.fbPostStamp(
+      _stampTargetId,
+      currentUser.id,
+      currentUser.name,
+      stampText
+    );
+    showToast('💬 スタンプを送りました！');
+    // キャッシュ更新して再描画
+    _stampsCache[_stampTargetId] = {
+      toCharId: _stampTargetId,
+      fromCharId: currentUser.id,
+      fromName: currentUser.name,
+      stamp: stampText,
+      ts: Date.now()
+    };
+    renderClassroomBoard();
+  } catch(e) {
+    showToast('❌ 送信に失敗しました');
+    console.warn('sendStamp error', e);
+  }
+  _stampTargetId = null;
 }
