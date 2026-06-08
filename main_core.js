@@ -2592,8 +2592,7 @@ function generateLINEReport(c){
 
   lines.push('');
   lines.push('JUMPUPクエスト 🗡️');
-  return lines.join('
-');
+  return lines.join('\n');
 }
 
 async function copyLINEReport(){
