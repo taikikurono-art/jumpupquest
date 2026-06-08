@@ -2889,7 +2889,7 @@ function renderRankingHot(){
   const medals = ['🥇','🥈','🥉'];
   el.innerHTML = scored.map((s, i) => {
     const job = JOBS[s.char.job] || JOBS['rookie'];
-    const spriteHtml = getSpriteHtml(s.char, 48);
+    const spriteHtml = SPRITES[s.char.job] ? `<img src="${SPRITES[s.char.job]}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;">` : `<span style="font-size:2rem;">${s.char.sprite}</span>`;
     return `<div style="display:flex;align-items:center;gap:.9rem;background:var(--bg);border:2px solid var(--border);padding:.7rem .9rem;${i===0?'border-color:var(--gold);background:rgba(255,215,0,.04);':''}">
       <div style="font-size:1.6rem;flex-shrink:0;">${medals[i]}</div>
       <div style="flex-shrink:0;">${spriteHtml}</div>
@@ -2930,7 +2930,7 @@ function renderRankingTop(){
   el.innerHTML = scored.map((s, i) => {
     const rank = i + 1;
     const rankColor = rank===1?'var(--gold)':rank===2?'#aaa':rank===3?'#cd7f32':'var(--text2)';
-    const spriteHtml = getSpriteHtml(s.char, 40);
+    const spriteHtml = SPRITES[s.char.job] ? `<img src="${SPRITES[s.char.job]}" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated;">` : `<span style="font-size:1.8rem;">${s.char.sprite}</span>`;
     return `<div style="display:flex;align-items:center;gap:.8rem;background:var(--bg);border:2px solid var(--border);padding:.6rem .9rem;${rank<=3?'border-color:'+rankColor+';':''}">
       <div style="font-family:'Press Start 2P',monospace;font-size:.58rem;color:${rankColor};flex-shrink:0;min-width:1.8rem;text-align:center;">${rank}</div>
       <div style="flex-shrink:0;">${spriteHtml}</div>
@@ -2971,7 +2971,7 @@ function renderFeatured(data){
   el.innerHTML = data.members.map(m => {
     const char = chars.find(c => c.id === m.charId);
     if(!char) return '';
-    const spriteHtml = getSpriteHtml(char, 56);
+    const spriteHtml = SPRITES[char.job] ? `<img src="${SPRITES[char.job]}" style="width:56px;height:56px;object-fit:contain;image-rendering:pixelated;">` : `<span style="font-size:2.4rem;">${char.sprite}</span>`;
     return `<div style="background:var(--bg);border:2px solid var(--teal);padding:.9rem;display:flex;gap:.9rem;align-items:flex-start;">
       <div style="flex-shrink:0;">${spriteHtml}</div>
       <div style="flex:1;">
