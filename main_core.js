@@ -262,6 +262,7 @@ function goPage(id){
   if(id==='pg-jobmap') initJobMap();
   if(id==='pg-explorer') initExplorer();
   if(id==='pg-admin') loadAdminSel();
+  if(id==='pg-ranking') initRanking();
   if(id==='pg-status'&&currentUser) renderStatus(currentUser);
 }
 function goBack(){goPage(prevPage);}
@@ -1399,6 +1400,7 @@ function getAdminChars(){
 function loadAdminSel(){
   const s=document.getElementById('adminSel');if(!s)return;
   s.innerHTML='<option value="">-- 選んでね --</option>'+getAdminChars().map(c=>`<option value="${c.id}">${c.name}（${c.id}）</option>`).join('');
+  loadFeaturedAdmin();
 }
 function loadMsgTarget(){
   const s=document.getElementById('msgTarget');if(!s)return;
@@ -2844,4 +2846,202 @@ async function endEvent(){
   await _fb.deleteEvent();
   postAdminLog('event_end',{});
   showToast('🛑 イベントを終了しました');
+}
+
+// ============================================================
+// JUMPUP ランキング
+// ============================================================
+
+async function initRanking(){
+  renderRankingHot();
+  renderRankingTop();
+  await loadFeatured();
+}
+
+// ---- HOTメンバー（今月マスター数） ----
+function renderRankingHot(){
+  const el = document.getElementById('rankingHot');
+  if(!el) return;
+  if(!chars || chars.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">データを読み込んでいます...</div>';
+    return;
+  }
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const scored = chars
+    .filter(c => c.status !== 'leave' && c.status !== 'withdraw' && c.status !== 'graduate')
+    .map(c => {
+      const records = Object.values(c.skillRecords || {});
+      const monthMasters = records.filter(r => r.mastered && r.masterDate && r.masterDate.startsWith(thisMonth)).length;
+      const monthPts = records.reduce((sum, r) => {
+        // 今月のptは推定できないのでmonthMastersのtie-breakとして累計ptを使用
+        return sum + (r.pts || 0);
+      }, 0);
+      return { char: c, monthMasters, monthPts };
+    })
+    .filter(s => s.monthMasters > 0)
+    .sort((a, b) => b.monthMasters - a.monthMasters || b.monthPts - a.monthPts)
+    .slice(0, 3);
+
+  if(scored.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">今月まだマスター達成者がいません</div>';
+    return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  el.innerHTML = scored.map((s, i) => {
+    const job = JOBS[s.char.job] || JOBS['rookie'];
+    const spriteHtml = getSpriteHtml(s.char, 48);
+    return `<div style="display:flex;align-items:center;gap:.9rem;background:var(--bg);border:2px solid var(--border);padding:.7rem .9rem;${i===0?'border-color:var(--gold);background:rgba(255,215,0,.04);':''}">
+      <div style="font-size:1.6rem;flex-shrink:0;">${medals[i]}</div>
+      <div style="flex-shrink:0;">${spriteHtml}</div>
+      <div style="flex:1;">
+        <div style="font-weight:900;font-size:1rem;">${s.char.name}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-top:.2rem;">${s.char.classroom}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--pink);">🔥 ${s.monthMasters}個</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);margin-top:.2rem;">今月マスター</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- TOPランキング（累計マスター数） ----
+function renderRankingTop(){
+  const el = document.getElementById('rankingTop');
+  if(!el) return;
+  if(!chars || chars.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">データを読み込んでいます...</div>';
+    return;
+  }
+  const scored = chars
+    .filter(c => c.status !== 'leave' && c.status !== 'withdraw' && c.status !== 'graduate')
+    .map(c => {
+      const totalMasters = Object.values(c.skillRecords || {}).filter(r => r.mastered).length;
+      return { char: c, totalMasters };
+    })
+    .filter(s => s.totalMasters > 0)
+    .sort((a, b) => b.totalMasters - a.totalMasters)
+    .slice(0, 10);
+
+  if(scored.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">まだマスター達成者がいません</div>';
+    return;
+  }
+  el.innerHTML = scored.map((s, i) => {
+    const rank = i + 1;
+    const rankColor = rank===1?'var(--gold)':rank===2?'#aaa':rank===3?'#cd7f32':'var(--text2)';
+    const spriteHtml = getSpriteHtml(s.char, 40);
+    return `<div style="display:flex;align-items:center;gap:.8rem;background:var(--bg);border:2px solid var(--border);padding:.6rem .9rem;${rank<=3?'border-color:'+rankColor+';':''}">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.58rem;color:${rankColor};flex-shrink:0;min-width:1.8rem;text-align:center;">${rank}</div>
+      <div style="flex-shrink:0;">${spriteHtml}</div>
+      <div style="flex:1;">
+        <div style="font-weight:900;font-size:1rem;">${s.char.name}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-top:.2rem;">${s.char.classroom}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--gold);">🏆 ${s.totalMasters}個</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);margin-top:.2rem;">累計マスター</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- 先生のイチオシ ----
+let _featuredCache = null;
+
+async function loadFeatured(){
+  const el = document.getElementById('rankingFeatured');
+  if(!el) return;
+  try {
+    const snap = await window._fbModule.fbGetFeatured();
+    _featuredCache = snap;
+    renderFeatured(snap);
+  } catch(e) {
+    console.warn('loadFeatured error', e);
+  }
+}
+
+function renderFeatured(data){
+  const el = document.getElementById('rankingFeatured');
+  if(!el) return;
+  if(!data || !data.members || data.members.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">現在設定されていません</div>';
+    return;
+  }
+  el.innerHTML = data.members.map(m => {
+    const char = chars.find(c => c.id === m.charId);
+    if(!char) return '';
+    const spriteHtml = getSpriteHtml(char, 56);
+    return `<div style="background:var(--bg);border:2px solid var(--teal);padding:.9rem;display:flex;gap:.9rem;align-items:flex-start;">
+      <div style="flex-shrink:0;">${spriteHtml}</div>
+      <div style="flex:1;">
+        <div style="font-weight:900;font-size:1rem;margin-bottom:.2rem;">${char.name}</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-bottom:.5rem;">${char.classroom}</div>
+        <div style="background:rgba(0,229,255,.08);border-left:3px solid var(--teal);padding:.5rem .7rem;font-size:.9rem;line-height:1.7;color:var(--text);">${m.comment}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- 管理者：イチオシ設定UI ----
+function addFeaturedRow(){
+  const list = document.getElementById('featuredList');
+  if(!list) return;
+  if(list.children.length >= 3){ showToast('❌ 最大3人までです'); return; }
+  const options = chars.map(c => `<option value="${c.id}">${c.name}（${c.classroom}）</option>`).join('');
+  const div = document.createElement('div');
+  div.style.cssText = 'background:var(--bg);border:2px solid var(--border);padding:.7rem;display:flex;flex-direction:column;gap:.5rem;';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.5rem;">
+      <select class="fselect" style="flex:1;">${options}</select>
+      <button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;" onclick="this.closest('div').parentElement.remove()">✕</button>
+    </div>
+    <textarea class="pinput" rows="2" placeholder="先生からのひとこと（例：毎回笑顔で元気に挨拶してくれます！）" style="width:100%;resize:vertical;font-size:.9rem;"></textarea>
+  `;
+  list.appendChild(div);
+}
+
+async function saveFeatured(){
+  const list = document.getElementById('featuredList');
+  if(!list) return;
+  const members = [];
+  for(const row of list.children){
+    const sel = row.querySelector('select');
+    const ta = row.querySelector('textarea');
+    if(sel && ta && sel.value && ta.value.trim()){
+      members.push({ charId: sel.value, comment: ta.value.trim() });
+    }
+  }
+  try {
+    await window._fbModule.fbSaveFeatured({ members, updatedAt: Date.now() });
+    showToast('⭐ イチオシを保存しました！');
+    postAdminLog('save_featured', { count: members.length });
+  } catch(e) {
+    showToast('❌ 保存に失敗しました');
+    console.warn('saveFeatured error', e);
+  }
+}
+
+// 管理者パネルを開いたときにイチオシを読み込む
+async function loadFeaturedAdmin(){
+  const list = document.getElementById('featuredList');
+  if(!list) return;
+  list.innerHTML = '';
+  try {
+    const data = await window._fbModule.fbGetFeatured();
+    if(!data || !data.members) return;
+    data.members.forEach(m => {
+      const options = chars.map(c => `<option value="${c.id}"${c.id===m.charId?' selected':''}>${c.name}（${c.classroom}）</option>`).join('');
+      const div = document.createElement('div');
+      div.style.cssText = 'background:var(--bg);border:2px solid var(--border);padding:.7rem;display:flex;flex-direction:column;gap:.5rem;';
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <select class="fselect" style="flex:1;">${options}</select>
+          <button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;" onclick="this.closest('div').parentElement.remove()">✕</button>
+        </div>
+        <textarea class="pinput" rows="2" style="width:100%;resize:vertical;font-size:.9rem;">${m.comment}</textarea>
+      `;
+      list.appendChild(div);
+    });
+  } catch(e) { console.warn('loadFeaturedAdmin error', e); }
 }

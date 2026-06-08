@@ -220,9 +220,26 @@ function fbWatchAdminLog(callback,limitCount=50){
     });
   }catch(e){console.warn('fbWatchAdminLog error',e);return ()=>{};}
 }
+// ======== 先生のイチオシ ========
+async function fbGetFeatured() {
+  if(!fbReady) return null;
+  try {
+    const snap = await getDoc(doc(db, 'featured', 'current'));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) { console.warn('fbGetFeatured error', e); return null; }
+}
+
+async function fbSaveFeatured(data) {
+  if(!fbReady) return;
+  try {
+    await setDoc(doc(db, 'featured', 'current'), data);
+  } catch(e) { console.warn('fbSaveFeatured error', e); }
+}
+
 export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
   fbPostActivityLog, fbWatchActivityLog,
   fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
   fbPostAdminLog, fbWatchAdminLog,
   fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
-  fbSaveIcon, fbGetAllIcons };
+  fbSaveIcon, fbGetAllIcons,
+  fbGetFeatured, fbSaveFeatured };

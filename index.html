@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260608-1844">
+<link rel="stylesheet" href="style.css?v=20260608-1831">
 </head>
 <body>
 <div id="stars"></div>
@@ -60,6 +60,9 @@
       <div class="menu-sep"></div>
       <button class="menu-item view-all" onclick="goPage('pg-explorer')">
         <span class="menu-arrow" style="font-size:.7rem;">▶</span>冒険者一覧を見る
+      </button>
+      <button class="menu-item view-all" onclick="goPage('pg-ranking')" style="border-color:var(--gold);color:var(--gold);">
+        <span class="menu-arrow" style="font-size:.7rem;">▶</span>🏆 JUMPUPランキング
       </button>
       <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
         <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
@@ -473,6 +476,15 @@
           </div>
         </div>
 
+        <!-- 先生のイチオシ設定 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">⭐ 先生のイチオシを設定</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-bottom:.9rem;">姿勢・挨拶・意気込みが光る子を最大3人まで紹介できます</div>
+          <div id="featuredList" style="display:flex;flex-direction:column;gap:.7rem;margin-bottom:.8rem;"></div>
+          <button class="pbtn btn-outline" onclick="addFeaturedRow()" style="font-size:.38rem;padding:.42rem .75rem;width:100%;margin-bottom:.8rem;">＋ イチオシを追加する</button>
+          <button class="pbtn btn-teal" onclick="saveFeatured()" style="width:100%;">💾 イチオシを保存する</button>
+        </div>
+
         <!-- 管理者操作ログ -->
         <div class="pp" id="adminLogPanel">
           <div class="sec-ttl">🔍 管理者操作ログ</div>
@@ -523,6 +535,44 @@
   </div>
 </div>
 
+<!-- ==================== RANKING ==================== -->
+<div class="page fadein" id="pg-ranking">
+  <div class="top-nav">
+    <button class="nav-back" onclick="goPage('pg-title')">◀ タイトルへ</button>
+    <span class="nav-title">🏆 JUMPUPランキング</span>
+  </div>
+  <div style="padding:.8rem 1rem 3rem;max-width:860px;margin:0 auto;">
+
+    <!-- HOTメンバー -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl" style="color:var(--pink);">🔥 HOTメンバー</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-bottom:.9rem;">今月マスターした技が多い冒険者</div>
+      <div id="rankingHot" style="display:flex;flex-direction:column;gap:.6rem;">
+        <div style="color:var(--text2);font-size:.85rem;padding:.5rem;">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- TOPランキング -->
+    <div class="pp" style="margin-bottom:1rem;">
+      <div class="sec-ttl" style="color:var(--gold);">👑 TOPランキング</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-bottom:.9rem;">累計マスター数ランキング</div>
+      <div id="rankingTop" style="display:flex;flex-direction:column;gap:.6rem;">
+        <div style="color:var(--text2);font-size:.85rem;padding:.5rem;">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- 先生のイチオシ -->
+    <div class="pp">
+      <div class="sec-ttl" style="color:var(--teal);">⭐ 先生のイチオシ</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-bottom:.9rem;">姿勢・挨拶・意気込みが光る冒険者</div>
+      <div id="rankingFeatured" style="display:flex;flex-direction:column;gap:.6rem;">
+        <div style="color:var(--text2);font-size:.85rem;padding:.5rem;">現在設定されていません</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </main>
 
 <!-- SKILL POPUP（冒険者一覧用） -->
@@ -563,20 +613,22 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260608-1844"></script>
+<script src="data.js?v=20260608-1831"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
-    fbSaveIcon, fbGetAllIcons
-  } from './firebase.js?v=20260608-1844';
+    fbSaveIcon, fbGetAllIcons,
+    fbGetFeatured, fbSaveFeatured
+  } from './firebase.js?v=20260608-1831';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
-    fbSaveIcon, fbGetAllIcons };
+    fbSaveIcon, fbGetAllIcons,
+    fbGetFeatured, fbSaveFeatured };
 </script>
-<script src="main_core.js?v=20260608-1844"></script>
+<script src="main_core.js?v=20260608-1831"></script>
 </body>
 </html>
