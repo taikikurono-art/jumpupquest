@@ -2329,6 +2329,7 @@ function goParentPage(){
   if(!currentUser){showToast('❌ ログインしてね');return;}
   renderParentPage(currentUser);
   goPage('pg-parent');
+  loadMyStamps();
 }
 
 function renderParentPage(c){
@@ -3053,7 +3054,8 @@ async function loadFeaturedAdmin(){
 
 let _currentClassroom = 'ルネック勝川（月）';
 let _stampTargetId = null;
-let _stampsCache = {};
+let _stampTargetName = '';
+let _timelineUnsub = null;
 
 async function initClassroom(){
   // ログインしていればそのクラスをデフォルトに
@@ -3064,81 +3066,76 @@ async function initClassroom(){
   document.querySelectorAll('.classroom-tab').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.classroom === _currentClassroom);
   });
-  await renderClassroomBoard();
+  // ログインヒント
+  const hint = document.getElementById('classroomLoginHint');
+  const btn = document.getElementById('classroomStampBtn');
+  if(hint && btn){
+    if(currentUser){
+      hint.textContent = currentUser.name + 'さんとして投稿';
+      btn.style.display = '';
+    } else {
+      hint.textContent = 'ログインするとスタンプを押せます';
+      btn.style.display = 'none';
+    }
+  }
+  subscribeTimeline();
+}
+
+function subscribeTimeline(){
+  // 既存の購読を解除
+  if(_timelineUnsub){ _timelineUnsub(); _timelineUnsub = null; }
+
+  _timelineUnsub = window._fbModule.fbWatchClassroomTimeline(_currentClassroom, (items) => {
+    renderTimeline(items);
+  });
+}
+
+function renderTimeline(items){
+  const el = document.getElementById('classroomTimeline');
+  if(!el) return;
+
+  if(items.length === 0){
+    el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:2rem;text-align:center;">まだ投稿がありません<br>最初の一言を投稿しよう！</div>';
+    return;
+  }
+
+  el.innerHTML = items.map(item => {
+    const time = new Date(item.ts).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
+    const date = new Date(item.ts).toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'});
+    const isSelf = currentUser && currentUser.id === item.fromCharId;
+    const isTeacherBadge = item.isTeacher
+      ? '<span style="font-family:\'Press Start 2P\',monospace;font-size:.34rem;background:var(--gold);color:#1a0800;padding:.1rem .3rem;margin-right:.3rem;">👨‍🏫 先生</span>'
+      : '';
+    const toLabel = (item.toCharId !== item.fromCharId)
+      ? `<span style="color:var(--teal);"> → ${item.toCharName}さんへ</span>`
+      : '';
+
+    // 自分の投稿は右寄せ
+    const align = isSelf ? 'flex-end' : 'flex-start';
+    const bubbleBg = isSelf
+      ? 'background:rgba(0,229,255,.15);border-color:rgba(0,229,255,.4);'
+      : 'background:var(--bg2);border-color:var(--border);';
+
+    return `<div style="display:flex;flex-direction:column;align-items:${align};gap:.15rem;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);">
+        ${isTeacherBadge}${item.fromName}${toLabel}
+      </div>
+      <div style="border:2px solid;padding:.5rem .8rem;max-width:80%;font-size:.95rem;line-height:1.5;${bubbleBg}">
+        ${item.stamp}
+      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:.32rem;color:var(--text2);">${date} ${time}</div>
+    </div>`;
+  }).join('');
+
+  // 最新（一番下）にスクロール
+  el.scrollTop = el.scrollHeight;
 }
 
 function switchClassroomTab(el){
   document.querySelectorAll('.classroom-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   _currentClassroom = el.dataset.classroom;
-  renderClassroomBoard();
-}
-
-async function renderClassroomBoard(){
-  const board = document.getElementById('classroomBoard');
-  if(!board) return;
-  board.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">読み込み中...</div>';
-
-  // 最新スタンプを一括取得
-  try {
-    _stampsCache = await window._fbModule.fbGetAllStampsLatest() || {};
-  } catch(e) { _stampsCache = {}; }
-
-  const classChars = chars.filter(c =>
-    c.classroom === _currentClassroom &&
-    c.status !== 'leave' && c.status !== 'withdraw' && c.status !== 'graduate'
-  );
-
-  if(classChars.length === 0){
-    board.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:.5rem;">このクラスの冒険者はまだいません</div>';
-    return;
-  }
-
-  board.innerHTML = classChars.map(c => {
-    const job = JOBS[c.job] || JOBS['rookie'];
-    const totalMasters = Object.values(c.skillRecords || {}).filter(r => r.mastered).length;
-    const thisMonth = new Date().toISOString().slice(0,7);
-    const monthMasters = Object.values(c.skillRecords || {}).filter(r => r.mastered && r.masterDate && r.masterDate.startsWith(thisMonth)).length;
-    const sprite = SPRITES[c.job]
-      ? `<img src="${SPRITES[c.job]}" style="width:52px;height:52px;object-fit:contain;image-rendering:pixelated;">`
-      : `<span style="font-size:2.2rem;">${c.sprite}</span>`;
-
-    // 写真があれば表示
-    const photo = _photosCache[c.id];
-    const avatar = photo
-      ? `<img src="${photo}" style="width:52px;height:52px;object-fit:cover;border:2px solid rgba(0,229,255,.4);">`
-      : sprite;
-
-    // 最新スタンプ
-    const latestStamp = _stampsCache[c.id];
-    const stampBubble = latestStamp
-      ? `<div class="stamp-bubble">💬 ${latestStamp.fromName}さん「${latestStamp.stamp}」</div>`
-      : '';
-
-    // 自分のカードは「気持ちを投稿」、他人のカードは「スタンプを送る」
-    const isMe = currentUser && currentUser.id === c.id;
-    const stampBtn = currentUser
-      ? isMe
-        ? `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;border-color:var(--teal);color:var(--teal);" onclick="openStampPopup('${c.id}','${c.name}')">💬 気持ちを投稿する</button>`
-        : `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;" onclick="openStampPopup('${c.id}','${c.name}')">💬 スタンプを送る</button>`
-      : '';
-
-    return `<div class="classroom-card">
-      <div style="flex-shrink:0;">${avatar}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-          <div style="font-weight:900;font-size:1rem;">${c.name}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;padding:.15rem .4rem;border:2px solid ${job.color};color:${job.color};">${job.name}</div>
-        </div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);margin-top:.2rem;">
-          🏆 累計${totalMasters}個マスター
-          ${monthMasters > 0 ? `<span style="color:var(--pink);margin-left:.5rem;">🔥 今月${monthMasters}個</span>` : ''}
-        </div>
-        ${stampBubble}
-        ${stampBtn}
-      </div>
-    </div>`;
-  }).join('');
+  subscribeTimeline();
 }
 
 function openStampPopup(charId, charName){
@@ -3147,6 +3144,7 @@ function openStampPopup(charId, charName){
     return;
   }
   _stampTargetId = charId;
+  _stampTargetName = charName;
   const isMe = currentUser.id === charId;
   document.getElementById('stampTargetName').textContent = isMe
     ? '今の気持ちを投稿しよう'
@@ -3166,31 +3164,63 @@ function closeStampPopup(e){
   if(e && e.target !== document.getElementById('stampPopup')) return;
   document.getElementById('stampPopup').classList.remove('open');
   _stampTargetId = null;
+  _stampTargetName = '';
 }
 
 async function sendStamp(stampText){
   if(!currentUser || !_stampTargetId) return;
   document.getElementById('stampPopup').classList.remove('open');
+
+  const isTeacher = ['jumpup2025','runeck2025','studio2025','cocoro2025'].some(
+    p => sessionStorage.getItem('adminPass') === p
+  );
+  const targetChar = chars.find(c => c.id === _stampTargetId);
+  const targetName = targetChar ? targetChar.name : _stampTargetName;
+  const classroom = currentUser.classroom || _currentClassroom;
+
   try {
     await window._fbModule.fbPostStamp(
       _stampTargetId,
+      targetName,
       currentUser.id,
       currentUser.name,
-      stampText
+      stampText,
+      classroom,
+      isTeacher
     );
-    showToast('💬 スタンプを送りました！');
-    // キャッシュ更新して再描画
-    _stampsCache[_stampTargetId] = {
-      toCharId: _stampTargetId,
-      fromCharId: currentUser.id,
-      fromName: currentUser.name,
-      stamp: stampText,
-      ts: Date.now()
-    };
-    renderClassroomBoard();
+    showToast('💬 投稿しました！');
+    // 保護者ページから押した場合はmy stampsも更新
+    loadMyStamps();
   } catch(e) {
     showToast('❌ 送信に失敗しました');
     console.warn('sendStamp error', e);
   }
   _stampTargetId = null;
+  _stampTargetName = '';
+}
+
+// 保護者ページ：届いたスタンプ一覧
+async function loadMyStamps(){
+  const el = document.getElementById('myStampsList');
+  if(!el || !currentUser) return;
+  try {
+    const stamps = await window._fbModule.fbGetMyStamps(currentUser.id);
+    if(stamps.length === 0){
+      el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;">まだスタンプが届いていません</div>';
+      return;
+    }
+    el.innerHTML = stamps.map(s => {
+      const time = new Date(s.ts).toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'});
+      const isTeacherBadge = s.isTeacher
+        ? '<span style="font-family:\'Press Start 2P\',monospace;font-size:.32rem;background:var(--gold);color:#1a0800;padding:.1rem .3rem;margin-right:.3rem;">👨‍🏫 先生</span>'
+        : '';
+      return `<div style="display:flex;align-items:center;gap:.6rem;background:var(--bg);border:2px solid var(--border);padding:.5rem .7rem;">
+        <div style="font-size:1.3rem;flex-shrink:0;">${s.stamp.slice(0,2)}</div>
+        <div style="flex:1;">
+          <div style="font-size:.88rem;font-weight:700;">${s.stamp}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--text2);margin-top:.15rem;">${isTeacherBadge}${s.fromName}より・${time}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.warn('loadMyStamps error', e); }
 }

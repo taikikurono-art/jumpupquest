@@ -237,36 +237,55 @@ async function fbSaveFeatured(data) {
 }
 
 // ======== JUMP CLASSROOMスタンプ ========
-async function fbPostStamp(toCharId, fromCharId, fromName, stamp) {
+async function fbPostStamp(toCharId, toCharName, fromCharId, fromName, stamp, classroom, isTeacher=false) {
   if(!fbReady) return;
   try {
     await addDoc(collection(db, 'stamps'), {
-      toCharId, fromCharId, fromName, stamp,
+      toCharId, toCharName, fromCharId, fromName, stamp,
+      classroom: classroom || '',
+      isTeacher,
       ts: Date.now(),
     });
   } catch(e) { console.warn('fbPostStamp error', e); }
 }
 
-async function fbGetStamps(toCharId) {
-  if(!fbReady) return [];
+// クラス別タイムラインをリアルタイム購読（最新20件、古い順）
+function fbWatchClassroomTimeline(classroom, callback) {
+  if(!fbReady) return () => {};
   try {
     const q = query(
       collection(db, 'stamps'),
       orderBy('ts', 'desc'),
       limit(20)
     );
+    return onSnapshot(q, snap => {
+      const all = [];
+      snap.forEach(d => all.push(d.data()));
+      // クラスでフィルタして古い順に並べ替え
+      const filtered = all
+        .filter(d => d.classroom === classroom)
+        .sort((a, b) => a.ts - b.ts);
+      callback(filtered);
+    });
+  } catch(e) { console.warn('fbWatchClassroomTimeline error', e); return () => {}; }
+}
+
+// 個人宛スタンプ最新10件
+async function fbGetMyStamps(toCharId) {
+  if(!fbReady) return [];
+  try {
+    const q = query(collection(db, 'stamps'), orderBy('ts', 'desc'), limit(100));
     const snap = await getDocs(q);
     const result = [];
     snap.forEach(d => {
       const data = d.data();
       if(data.toCharId === toCharId) result.push(data);
     });
-    return result;
-  } catch(e) { console.warn('fbGetStamps error', e); return []; }
+    return result.slice(0, 10);
+  } catch(e) { console.warn('fbGetMyStamps error', e); return []; }
 }
 
 async function fbGetAllStampsLatest() {
-  // 全員の最新スタンプを一括取得（直近100件から各キャラの最新1件を抽出）
   if(!fbReady) return {};
   try {
     const q = query(collection(db, 'stamps'), orderBy('ts', 'desc'), limit(100));
@@ -287,4 +306,4 @@ export { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, 
   fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
   fbSaveIcon, fbGetAllIcons,
   fbGetFeatured, fbSaveFeatured,
-  fbPostStamp, fbGetStamps, fbGetAllStampsLatest };
+  fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest };

@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260609-0901">
+<link rel="stylesheet" href="style.css?v=20260608-1832">
 <style>
 .classroom-tab{
   flex:1;font-family:"Press Start 2P",monospace;font-size:.5rem;
@@ -61,6 +61,11 @@
   font-family:"Press Start 2P",monospace;font-size:.38rem;
   background:var(--teal);color:#001a22;
   padding:.15rem .4rem;display:inline-block;margin-left:.3rem;
+}
+#classroomTimeline{
+  height:calc(100vh - 160px);
+  overflow-y:auto;
+  padding-bottom:.5rem;
 }
 </style>
 </head>
@@ -392,6 +397,14 @@
       <button class="pbtn btn-outline" onclick="openStampPopupSelf()" style="width:100%;font-size:.48rem;border-color:var(--teal);color:var(--teal);">💬 スタンプを押す</button>
     </div>
 
+    <!-- 届いたスタンプ -->
+    <div class="pp">
+      <div class="sec-ttl">📬 届いたスタンプ</div>
+      <div id="myStampsList" style="display:flex;flex-direction:column;gap:.4rem;">
+        <div style="color:var(--text2);font-size:.85rem;">読み込み中...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -653,10 +666,15 @@
     <button class="classroom-tab" data-classroom="こころね学園（火）" onclick="switchClassroomTab(this)">こころね</button>
   </div>
 
-  <div style="padding:.8rem 1rem 3rem;max-width:860px;margin:0 auto;">
-    <div id="classroomBoard" style="display:flex;flex-direction:column;gap:.8rem;margin-top:.4rem;">
-      <div style="color:var(--text2);font-size:.85rem;padding:.5rem;">読み込み中...</div>
-    </div>
+  <!-- タイムライン -->
+  <div id="classroomTimeline" style="padding:.6rem 1rem;max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:.5rem;min-height:200px;">
+    <div style="color:var(--text2);font-size:.85rem;padding:.5rem;text-align:center;">読み込み中...</div>
+  </div>
+
+  <!-- スタンプ投稿ボタン（固定） -->
+  <div style="position:sticky;bottom:0;background:var(--bg2);border-top:2px solid var(--border);padding:.6rem 1rem;display:flex;gap:.6rem;align-items:center;max-width:860px;margin:0 auto;">
+    <div id="classroomLoginHint" style="font-family:'Press Start 2P',monospace;font-size:.38rem;color:var(--text2);flex:1;"></div>
+    <button class="pbtn btn-teal" onclick="openStampPopupSelf()" style="font-size:.42rem;padding:0 1rem;height:40px;" id="classroomStampBtn">💬 気持ちを投稿する</button>
   </div>
 </div>
 
@@ -726,7 +744,7 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260609-0901"></script>
+<script src="data.js?v=20260608-1831"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
@@ -734,16 +752,16 @@
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
     fbSaveIcon, fbGetAllIcons,
     fbGetFeatured, fbSaveFeatured,
-    fbPostStamp, fbGetStamps, fbGetAllStampsLatest
-  } from './firebase.js?v=20260609-0901';
+    fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest
+  } from './firebase.js?v=20260608-1833';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
     fbSavePhoto, fbGetPhoto, fbGetAllPhotos,
     fbSaveIcon, fbGetAllIcons,
     fbGetFeatured, fbSaveFeatured,
-    fbPostStamp, fbGetStamps, fbGetAllStampsLatest };
+    fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest };
 </script>
-<script src="main_core.js?v=20260609-0901"></script>
+<script src="main_core.js?v=20260608-1833"></script>
 </body>
 </html>
