@@ -3115,11 +3115,13 @@ async function renderClassroomBoard(){
       ? `<div class="stamp-bubble">💬 ${latestStamp.fromName}さん「${latestStamp.stamp}」</div>`
       : '';
 
-    // 自分以外にはスタンプボタン表示
+    // 自分のカードは「気持ちを投稿」、他人のカードは「スタンプを送る」
     const isMe = currentUser && currentUser.id === c.id;
-    const stampBtn = !isMe
-      ? `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;" onclick="openStampPopup('${c.id}','${c.name}')">💬 スタンプを送る</button>`
-      : `<div style="font-family:'Press Start 2P',monospace;font-size:.34rem;color:var(--teal);margin-top:.5rem;">← あなた</div>`;
+    const stampBtn = currentUser
+      ? isMe
+        ? `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;border-color:var(--teal);color:var(--teal);" onclick="openStampPopup('${c.id}','${c.name}')">💬 気持ちを投稿する</button>`
+        : `<button class="pbtn btn-outline" style="font-size:.38rem;padding:.3rem .6rem;margin-top:.5rem;" onclick="openStampPopup('${c.id}','${c.name}')">💬 スタンプを送る</button>`
+      : '';
 
     return `<div class="classroom-card">
       <div style="flex-shrink:0;">${avatar}</div>
@@ -3145,8 +3147,19 @@ function openStampPopup(charId, charName){
     return;
   }
   _stampTargetId = charId;
-  document.getElementById('stampTargetName').textContent = charName + 'さんへ';
+  const isMe = currentUser.id === charId;
+  document.getElementById('stampTargetName').textContent = isMe
+    ? '今の気持ちを投稿しよう'
+    : charName + 'さんへ送る';
   document.getElementById('stampPopup').classList.add('open');
+}
+
+function openStampPopupSelf(){
+  if(!currentUser){
+    showToast('❌ ログインしてからスタンプを押してね');
+    return;
+  }
+  openStampPopup(currentUser.id, currentUser.name);
 }
 
 function closeStampPopup(e){

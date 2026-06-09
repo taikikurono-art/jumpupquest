@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260608-1951">
+<link rel="stylesheet" href="style.css?v=20260608-1832">
 <style>
 .classroom-tab{
   flex:1;font-family:"Press Start 2P",monospace;font-size:.5rem;
@@ -385,6 +385,13 @@
       </div>
     </div>
 
+    <!-- スタンプ -->
+    <div class="pp">
+      <div class="sec-ttl">💬 JUMP CLASSROOMに気持ちを投稿</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;">今の気持ちをスタンプで伝えよう！クラスメートに届きます。</div>
+      <button class="pbtn btn-outline" onclick="openStampPopupSelf()" style="width:100%;font-size:.48rem;border-color:var(--teal);color:var(--teal);">💬 スタンプを押す</button>
+    </div>
+
   </div>
 </div>
 
@@ -656,18 +663,24 @@
 <!-- スタンプ選択ポップアップ -->
 <div class="popup-overlay" id="stampPopup" onclick="closeStampPopup(event)">
   <div class="popup-box" style="max-width:360px;" onclick="event.stopPropagation()">
-    <div style="font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--teal);margin-bottom:1rem;text-align:center;">スタンプを送る</div>
-    <div id="stampTargetName" style="font-weight:900;font-size:1.1rem;text-align:center;margin-bottom:1rem;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--teal);margin-bottom:.5rem;text-align:center;">気持ちを伝えよう</div>
+    <div id="stampTargetName" style="font-weight:900;font-size:1rem;text-align:center;margin-bottom:.8rem;color:var(--text2);"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-bottom:.5rem;max-height:60vh;overflow-y:auto;">
       <button class="stamp-btn" onclick="sendStamp('やったー！')">🎉<br><span>やったー！</span></button>
-      <button class="stamp-btn" onclick="sendStamp('すごい！')">✨<br><span>すごい！</span></button>
-      <button class="stamp-btn" onclick="sendStamp('かっこいい！')">😎<br><span>かっこいい！</span></button>
       <button class="stamp-btn" onclick="sendStamp('もっとがんばる！')">💪<br><span>もっとがんばる！</span></button>
       <button class="stamp-btn" onclick="sendStamp('むずかしかった！')">😅<br><span>むずかしかった！</span></button>
       <button class="stamp-btn" onclick="sendStamp('たのしかった！')">😄<br><span>たのしかった！</span></button>
-      <button class="stamp-btn" onclick="sendStamp('ありがとう！')">🙏<br><span>ありがとう！</span></button>
-      <button class="stamp-btn" onclick="sendStamp('みました！')">👀<br><span>みました！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('きょうも楽しかった！')">🌟<br><span>きょうも<br>楽しかった！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('練習してくる！')">😤<br><span>練習してくる！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('すごい！')">✨<br><span>すごい！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('かっこいい！')">😎<br><span>かっこいい！</span></button>
       <button class="stamp-btn" onclick="sendStamp('おうえんしてるよ！')">📣<br><span>おうえんしてるよ！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('まけないぞ！')">🔥<br><span>まけないぞ！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('いっしょだ！')">🙌<br><span>いっしょだ！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('えー！びっくり！')">😲<br><span>えー！びっくり！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('みました！')">👀<br><span>みました！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('ありがとう！')">🙏<br><span>ありがとう！</span></button>
+      <button class="stamp-btn" onclick="sendStamp('またね！おつかれ！')">👋<br><span>またね！おつかれ！</span></button>
     </div>
     <button class="back-link" onclick="closeStampPopup()">キャンセル</button>
   </div>
@@ -713,7 +726,7 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260608-1951"></script>
+<script src="data.js?v=20260608-1831"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
@@ -722,7 +735,7 @@
     fbSaveIcon, fbGetAllIcons,
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbGetStamps, fbGetAllStampsLatest
-  } from './firebase.js?v=20260608-1951';
+  } from './firebase.js?v=20260608-1832';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
@@ -731,6 +744,6 @@
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbGetStamps, fbGetAllStampsLatest };
 </script>
-<script src="main_core.js?v=20260608-1951"></script>
+<script src="main_core.js?v=20260608-1831"></script>
 </body>
 </html>
