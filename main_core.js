@@ -248,6 +248,62 @@ window.addEventListener('load',()=>{
 // ======== STARS ========
 (()=>{const c=document.getElementById('stars');for(let i=0;i<90;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*5)+'s');s.style.setProperty('--delay',(Math.random()*5)+'s');c.appendChild(s);}})();
 
+// ======== TITLE SEASON DECORATION（現在の月から春夏秋冬を自動判定してタイトル背景を演出） ========
+(()=>{
+  const titleEl=document.getElementById('pg-title');
+  const decorEl=document.getElementById('titleSeasonDecor');
+  if(!titleEl||!decorEl)return;
+
+  const month=new Date().getMonth()+1; // 1〜12
+  let season='spring';
+  if(month>=3&&month<=5)season='spring';
+  else if(month>=6&&month<=8)season='summer';
+  else if(month>=9&&month<=11)season='autumn';
+  else season='winter';
+  titleEl.dataset.season=season;
+
+  const SEASON_DECOR={
+    spring:{fall:['🌸','🌸','🌸','🌷'],fallCount:20},
+    summer:{drift:['☁️','☁️'],driftCount:6,sun:true,fall:['✨'],fallCount:10},
+    autumn:{fall:['🍁','🍂','🍂'],fallCount:18},
+    winter:{fall:['❄️','❆','❄️'],fallCount:24},
+  };
+  const cfg=SEASON_DECOR[season];
+
+  if(cfg.sun){
+    const sun=document.createElement('div');
+    sun.className='decor-sun';
+    decorEl.appendChild(sun);
+  }
+
+  if(cfg.drift){
+    for(let i=0;i<cfg.driftCount;i++){
+      const el=document.createElement('div');
+      el.className='decor-drift';
+      el.textContent=cfg.drift[Math.floor(Math.random()*cfg.drift.length)];
+      el.style.top=(4+Math.random()*38)+'%';
+      el.style.fontSize=(1.8+Math.random()*1.8)+'rem';
+      el.style.animationDuration=(20+Math.random()*16)+'s';
+      el.style.animationDelay=(Math.random()*14)+'s';
+      decorEl.appendChild(el);
+    }
+  }
+
+  if(cfg.fall){
+    for(let i=0;i<cfg.fallCount;i++){
+      const el=document.createElement('div');
+      el.className='decor-fall';
+      el.textContent=cfg.fall[Math.floor(Math.random()*cfg.fall.length)];
+      el.style.left=Math.random()*100+'%';
+      el.style.setProperty('--drift',(Math.random()*80-40)+'px');
+      el.style.fontSize=(0.9+Math.random()*0.9)+'rem';
+      el.style.animationDuration=(6+Math.random()*7)+'s';
+      el.style.animationDelay=(Math.random()*9)+'s';
+      decorEl.appendChild(el);
+    }
+  }
+})();
+
 // ======== NAVIGATION ========
 function goPage(id){
   if(id==='pg-title' && !currentUser) resetClassroomTheme();

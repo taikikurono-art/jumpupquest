@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
 :root{
-  /* カラーパレット（役割で整理） */
-  --bg:#080818;--bg2:#0d0d22;--bg3:#13132e;--panel:#0f0f28;--border:#252550;
-  --gold:#ffd700;--gold2:#ffaa00;--gold-shadow:#6b3500;
-  --teal:#00e5ff;--teal-dim:#004055;
-  --pink:#ff4081;--green:#39ff14;
-  --text:#e8e8ff;--text2:#6666aa;--text3:#9999cc;
+  /* カラーパレット（あたたかいパステル系・JUMP UPブランドカラーに寄せて刷新） */
+  --bg:#fff8ef;--bg2:#fdedd8;--bg3:#f7deb9;--panel:#fffcf6;--border:#dcb87f;
+  --gold:#ffc736;--gold2:#ff9f1c;--gold-shadow:#8a4b12;
+  --teal:#45c2bd;--teal-dim:#0e6f68;
+  --pink:#ff6f91;--green:#6fcf52;
+  --text:#4a3728;--text2:#8a6b50;--text3:#b8987a;
   /* 共通サイズ */
   --btn-h:48px;--tap-min:44px;
   --radius:0px; /* ピクセルアート感のため角丸なし */
@@ -17,13 +17,13 @@ body{background:var(--bg);color:var(--text);font-family:"Zen Maru Gothic",sans-s
 body::before{
   content:"";position:fixed;inset:0;
   background-image:
-    linear-gradient(rgba(0,229,255,.018) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,255,.018) 1px,transparent 1px);
+    linear-gradient(rgba(242,102,26,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(242,102,26,.05) 1px,transparent 1px);
   background-size:32px 32px;pointer-events:none;z-index:0;
 }
 #stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
-.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.3;animation:twinkle var(--d,3s) infinite var(--delay,0s);}
-@keyframes twinkle{0%,100%{opacity:.1;}50%{opacity:.9;}}
+.star{position:absolute;width:3px;height:3px;background:var(--gold2);border-radius:50%;opacity:.35;animation:twinkle var(--d,3s) infinite var(--delay,0s);}
+@keyframes twinkle{0%,100%{opacity:.12;}50%{opacity:.8;}}
 
 /* ===== SCREENS ===== */
 .page{display:none;position:fixed;inset:0;z-index:1;overflow-y:auto;background:var(--bg);}
@@ -97,8 +97,36 @@ body::before{
 .pinput::placeholder{color:var(--text2);}
 
 /* ===== TITLE SCREEN ===== */
-#pg-title{flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem 1rem;}
+#pg-title{flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem 1rem;position:relative;overflow:hidden;background:var(--bg);transition:background 1s ease;}
 #pg-title.active{display:flex;}
+
+/* 季節ごとのタイトル背景（現在の月から自動判定） */
+#pg-title[data-season="spring"]{background:linear-gradient(180deg,#fff2f6 0%,#ffe1ec 45%,#ffcadd 100%);}
+#pg-title[data-season="summer"]{background:linear-gradient(180deg,#eafbff 0%,#c9f1ff 45%,#9de3fb 100%);}
+#pg-title[data-season="autumn"]{background:linear-gradient(180deg,#fff6e8 0%,#ffe2b3 45%,#ffc684 100%);}
+#pg-title[data-season="winter"]{background:linear-gradient(180deg,#f4faff 0%,#e2f1ff 45%,#cee7ff 100%);}
+
+/* 季節の装飾レイヤー（さくら/雲/落ち葉/雪をJSで生成） */
+.title-season-decor{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.title-content{position:relative;z-index:1;}
+
+.decor-fall{position:absolute;top:-8%;font-size:1.4rem;opacity:.9;line-height:1;animation:decorFall linear infinite;will-change:transform;}
+@keyframes decorFall{
+  0%{transform:translate(0,0) rotate(0deg);}
+  100%{transform:translate(var(--drift,24px),118vh) rotate(340deg);}
+}
+.decor-drift{position:absolute;line-height:1;opacity:.55;animation:decorDrift linear infinite;will-change:transform;}
+@keyframes decorDrift{
+  0%{transform:translateX(-15vw);}
+  100%{transform:translateX(115vw);}
+}
+.decor-sun{
+  position:absolute;top:6%;right:8%;width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,214,102,.9) 0%,rgba(255,183,3,.35) 55%,transparent 75%);
+  filter:blur(2px);pointer-events:none;z-index:0;
+  animation:sunPulse 4s ease-in-out infinite alternate;
+}
+@keyframes sunPulse{from{transform:scale(1);opacity:.85;}to{transform:scale(1.08);opacity:1;}}
 
 .title-logo{
   font-family:"Press Start 2P",monospace;
@@ -235,7 +263,7 @@ body::before{
 .room-char-shadow{position:absolute;width:50px;height:10px;background:radial-gradient(ellipse,rgba(0,229,255,.25) 0%,transparent 70%);border-radius:50%;pointer-events:none;}
 .msg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center;padding:1rem;}
 .msg-overlay.open{display:flex;}
-.msg-box{background:#0a0a1a;border:3px solid var(--gold);padding:1.2rem 1.5rem;width:100%;max-width:600px;position:relative;}
+.msg-box{background:var(--panel);border:3px solid var(--gold);padding:1.2rem 1.5rem;width:100%;max-width:600px;position:relative;}
 .msg-sender{font-family:"Press Start 2P",monospace;font-size:1rem;color:var(--gold);margin-bottom:.6rem;}
 .msg-body{font-size:1.1rem;line-height:1.8;color:var(--text);min-height:3rem;}
 .msg-close{font-family:"Press Start 2P",monospace;font-size:.75rem;padding:.5rem 1rem;background:var(--gold);border:none;color:#1a0800;cursor:pointer;margin-top:1rem;float:right;}
