@@ -262,6 +262,16 @@ window.addEventListener('load',()=>{
   else season='winter';
   titleEl.dataset.season=season;
 
+  // 季節ごとの専用イラスト背景（あれば絵文字装飾/ロゴ画像を隠して差し替え。
+  // 新しい季節のイラストができたら、ここに "season: 'ファイル名'" を追加するだけでOK）
+  const SEASON_ART={
+    autumn:'title_bg_autumn.webp',
+  };
+  if(SEASON_ART[season]){
+    titleEl.dataset.seasonArt='1';
+    return; // 専用イラストがある季節は絵文字の装飾を生成しない
+  }
+
   const SEASON_DECOR={
     spring:{fall:['🌸','🌸','🌸','🌷'],fallCount:20},
     summer:{drift:['☁️','☁️'],driftCount:6,sun:true,fall:['✨'],fallCount:10},

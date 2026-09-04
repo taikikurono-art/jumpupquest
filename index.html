@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260904-0922">
+<link rel="stylesheet" href="style.css?v=20260609-0914">
 <style>
 .classroom-tab{
   flex:1;font-family:"Press Start 2P",monospace;font-size:.5rem;
@@ -75,8 +75,10 @@
 <!-- ==================== TITLE ==================== -->
 <div class="page active fadein" id="pg-title">
   <div class="title-season-decor" id="titleSeasonDecor"></div>
+  <button class="menu-item menu-admin-btn" onclick="goPage('pg-admin')" title="管理者パネル" aria-label="管理者パネル">🔐</button>
   <div class="title-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:1.2rem 1rem 2rem;text-align:center;overflow-y:auto;">
     <img
+      id="titleLogoImg"
       src="logo.png"
       alt="JUMPUP QUEST SKILL ADVENTURE"
       style="
@@ -106,29 +108,17 @@
       >
     </div>
     <div class="menu-box">
-      <button class="menu-item new-game" onclick="goPage('pg-newgame')">
-        <span class="menu-arrow">▶</span>あたらしく始める
-      </button>
-      <button class="menu-item continue" onclick="goPage('pg-login')">
-        <span class="menu-arrow">▶</span>つづきから
-      </button>
-      <div class="menu-sep"></div>
-      <button class="menu-item view-all" onclick="goPage('pg-explorer')">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>冒険者一覧を見る
-      </button>
-      <button class="menu-item view-all" onclick="goPage('pg-ranking')" style="border-color:var(--gold);color:var(--gold);">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>🏆 JUMPUPランキング
-      </button>
-      <button class="menu-item view-all" onclick="goPage('pg-matrix')" style="border-color:var(--border);color:var(--text2);">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>技マトリックスを見る
-      </button>
-      <div class="menu-sep"></div>
-      <a href="guide.html" target="_blank" class="menu-item view-all" style="border-color:rgba(0,229,255,.3);color:var(--teal);text-decoration:none;display:flex;align-items:center;">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>📖 保護者ガイドブック
-      </a>
-      <button class="menu-item view-all" onclick="goPage('pg-admin')" style="border-color:var(--border);color:var(--text2);">
-        <span class="menu-arrow" style="font-size:.7rem;">▶</span>🔐 管理者パネル
-      </button>
+      <button class="menu-item menu-primary" onclick="goPage('pg-newgame')">▶ あたらしく始める</button>
+      <button class="menu-item menu-secondary" onclick="goPage('pg-login')">▶ つづきから</button>
+      <div class="menu-links">
+        <a href="javascript:void(0)" class="menu-item menu-link" onclick="goPage('pg-explorer')">冒険者一覧</a>
+        <span class="menu-link-sep">・</span>
+        <a href="javascript:void(0)" class="menu-item menu-link" onclick="goPage('pg-ranking')">🏆 ランキング</a>
+        <span class="menu-link-sep">・</span>
+        <a href="javascript:void(0)" class="menu-item menu-link" onclick="goPage('pg-matrix')">技マトリックス</a>
+        <span class="menu-link-sep">・</span>
+        <a href="guide.html" target="_blank" class="menu-item menu-link">📖 保護者ガイド</a>
+      </div>
     </div>
     <div id="gasStatusTitle" style="display:none;"></div>
   </div>
@@ -745,7 +735,7 @@
 <div class="toast" id="toast"></div>
 <div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260904-0922"></script>
+<script src="data.js?v=20260609-0914"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
@@ -754,7 +744,7 @@
     fbSaveIcon, fbGetAllIcons,
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest
-  } from './firebase.js?v=20260904-0922';
+  } from './firebase.js?v=20260609-0914';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
@@ -763,6 +753,6 @@
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest };
 </script>
-<script src="main_core.js?v=20260904-0922"></script>
+<script src="main_core.js?v=20260609-0914"></script>
 </body>
 </html>
