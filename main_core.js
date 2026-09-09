@@ -409,9 +409,14 @@ async function createNewChar(){
 
   if(chars.find(c=>c.name===name)){err.textContent='そのなまえはもう使われているよ！';err.style.display='block';return;}
   err.style.display='none';
-  // IDをタイムスタンプベースで生成（端末間の重複を防ぐ）
-  const ts = Date.now().toString(36).toUpperCase().slice(-4);
-  const id='JU-'+ts;
+  // IDをタイムスタンプベースで生成（端末間の重複を防ぐ）＋念のためランダム要素も追加
+  function genNewCharId(){
+    const ts = Date.now().toString(36).toUpperCase().slice(-4);
+    const rnd = Math.floor(Math.random()*36).toString(36).toUpperCase();
+    return 'JU-'+ts+rnd;
+  }
+  let id=genNewCharId();
+  while(chars.some(c=>c.id===id)) id=genNewCharId();
   const joinYear=parseInt(document.getElementById('newJoinYear').value)||new Date().getFullYear();
   const joinMonth=parseInt(document.getElementById('newJoinMonth').value)||new Date().getMonth()+1;
   const joinDate=`${joinYear}-${String(joinMonth).padStart(2,'0')}-01`;
@@ -424,8 +429,21 @@ async function createNewChar(){
     classroom:document.getElementById('newClass').value,
     stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},
     skills:[],skillRecords:{},messages:[]};
+  showToast('💾 登録中...');
+  // 【修正】上書きの危険があるsaveCharではなく、ID重複を検知して拒否する安全なaddCharを使う
+  let res=await addCharToGAS(newChar);
+  if(res&&res.error){
+    // 万一IDが衝突していた場合はIDを作り直して1回だけ再試行
+    newChar.id=genNewCharId();
+    while(chars.some(c=>c.id===newChar.id)) newChar.id=genNewCharId();
+    res=await addCharToGAS(newChar);
+  }
+  if(res&&res.error){
+    err.textContent='登録できませんでした。もう一度お試しください';
+    err.style.display='block';
+    return;
+  }
   chars.push(newChar);
-  await saveCharsToGAS(newChar);
   currentUser=newChar;
   // 演出
   showToast('✨ ようこそ、'+name+'！');
