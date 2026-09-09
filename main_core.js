@@ -1751,16 +1751,59 @@ function updateNewCharIcon(){
   if(!icon)return;
   icon.textContent=name?name[0]:'？';
 }
+// 【修正】新規登録専用のGAS保存関数。saveCharsToGAS（既存キャラの更新用）とは別に用意し、
+// バックエンドの addChar アクション（ID重複時はエラーを返し、既存行を上書きしない）を使う。
+// これにより、IDが偶然重複しても既存の子のデータが消される（上書きされる）事故を防ぐ。
+async function addCharToGAS(char){
+  if(!gasReady||!navigator.onLine){
+    await addPendingToIDB({action:'addChar',char});
+    showToast('📦 オフライン保存しました（復帰後に同期）');
+    return {success:true,queued:true};
+  }
+  try{
+    const res=await gasPost({action:'addChar',char});
+    if(res&&!res.error){ _fb.saveChar(char).catch(()=>{}); }
+    return res||{error:'不明なエラー'};
+  }catch(e){
+    await addPendingToIDB({action:'addChar',char});
+    return {success:true,queued:true};
+  }
+}
 async function addChar(){
   const name=document.getElementById('nName').value.trim();if(!name){showToast('❌ 名前を入力してね');return;}
   const classroom=document.getElementById('nClass').value;
   const email=(document.getElementById('nEmail')?.value||'').trim();
   const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','こころね学園（火）':'CK'}[classroom]||'JU';
-  const existCount=chars.filter(c=>c.classroom===classroom).length+1;
-  const defaultId=`${classPrefix}-${existCount.toString().padStart(3,'0')}`;
-  const id=document.getElementById('nId').value.trim()||defaultId;
+  const manualId=document.getElementById('nId').value.trim();
+  // 【修正】ID自動採番の前に最新の名簿をGASから取得しておく（他端末での追加・削除による
+  // カウントのズレ→ID重複を防ぐため。取得に失敗しても手元のchars配列で続行する）
+  if(gasReady&&navigator.onLine){
+    try{
+      const freshRes=await fetch(GAS_URL+'?action=getAll&t='+Date.now());
+      const freshData=await freshRes.json();
+      if(freshData&&freshData.chars) chars=freshData.chars;
+    }catch(e){}
+  }
+  let id=manualId;
+  if(!id){
+    let n=chars.filter(c=>c.classroom===classroom).length+1;
+    id=`${classPrefix}-${n.toString().padStart(3,'0')}`;
+    // 欠番等で自動採番したIDが既存と衝突する場合は空くまで採番し直す
+    while(chars.some(c=>c.id===id)){ n++; id=`${classPrefix}-${n.toString().padStart(3,'0')}`; }
+  } else if(chars.some(c=>c.id===id)){
+    showToast('❌ そのIDはすでに使われています：'+id);
+    return;
+  }
   const newChar={id,name,sprite:'🐕',job:'rookie',joinDate:new Date().toISOString().slice(0,10),classroom,email,stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},skills:[],skillRecords:{},messages:[]};
-  chars.push(newChar);await saveCharsToGAS(newChar);
+  showToast('💾 登録中...');
+  const res=await addCharToGAS(newChar);
+  if(res&&res.error){
+    // 【修正】サーバー側で最終的にID重複が検出された場合は、既存データを守るため
+    // 登録失敗として扱い、手元のchars配列にも追加しない（以前は無条件でpushしていた）
+    showToast('❌ 登録できませんでした（'+res.error+'）。もう一度お試しください');
+    return;
+  }
+  chars.push(newChar);
   postAdminLog('char_add',{charName:name,charId:id,classroom});
   loadAdminSel();loadMsgTarget();
   document.getElementById('nName').value='';document.getElementById('nId').value='';
