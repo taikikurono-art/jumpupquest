@@ -374,7 +374,7 @@ function loginSearch(){
   if(found.length===0){res.innerHTML='<div style="font-family:\'Press Start 2P\';font-size:.4rem;color:var(--text2);margin-top:.5rem;">みつかりません…</div>';return;}
   res.innerHTML=found.map(c=>{
     const j=JOBS[c.job]||JOBS.rookie;
-    const imgSrc=SPRITES[c.job]?`<img src="${SPRITES[c.job]}" class="login-char-img" alt="">`:`<span style="font-size:2rem;">${c.sprite}</span>`;
+    const imgSrc=getIconDisplay(c,44,false,false);
     return `<button class="login-char-btn" onclick="loginAs('${c.id}')">
       ${imgSrc}
       <div class="login-char-info">
@@ -2158,9 +2158,7 @@ function renderDashboard(){
   const rowsHTML=rows.map(({c,masterCnt,totalPt,isStuck,isTraining,stuckSkills,j})=>{
     const statusColor=isStuck?'var(--pink)':isTraining?'#8888ff':'var(--green)';
     const statusLabel=isStuck?'🌱 フォロー推奨':isTraining?'🌱 修行中':'✅ 順調';
-    const sprite=SPRITES[c.job]
-      ?`<img src="${SPRITES[c.job]}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;">`
-      :`<span style="font-size:1.2rem;">${j.emoji}</span>`;
+    const sprite=getIconDisplay(c,32,false,false);
 
     // 停滞検知：介入提案を展開表示
     let interventionHTML='';
@@ -2244,27 +2242,28 @@ function isJobFullyMastered(c, jobKey){
   if(jobSkills.length===0) return false;
   return jobSkills.every(sk=>recs[sk]&&recs[sk].mastered);
 }
-function getIconDisplay(c, size=60, border=true){
+function getIconDisplay(c, size=60, border=true, center=true){
   const j=JOBS[c.job]||JOBS.rookie;
   const setting=getIconSetting(c.id);
   const photo=_photosCache[c.id]||null;
   const borderStyle=border?`border:2px solid ${j.color};`:'';
+  const marginStyle=center?'margin:0 auto .5rem;':'margin:0;';
 
   if(setting.type==='photo'&&photo){
-    return `<img src="${photo}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;${borderStyle}display:block;margin:0 auto .5rem;">`;
+    return `<img src="${photo}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;${borderStyle}display:block;${marginStyle}">`;
   } else if(setting.type==='emoji'&&setting.emoji){
-    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;margin:0 auto .5rem;">${setting.emoji}</div>`;
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;${marginStyle}">${setting.emoji}</div>`;
   } else {
     // sprite（デフォルトまたは指定）
     const job=setting.job||c.job;
     if(SPRITES[job]){
       const isMastered=isJobFullyMastered(c,job);
-      return `<div style="position:relative;width:${size}px;height:${size}px;margin:0 auto .5rem;">
+      return `<div style="position:relative;width:${size}px;height:${size}px;${marginStyle}">
         <img src="${SPRITES[job]}" style="width:${size}px;height:${size}px;object-fit:contain;image-rendering:pixelated;display:block;">
         ${isMastered?`<span style="position:absolute;top:-6px;right:-6px;font-size:${size*0.3}px;filter:drop-shadow(0 0 3px var(--gold));">🏆</span>`:''}
       </div>`;
     } else {
-      return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;font-weight:900;color:#fff;margin:0 auto .5rem;">${c.name.charAt(0)}</div>`;
+      return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,${j.color},${j.color}88);${borderStyle}display:flex;align-items:center;justify-content:center;font-size:${size*0.45}px;font-weight:900;color:#fff;${marginStyle}">${c.name.charAt(0)}</div>`;
     }
   }
 }
@@ -2592,9 +2591,18 @@ function renderParentPage(c){
   // ヘッダー
   const spriteEl=document.getElementById('parentSprite');
   const emojiEl=document.getElementById('parentSpriteEmoji');
-  const spriteImg=SPRITES[c.job];
-  if(spriteImg){spriteEl.src=spriteImg;spriteEl.style.display='block';emojiEl.style.display='none';}
-  else{emojiEl.textContent=c.sprite||'🐕';emojiEl.style.display='block';spriteEl.style.display='none';}
+  const iconSetting=getIconSetting(c.id);
+  const photo=_photosCache[c.id]||null;
+  if(iconSetting.type==='photo'&&photo){
+    spriteEl.src=photo;spriteEl.style.objectFit='cover';spriteEl.style.borderRadius='50%';spriteEl.style.imageRendering='auto';spriteEl.style.display='block';emojiEl.style.display='none';
+  } else if(iconSetting.type==='emoji'&&iconSetting.emoji){
+    emojiEl.textContent=iconSetting.emoji;emojiEl.style.display='block';spriteEl.style.display='none';
+  } else {
+    const job=iconSetting.job||c.job;
+    const spriteImg=SPRITES[job];
+    if(spriteImg){spriteEl.src=spriteImg;spriteEl.style.objectFit='contain';spriteEl.style.borderRadius='0';spriteEl.style.imageRendering='pixelated';spriteEl.style.display='block';emojiEl.style.display='none';}
+    else{emojiEl.textContent=c.sprite||'🐕';emojiEl.style.display='block';spriteEl.style.display='none';}
+  }
   document.getElementById('parentName').textContent=c.name+'さん';
   document.getElementById('parentJob').textContent=j.name+'（'+j.genre+'）';
   document.getElementById('parentJob').style.color=j.color;
