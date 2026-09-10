@@ -458,6 +458,14 @@ function enterStatus(c){
 }
 function goStatus(){ if(currentUser) goPage('pg-status'); }
 
+// ======== 合計ポイント（技の難易度ボーナス込み）========
+// pts本体・マスター判定ロジックは変更しない。マスター済みの技にだけ
+// skillDiffBonus()（data.js／SKILL_MAPのy値から算出）を上乗せして合計する。
+function calcCharTotalPt(recs){
+  return Object.entries(recs||{}).reduce((s,[name,r])=>
+    s+(r.pts||0)+(r.mastered?skillDiffBonus(name):0),0);
+}
+
 // ======== MAIL BOX ========
 // ======== 次にやること ========
 function getSkillStage(rec){
@@ -483,7 +491,7 @@ function renderNextAction(c){
   if(!el)return;
   const recs=c.skillRecords||{};
   const jobOrder=['rookie','challenger','ninja','airrider','coremaster','performer','waterflow','striker','tracerunner','airmaster','illusionist'];
-  const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt=calcCharTotalPt(recs);
 
   // 候補リスト：① 挑戦中(pt>0,未マスター) ② 修行中 ③ 未挑戦
   const inProgress=[];
@@ -725,7 +733,7 @@ function renderStatus(c){
   b.style.cssText=`background:${j.color}22;border-color:${j.color};color:${j.color};font-family:'Press Start 2P',monospace;font-size:.38rem;padding:.3rem .7rem;border:2px solid;display:inline-block;`;
 
   const recs=c.skillRecords||{};
-  const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt=calcCharTotalPt(recs);
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
   document.getElementById('stMasterCnt').textContent=masterCnt+'技';
   document.getElementById('stTotalPt').textContent=totalPt+'pt';
@@ -868,7 +876,7 @@ function renderExplorerGrid() {
     const j=JOBS[c.job]||JOBS.rookie;
     const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
-    const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+    const totalPt=calcCharTotalPt(recs);
     const imgEl=getIconDisplay(c,60,true);
     return `<div class="exp-card" onclick="openExplorerSkillPopup('${c.id}')">
       ${imgEl}
@@ -885,7 +893,7 @@ function openExplorerSkillPopup(charId){
   const j=JOBS[c.job]||JOBS.rookie;
   const recs=c.skillRecords||{};
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
-  const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt=calcCharTotalPt(recs);
 
   // アバター（アイコン設定に従う）
   const spriteEl=document.getElementById('espSprite');
@@ -1573,7 +1581,7 @@ function loadAdminChar(){
   document.getElementById('aJob').textContent=j.name+'（'+j.genre+'）';document.getElementById('aJob').style.color=j.color;
   
   const recs=getSkillRecords(c);
-  const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt=calcCharTotalPt(recs);
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
   document.getElementById('aTotalPt').textContent=`総${totalPt}pt　🏆マスター${masterCnt}技`;
   document.getElementById('adminSkillList').innerHTML='';
@@ -1865,7 +1873,7 @@ function renderHQDashboard(){
     const masters=allRecs.filter(r=>r.mastered).length;
     const stuck=members.filter(c=>analyzeStuck(c).isStuck).length;
     const avgPt=members.length>0
-      ? Math.round(allRecs.reduce((s,r)=>s+(r.pts||0),0)/members.length)
+      ? Math.round(members.reduce((s,c)=>s+calcCharTotalPt(c.skillRecords||{}),0)/members.length)
       : 0;
     return{cls,members:members.length,masters,stuck,avgPt};
   });
@@ -2025,7 +2033,7 @@ function renderDashboard(){
   const rows=adminChars.map(c=>{
     const recs=c.skillRecords||{};
     const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
-    const totalPt=Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+    const totalPt=calcCharTotalPt(recs);
     const {isStuck,isTraining,stuckSkills}=analyzeStuck(c);
     const j=JOBS[c.job]||JOBS.rookie;
     return{c,masterCnt,totalPt,isStuck,isTraining,stuckSkills,j};
@@ -2584,7 +2592,7 @@ function generateMonthlyReport(c, targetMonth){
   const mastered = Object.entries(recs).filter(([,r])=>r.mastered).map(([sk])=>sk);
   const challenged = Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
   const training = Object.entries(recs).filter(([,r])=>r.training&&!r.mastered);
-  const totalPt = Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt = calcCharTotalPt(recs);
 
   // 先生コメント（最新1件）
   const latestMsg = (c.messages||[]).slice(-1)[0];
@@ -2685,7 +2693,7 @@ function generateLINEReport(c){
   const mastered = Object.entries(recs).filter(([,r])=>r.mastered).map(([sk])=>sk);
   const challenged = Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
   const training = Object.entries(recs).filter(([,r])=>r.training&&!r.mastered);
-  const totalPt = Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt = calcCharTotalPt(recs);
   const j = JOBS[c.job]||JOBS.rookie;
   const titleData = calcTitle(c);
 
@@ -2754,7 +2762,7 @@ function computeGlobalRanking(){
   const active = chars.filter(c=>(c.status||'active')==='active');
   const rows = active.map(c=>({
     id:c.id, name:c.name, classroom:c.classroom,
-    totalPt: Object.values(c.skillRecords||{}).reduce((s,r)=>s+(r.pts||0),0),
+    totalPt: calcCharTotalPt(c.skillRecords||{}),
   }));
   rows.sort((a,b)=> b.totalPt-a.totalPt || a.name.localeCompare(b.name,'ja'));
   rows.forEach((r,i)=>{ r.rank=i+1; });
@@ -2796,7 +2804,7 @@ function generateQuestLogPageHTML(c, ranking){
   const recs = c.skillRecords || {};
   const masteredEntries = Object.entries(recs).filter(([,r])=>r.mastered);
   const challenged = Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
-  const totalPt = Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const totalPt = calcCharTotalPt(recs);
   const j = JOBS[c.job]||JOBS.rookie;
   const titleData = calcTitle(c);
 

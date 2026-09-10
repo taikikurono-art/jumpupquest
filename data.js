@@ -162,6 +162,15 @@ const SKILL_MAP=[
 const SKILL_BY_JOB={};
 SKILL_MAP.forEach(([n,j])=>{if(!SKILL_BY_JOB[j])SKILL_BY_JOB[j]=[];SKILL_BY_JOB[j].push(n);});
 
+// ======== 技の難易度ボーナス（マスター済みの技のみ、ランキング表示用の合計に加算） ========
+// 合否判定・pts本体のロジックは変更しない。技ごとのSKILL_MAP難易度y（易100〜難0）から
+// ボーナス = round((100-y)/15) を都度計算する（最大 約+6.7pt、易しい技は+0）。
+const SKILL_Y_MAP=new Map(SKILL_MAP.map(([n,,,y])=>[n,y]));
+function skillDiffBonus(name){
+  const y=SKILL_Y_MAP.get(name);
+  return y===undefined?0:Math.round((100-y)/15);
+}
+
 
 // ======== 技メタ情報（動画導線強化） ========
 // [見るポイント, よくある失敗例, 次に見るべき基礎技(任意)]
