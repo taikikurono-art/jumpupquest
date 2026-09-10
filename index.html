@@ -13,7 +13,7 @@
 <meta name="fb-messaging-sender-id" content="830728135743">
 <meta name="fb-app-id"              content="1:830728135743:web:c79422603586f97092048a">
 <title>JUMPUP クエスト</title>
-<link rel="stylesheet" href="style.css?v=20260909-1448">
+<link rel="stylesheet" href="style.css?v=20260904-1020">
 <style>
 .classroom-tab{
   flex:1;font-family:"Press Start 2P",monospace;font-size:.5rem;
@@ -138,7 +138,6 @@
       <input class="pinput" id="newName" type="text" placeholder="例：やまだたろう" style="width:100%;margin-bottom:.8rem;" maxlength="20">
       <div class="form-lbl">教室</div>
       <select class="fselect" id="newClass" style="margin-bottom:.8rem;">
-        <option>ルネック勝川（月）</option>
         <option>スタジオMy（木）</option>
         <option>ココロネ学園（火）</option>
       </select>
@@ -522,7 +521,6 @@
               <span id="aSprite" style="font-size:1.8rem;"></span>
               <div><div style="font-weight:900;" id="aName"></div><div style="font-family:'Press Start 2P';font-size:.38rem;margin-top:.2rem;" id="aJob"></div></div>
               <div style="margin-left:auto;text-align:right;">
-                <div style="font-family:'Press Start 2P';font-size:.45rem;color:var(--gold);" id="aLv"></div>
                 <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
               </div>
             </div>
@@ -568,7 +566,7 @@
           <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">➕ 新しい冒険者を登録</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
             <div><label class="form-lbl">名前</label><input class="pinput" id="nName" placeholder="名前" style="width:100%;"></div>
-            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>ルネック勝川（月）</option><option>スタジオMy（木）</option><option>こころね学園（火）</option></select></div>
+            <div><label class="form-lbl">教室</label><select class="fselect" id="nClass"><option>スタジオMy（木）</option><option>ココロネ学園（火）</option></select></div>
             <div><label class="form-lbl">冒険者ID</label><input class="pinput" id="nId" placeholder="JU-001" style="width:100%;"></div>
           </div>
           <div style="margin-top:.6rem;">
@@ -576,6 +574,20 @@
             <input class="pinput" id="nEmail" type="email" placeholder="parent@example.com" style="width:100%;">
           </div>
           <button class="pbtn btn-green" onclick="addChar()" style="margin-top:.75rem;">➕ 登録する</button>
+        </div>
+
+        <!-- テスト結果PDF一括出力 -->
+        <div class="pp" style="margin-bottom:1.1rem;">
+          <div class="sec-ttl" style="font-size:.5rem;margin-bottom:.9rem;">📄 テスト結果PDFを一括出力</div>
+          <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;">教室の在籍中の子ども全員分の成長レポートを、A4 1人1枚の「QUEST LOG」デザインでまとめて出力します。</div>
+          <div id="pdfClassroomSelWrap" style="display:none;margin-bottom:.75rem;">
+            <label class="form-lbl">対象教室</label>
+            <select class="fselect" id="pdfClassroomSel" style="width:100%;">
+              <option value="スタジオMy（木）">スタジオMy（木）</option>
+              <option value="ココロネ学園（火）">ココロネ学園（火）</option>
+            </select>
+          </div>
+          <button class="pbtn btn-gold" onclick="openBulkPDFReport()" style="width:100%;">📄 PDFレポートを出力する</button>
         </div>
 
         <!-- アーカイブ・削除管理 -->
@@ -652,9 +664,8 @@
 
   <!-- クラス選択タブ -->
   <div id="classroomTabs" style="display:flex;background:var(--bg2);border-bottom:2px solid var(--border);">
-    <button class="classroom-tab active" data-classroom="ルネック勝川（月）" onclick="switchClassroomTab(this)">ルネック</button>
-    <button class="classroom-tab" data-classroom="スタジオMy（木）" onclick="switchClassroomTab(this)">スタジオMy</button>
-    <button class="classroom-tab" data-classroom="こころね学園（火）" onclick="switchClassroomTab(this)">こころね</button>
+    <button class="classroom-tab active" data-classroom="スタジオMy（木）" onclick="switchClassroomTab(this)">スタジオMy</button>
+    <button class="classroom-tab" data-classroom="ココロネ学園（火）" onclick="switchClassroomTab(this)">こころね</button>
   </div>
 
   <!-- タイムライン -->
@@ -717,7 +728,7 @@
     <div style="font-family:'Press Start 2P';font-size:.62rem;margin-bottom:.3rem;" id="ppName"></div>
     <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.75rem;" id="ppSub"></div>
     <div style="font-size:.86rem;color:var(--text2);line-height:1.7;margin-bottom:.75rem;" id="ppDesc"></div>
-    <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.28rem;">必要レベル</div>
+    <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.28rem;">クラス</div>
     <div style="font-family:'Press Start 2P';font-size:.58rem;margin-bottom:.75rem;" id="ppLv"></div>
     <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--text2);margin-bottom:.38rem;">技サンプル</div>
     <div id="ppTags"></div>
@@ -733,9 +744,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="lvup" id="lvup"><div class="lvup-text">LEVEL UP!! ⬆️</div></div>
 
-<script src="data.js?v=20260909-1448"></script>
+<script src="data.js?v=20260904-1020"></script>
 <script type="module">
   import { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos, fbSaveVideosBulk,
     fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
@@ -744,7 +754,7 @@
     fbSaveIcon, fbGetAllIcons,
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest
-  } from './firebase.js?v=20260909-1448';
+  } from './firebase.js?v=20260904-1020';
   window._fbModule = { fbInit, fbGetAll, fbSaveChar, fbDeleteChar, fbGetVideos, fbSaveVideos,
     fbSaveVideosBulk, fbPostActivityLog, fbWatchActivityLog, fbGetEvent, fbSaveEvent, fbDeleteEvent, fbWatchEvent,
     fbPostAdminLog, fbWatchAdminLog,
@@ -753,6 +763,6 @@
     fbGetFeatured, fbSaveFeatured,
     fbPostStamp, fbWatchClassroomTimeline, fbGetMyStamps, fbGetAllStampsLatest };
 </script>
-<script src="main_core.js?v=20260909-1448"></script>
+<script src="main_core.js?v=20260904-1020"></script>
 </body>
 </html>

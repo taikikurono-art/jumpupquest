@@ -421,7 +421,7 @@ async function createNewChar(){
   const joinMonth=parseInt(document.getElementById('newJoinMonth').value)||new Date().getMonth()+1;
   const joinDate=`${joinYear}-${String(joinMonth).padStart(2,'0')}-01`;
   const email=(document.getElementById('newEmail')?.value||'').trim();
-  const newChar={id,name,sprite:'🐕',job:'rookie',level:1,exp:0,
+  const newChar={id,name,sprite:'🐕',job:'rookie',
     joinDate,
     joinYear,
     joinMonth,
@@ -969,7 +969,7 @@ function jnode(key){
     ${imgEl}
     <div class="jnode-name" style="color:${j.color};">${j.name}</div>
     <div class="jnode-sub" style="color:${j.color};">（${j.genre}）</div>
-    <div class="jnode-lv" style="color:${j.color};">${j.level}</div>
+    <div class="jnode-lv" style="color:${j.color};">${j.tier}</div>
   </div>`;
 }
 
@@ -982,7 +982,7 @@ function showJobDetail(key){
   const n=document.getElementById('ppName');n.textContent=j.name;n.style.color=j.color;
   document.getElementById('ppSub').textContent=j.genre;
   document.getElementById('ppDesc').textContent=j.desc;
-  const lv=document.getElementById('ppLv');lv.textContent=j.level;lv.style.color=j.color;
+  const lv=document.getElementById('ppLv');lv.textContent=j.tier;lv.style.color=j.color;
   document.getElementById('ppTags').innerHTML=(SKILL_BY_JOB[key]||[]).slice(0,5).map(t=>`<div class="chip done">${t}</div>`).join('');
   document.getElementById('jobPopup').classList.add('open');
 }
@@ -1440,7 +1440,6 @@ async function saveBulkVideos(){
 // ======== ADMIN ========
 const ADMIN_ROOMS={
   'jumpup2025':     null,              // スーパー管理者（全教室）
-  'runeck2025':     'ルネック勝川（月）',
   'studio2025':     'スタジオMy（木）',
   'cocoro2025':     'ココロネ学園（火）',
 };
@@ -1460,6 +1459,9 @@ function adminLogin(){
     // スーパー管理者のみ本部分析を表示
     const hqEl=document.getElementById('hqDashboard');
     if(hqEl) hqEl.style.display=adminClassroom?'none':'block';
+    // スーパー管理者はPDF出力対象の教室を選べるようにする
+    const pdfSelWrap=document.getElementById('pdfClassroomSelWrap');
+    if(pdfSelWrap) pdfSelWrap.style.display=adminClassroom?'none':'block';
     if(!adminClassroom){
       renderHQDashboard();
       const bulkEl=document.getElementById('bulkVideoPanel');
@@ -1744,6 +1746,7 @@ async function saveResult(){
       mastered:result.mastered,training:result.training||false,
       firstDate:log.firstDate,firstStarDate:log.firstStarDate,
       masterDate:log.masterDate,instantMaster:log.instantMaster||false,
+      lastTestedDate:testDate,
     };
   });
   c.skills=Object.entries(c.skillRecords).filter(([,r])=>r.mastered).map(([sk])=>sk);
@@ -1791,7 +1794,7 @@ async function addChar(){
   const name=document.getElementById('nName').value.trim();if(!name){showToast('❌ 名前を入力してね');return;}
   const classroom=document.getElementById('nClass').value;
   const email=(document.getElementById('nEmail')?.value||'').trim();
-  const classPrefix={'ルネック勝川（月）':'RN','スタジオMy（木）':'SM','こころね学園（火）':'CK'}[classroom]||'JU';
+  const classPrefix={'スタジオMy（木）':'SM','ココロネ学園（火）':'CK'}[classroom]||'JU';
   const manualId=document.getElementById('nId').value.trim();
   // 【修正】ID自動採番の前に最新の名簿をGASから取得しておく（他端末での追加・削除による
   // カウントのズレ→ID重複を防ぐため。取得に失敗しても手元のchars配列で続行する）
@@ -1853,7 +1856,7 @@ function renderHQDashboard(){
   if(!el)return;
 
   const active=chars.filter(c=>(c.status||'active')==='active');
-  const classrooms=['ルネック勝川（月）','スタジオMy（木）','コロネ学園（火）'];
+  const classrooms=['スタジオMy（木）','ココロネ学園（火）'];
 
   // 教室別集計
   const classStats=classrooms.map(cls=>{
@@ -2244,7 +2247,6 @@ function closeIconSelector(){
   document.getElementById('iconSelectorModal')?.remove();
 }
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-function showLvUp(){const o=document.getElementById('lvup');o.classList.add('show');setTimeout(()=>o.classList.remove('show'),2300);}
 
 // ===== 紙吹雪・マスター演出 =====
 function launchConfetti(count=40){
@@ -2746,6 +2748,198 @@ async function copyLINEReport(){
   }
 }
 
+// ======== テスト結果PDF一括出力（QUEST LOG） ========
+// 全教室横断の合計ポイントランキングを計算（在籍中のみ対象）
+function computeGlobalRanking(){
+  const active = chars.filter(c=>(c.status||'active')==='active');
+  const rows = active.map(c=>({
+    id:c.id, name:c.name, classroom:c.classroom,
+    totalPt: Object.values(c.skillRecords||{}).reduce((s,r)=>s+(r.pts||0),0),
+  }));
+  rows.sort((a,b)=> b.totalPt-a.totalPt || a.name.localeCompare(b.name,'ja'));
+  rows.forEach((r,i)=>{ r.rank=i+1; });
+  const N = rows.length;
+  const top50Cutoff = Math.ceil(N/2); // 上位50%のみ順位を表示
+  return {rows, N, top50Cutoff};
+}
+
+// 指定した子の周辺ランキング（上下3名＋自分）をHTMLテーブルとして生成
+// 上位50%は常に順位を表示。下位50%は原則「-」で伏せるが、
+// 周辺窓の中に既に順位が見える子が1人でもいれば、数えれば分かってしまうため窓全員の順位を表示する
+function getRankingWindowHTML(c, ranking){
+  const {rows,N,top50Cutoff} = ranking;
+  const self = rows.find(r=>r.id===c.id);
+  if(!self){
+    return '<p class="empty-note">ランキングデータがありません。</p>';
+  }
+  const start = Math.max(1, self.rank-3);
+  const end = Math.min(N, self.rank+3);
+  const windowRows = rows.filter(r=>r.rank>=start && r.rank<=end);
+  const windowHasVisible = windowRows.some(r=>r.rank<=top50Cutoff);
+  const rowsHTML = windowRows.map(r=>{
+    const shown = r.rank<=top50Cutoff || windowHasVisible;
+    const rankStr = shown ? (r.rank+'位') : '-';
+    const isSelf = r.id===c.id;
+    return '<tr'+(isSelf?' class="self-row"':'')+'>'+
+      '<td class="rk-num">'+rankStr+'</td>'+
+      '<td class="rk-name">'+r.name+(isSelf?' <span class="rk-you">YOU</span>':'')+'</td>'+
+      '<td class="rk-cls">'+(r.classroom||'')+'</td>'+
+      '<td class="rk-pt">'+r.totalPt+'pt</td>'+
+      '</tr>';
+  }).join('');
+  return '<table class="rk-table"><tbody>'+rowsHTML+'</tbody></table>';
+}
+
+// 1人分のA4クエストログページ（フラグメント）を生成
+function generateQuestLogPageHTML(c, ranking){
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const recs = c.skillRecords || {};
+  const masteredEntries = Object.entries(recs).filter(([,r])=>r.mastered);
+  const challenged = Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
+  const totalPt = Object.values(recs).reduce((s,r)=>s+(r.pts||0),0);
+  const j = JOBS[c.job]||JOBS.rookie;
+  const titleData = calcTitle(c);
+
+  // 今回挑戦した技（直近のテスト日 = lastTestedDate が一致する技のみ）
+  const lastTestDate = c.lastTestDate || null;
+  const triedThisTime = lastTestDate
+    ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===lastTestDate)
+    : [];
+
+  // 最近クリアした技（直近3ヶ月のみ）
+  const d3 = new Date(); d3.setMonth(d3.getMonth()-3);
+  const d3Str = d3.toISOString().slice(0,10);
+  const recentMastered = masteredEntries.filter(([,r])=>r.masterDate && r.masterDate>=d3Str);
+
+  const latestMsg = (c.messages||[]).slice(-1)[0];
+  const starStr = r => r.mastered?'🏆':r.lastResult===3?'⭐⭐⭐':r.lastResult===1?'⭐⭐':r.lastResult===0?'🌱':'－';
+
+  const triedHTML = triedThisTime.length>0
+    ? '<ul class="quest-list">'+triedThisTime.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="star">'+starStr(r)+'</span></li>').join('')+'</ul>'
+    : '<p class="empty-note">次回のテストから表示されます。</p>';
+
+  const msgHTML = latestMsg
+    ? '<div class="msg-date">📅 '+esc(latestMsg.date||'')+'</div><div class="msg-body">'+esc(latestMsg.body||'')+'</div>'
+    : '<p class="empty-note">まだメッセージはありません。</p>';
+
+  const recentMasteredHTML = recentMastered.length>0
+    ? '<ul class="quest-list">'+recentMastered.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+'</span></li>').join('')+'</ul>'
+    : '<p class="empty-note">直近3ヶ月にクリアした技はまだありません。</p>';
+
+  const challengedHTML = challenged.length>0
+    ? '<ul class="quest-list">'+challenged.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="pt-tag">'+(r.pts||0)+'pt</span></li>').join('')+'</ul>'
+    : '<p class="empty-note">新しい技への挑戦が始まります！</p>';
+
+  const rankingHTML = getRankingWindowHTML(c, ranking);
+
+  return '<div class="qlog-page">'+
+    '<div class="ql-header"><div class="ql-logo">⚔️ QUEST LOG</div><div class="ql-date">発行日：'+new Date().toISOString().slice(0,10)+'</div></div>'+
+    '<div class="ql-student"><div class="ql-sprite">'+(j.emoji||'🎮')+'</div><div>'+
+    '<div class="ql-name">'+esc(c.name)+'さん</div>'+
+    '<div class="ql-sub">'+esc(c.classroom||'')+'　／　'+esc(j.name||'')+(titleData?'　👑 '+esc(titleData.title):'')+'</div>'+
+    '</div></div>'+
+    '<div class="kpi-grid">'+
+      '<div class="kpi-box"><div class="kpi-label">マスター数</div><div class="kpi-val">'+masteredEntries.length+'</div></div>'+
+      '<div class="kpi-box"><div class="kpi-label">合計PT</div><div class="kpi-val">'+totalPt+'</div></div>'+
+    '</div>'+
+    '<div class="q-card pattern-a"><div class="q-ttl">⚔️ 今回挑戦した技</div>'+triedHTML+'</div>'+
+    '<div class="q-card pattern-b"><div class="q-ttl">💬 先生からのメッセージ</div>'+msgHTML+'</div>'+
+    '<div class="q-card pattern-c"><div class="q-ttl">🏆 最近クリアした技（直近3ヶ月）</div>'+recentMasteredHTML+'</div>'+
+    '<div class="q-card pattern-d"><div class="q-ttl">📈 挑戦中の技</div>'+challengedHTML+'</div>'+
+    '<div class="q-card"><div class="q-ttl">🌍 全体ランキング</div>'+rankingHTML+'</div>'+
+    '<div class="ql-footer">JUMPUPクエスト QUEST LOG ・ '+esc(c.name)+'さんの挑戦を、これからも応援しています！</div>'+
+    '</div>';
+}
+
+const QLOG_STYLE = `
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
+:root{
+  --bg:#fff8ef;--bg2:#fdedd8;--bg3:#f7deb9;--panel:#fffcf6;--border:#dcb87f;
+  --gold:#ffc736;--gold2:#ff9f1c;--gold-shadow:#8a4b12;
+  --teal:#45c2bd;--teal-dim:#0e6f68;
+  --pink:#ff6f91;--green:#6fcf52;
+  --text:#4a3728;--text2:#8a6b50;--text3:#b8987a;
+  --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Zen Maru Gothic',sans-serif;}
+.ql-toolbar{padding:1rem;text-align:center;}
+.print-btn{padding:.9rem 2rem;background:var(--gold);color:var(--gold-shadow);font-family:'Press Start 2P',monospace;font-size:.6rem;border:2px solid var(--gold-shadow);border-radius:var(--radius);cursor:pointer;letter-spacing:1px;}
+@page{size:A4;margin:10mm;}
+.qlog-page{background:var(--panel);color:var(--text);border:2px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(74,55,40,.08);width:190mm;min-height:270mm;margin:1.5rem auto;padding:8mm 9mm;position:relative;page-break-after:always;}
+.qlog-page:last-child{page-break-after:auto;}
+.ql-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);padding-bottom:.5rem;margin-bottom:.7rem;}
+.ql-logo{font-family:'Press Start 2P',monospace;font-size:.85rem;color:var(--gold-shadow);letter-spacing:2px;}
+.ql-date{font-size:.7rem;color:var(--text3);}
+.ql-student{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;}
+.ql-sprite{font-size:2.2rem;}
+.ql-name{font-weight:900;font-size:1.25rem;color:var(--text);}
+.ql-sub{font-size:.75rem;color:var(--teal-dim);margin-top:.15rem;}
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:.9rem;}
+.kpi-box{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:.5rem .4rem;text-align:center;}
+.kpi-label{font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal-dim);margin-bottom:.35rem;}
+.kpi-val{font-family:'Press Start 2P',monospace;font-size:.72rem;color:var(--gold-shadow);}
+.q-card{background:var(--panel);border-radius:8px;padding:.75rem .85rem;margin-bottom:.6rem;}
+.q-ttl{font-family:'Press Start 2P',monospace;font-size:.45rem;color:var(--gold-shadow);margin-bottom:.55rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem;}
+.pattern-a{border:3px solid var(--gold2);}
+.pattern-b{border:2px dashed var(--pink);}
+.pattern-c{border:3px double var(--green);}
+.pattern-d{border:2px dotted var(--teal);background-image:repeating-linear-gradient(45deg,rgba(69,194,189,.06) 0 4px,transparent 4px 8px);}
+.quest-list{list-style:none;display:flex;flex-direction:column;gap:.3rem;}
+.quest-list li{font-size:.82rem;line-height:1.6;padding-left:1em;position:relative;display:flex;justify-content:space-between;gap:.6rem;color:var(--text);}
+.quest-list li::before{content:'▶';position:absolute;left:0;color:var(--teal-dim);font-size:.5em;top:.5em;}
+.star{color:var(--gold-shadow);font-size:.8rem;white-space:nowrap;}
+.date-tag,.pt-tag{color:var(--text2);font-size:.7rem;white-space:nowrap;}
+.empty-note{color:var(--text2);font-size:.78rem;}
+.msg-date{font-size:.68rem;color:var(--text2);margin-bottom:.35rem;}
+.msg-body{font-size:.82rem;line-height:1.7;white-space:pre-wrap;color:var(--text);background:var(--bg2);border-left:3px solid var(--gold2);padding:.5rem .6rem;border-radius:0 6px 6px 0;}
+.rk-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.rk-table td{padding:.35rem .4rem;border-bottom:1px solid var(--border);color:var(--text);}
+.rk-num{font-family:'Press Start 2P',monospace;font-size:.5rem;color:var(--gold-shadow);width:2.6em;}
+.rk-name{font-weight:700;}
+.rk-you{font-family:'Press Start 2P',monospace;font-size:.32rem;color:#fff;background:var(--teal-dim);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;}
+.rk-cls{color:var(--text3);font-size:.68rem;}
+.rk-pt{text-align:right;color:var(--teal-dim);font-family:'Press Start 2P',monospace;font-size:.48rem;}
+.self-row{background:var(--bg3);}
+.self-row .rk-name{color:var(--gold-shadow);}
+.ql-footer{text-align:center;font-family:'Press Start 2P',monospace;font-size:.28rem;color:var(--text3);margin-top:.8rem;}
+@media print{
+  .ql-toolbar{display:none;}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .qlog-page{box-shadow:none;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .kpi-box,.q-card,.msg-body,.pattern-d,.self-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+`;
+
+function buildQuestLogBulkDocument(charList, ranking, classroomLabel){
+  const pages = charList.map(c=>generateQuestLogPageHTML(c, ranking)).join('\n');
+  return '<!DOCTYPE html>\n<html lang="ja">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n'+
+    '<title>QUEST LOG - '+classroomLabel+'</title>\n<style>'+QLOG_STYLE+'</style>\n</head>\n<body>\n'+
+    '<div class="ql-toolbar"><button class="print-btn" onclick="window.print()">🖨️ 全員分をPDFとして保存する</button></div>\n'+
+    pages+'\n</body>\n</html>';
+}
+
+// 管理者パネルの「PDFを一括出力」ボタンから呼ばれる
+function openBulkPDFReport(){
+  let targetClassroom = adminClassroom;
+  if(!targetClassroom){
+    const sel=document.getElementById('pdfClassroomSel');
+    targetClassroom = sel ? sel.value : '';
+    if(!targetClassroom){showToast('❌ 教室を選んでね');return;}
+  }
+  const list = chars.filter(c=>c.classroom===targetClassroom && (c.status||'active')==='active')
+    .sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  if(list.length===0){showToast('❌ 対象の冒険者がいません');return;}
+  const ranking = computeGlobalRanking();
+  const html = buildQuestLogBulkDocument(list, ranking, targetClassroom);
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  showToast('📄 新しいタブでPDFレポートが開きます（'+list.length+'名分）。印刷→PDFで保存できます');
+  postAdminLog('pdf_bulk_export',{classroom:targetClassroom,count:list.length});
+}
+
 // ======== 全国リアルタイム進捗ログ ========
 let _activityUnsubscribe = null;
 
@@ -3179,7 +3373,7 @@ async function loadFeaturedAdmin(){
 // JUMP CLASSROOM
 // ============================================================
 
-let _currentClassroom = 'ルネック勝川（月）';
+let _currentClassroom = 'スタジオMy（木）';
 let _stampTargetId = null;
 let _stampTargetName = '';
 let _timelineUnsub = null;
@@ -3298,7 +3492,7 @@ async function sendStamp(stampText){
   if(!currentUser || !_stampTargetId) return;
   document.getElementById('stampPopup').classList.remove('open');
 
-  const isTeacher = ['jumpup2025','runeck2025','studio2025','cocoro2025'].some(
+  const isTeacher = ['jumpup2025','studio2025','cocoro2025'].some(
     p => sessionStorage.getItem('adminPass') === p
   );
   const targetChar = chars.find(c => c.id === _stampTargetId);

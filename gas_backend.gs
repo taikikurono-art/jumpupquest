@@ -88,37 +88,59 @@ function getHistory(id) {
   return { history };
 }
 
-function saveChar(char) {
-  const sh = getSheet(SHEET_CHARS);
-  const rows = sh.getDataRange().getValues();
-  const idx = rows.slice(1).findIndex(r => r[0] === char.id);
-  const rowData = charToRow(char);
-  if (idx >= 0) {
-    sh.getRange(idx + 2, 1, 1, rowData.length).setValues([rowData]);
-    return { success: true, message: '更新しました: ' + char.name };
-  } else {
-    sh.appendRow(rowData);
-    return { success: true, message: '追加しました: ' + char.name };
+// 【修正】冒険者シートへの読み取り→書き込みは、複数端末からほぼ同時にリクエストが
+// 来ると競合（同じIDが2行できる等）する可能性があるため、スクリプトロックで排他制御する。
+function withCharsLock(fn) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // 最大10秒待つ
+  } catch (e) {
+    return { error: 'サーバーが混み合っています。もう一度お試しください' };
   }
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveChar(char) {
+  return withCharsLock(function () {
+    const sh = getSheet(SHEET_CHARS);
+    const rows = sh.getDataRange().getValues();
+    const idx = rows.slice(1).findIndex(r => r[0] === char.id);
+    const rowData = charToRow(char);
+    if (idx >= 0) {
+      sh.getRange(idx + 2, 1, 1, rowData.length).setValues([rowData]);
+      return { success: true, message: '更新しました: ' + char.name };
+    } else {
+      sh.appendRow(rowData);
+      return { success: true, message: '追加しました: ' + char.name };
+    }
+  });
 }
 
 function addChar(char) {
-  const sh = getSheet(SHEET_CHARS);
-  const rows = sh.getDataRange().getValues();
-  if (rows.slice(1).some(r => r[0] === char.id)) {
-    return { error: 'IDが重複しています: ' + char.id };
-  }
-  sh.appendRow(charToRow(char));
-  return { success: true, message: '登録しました: ' + char.name };
+  return withCharsLock(function () {
+    const sh = getSheet(SHEET_CHARS);
+    const rows = sh.getDataRange().getValues();
+    if (rows.slice(1).some(r => r[0] === char.id)) {
+      return { error: 'IDが重複しています: ' + char.id };
+    }
+    sh.appendRow(charToRow(char));
+    return { success: true, message: '登録しました: ' + char.name };
+  });
 }
 
 function deleteChar(charId) {
-  const sh = getSheet(SHEET_CHARS);
-  const rows = sh.getDataRange().getValues();
-  const idx = rows.slice(1).findIndex(r => r[0] === charId);
-  if (idx < 0) return { error: '冒険者が見つかりません: ' + charId };
-  sh.deleteRow(idx + 2);
-  return { success: true, message: '削除しました: ' + charId };
+  return withCharsLock(function () {
+    const sh = getSheet(SHEET_CHARS);
+    const rows = sh.getDataRange().getValues();
+    const idx = rows.slice(1).findIndex(r => r[0] === charId);
+    if (idx < 0) return { error: '冒険者が見つかりません: ' + charId };
+    sh.deleteRow(idx + 2);
+    return { success: true, message: '削除しました: ' + charId };
+  });
 }
 
 function saveTestResult(data) {
@@ -172,8 +194,6 @@ function parseCharRow(row) {
     name:         row[1],
     sprite:       row[2] || '🐕',
     job:          row[3] || 'rookie',
-    level:        Number(row[4]) || 1,
-    exp:          Number(row[5]) || 0,
     joinDate:     row[6] instanceof Date
                     ? Utilities.formatDate(row[6], 'Asia/Tokyo', 'yyyy-MM-dd')
                     : (row[6] || ''),
