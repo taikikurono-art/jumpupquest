@@ -384,11 +384,108 @@ function loginSearch(){
     </button>`;
   }).join('');
 }
+let _pinPendingChar=null;
 function loginAs(id){
   const c=chars.find(x=>x.id===id);
   if(!c)return;
+  if(c.pin){
+    _pinPendingChar=c;
+    const nameEl=document.getElementById('pinLoginName');
+    if(nameEl)nameEl.textContent=c.name;
+    const inp=document.getElementById('pinLoginInput');
+    if(inp)inp.value='';
+    const errEl=document.getElementById('pinLoginErr');
+    if(errEl)errEl.style.display='none';
+    const pop=document.getElementById('pinLoginPopup');
+    if(pop){pop.classList.add('open');setTimeout(()=>inp&&inp.focus(),100);}
+    return;
+  }
   currentUser=c;
+  finishLogin(c);
+}
+function submitPinLogin(){
+  const c=_pinPendingChar;
+  if(!c)return;
+  const inp=document.getElementById('pinLoginInput');
+  const val=(inp?.value||'').trim();
+  const errEl=document.getElementById('pinLoginErr');
+  if(val!==c.pin){
+    if(errEl)errEl.style.display='block';
+    return;
+  }
+  if(errEl)errEl.style.display='none';
+  const pop=document.getElementById('pinLoginPopup');
+  if(pop)pop.classList.remove('open');
+  currentUser=c;
+  _pinPendingChar=null;
+  finishLogin(c);
+}
+function closePinLoginPopup(e){
+  if(e&&e.target!==document.getElementById('pinLoginPopup'))return;
+  const pop=document.getElementById('pinLoginPopup');
+  if(pop)pop.classList.remove('open');
+  _pinPendingChar=null;
+}
+// ログイン成功後の共通処理：PIN未設定なら（1回だけ）設定を促すポップアップを出す
+let _pinSetupPromptChar=null;
+function finishLogin(c){
   enterRoom(c);
+  if(!c.pin&&!c.pinPromptSeen){
+    _pinSetupPromptChar=c;
+    setTimeout(()=>{
+      const inp=document.getElementById('pinSetupInput');
+      if(inp)inp.value='';
+      const errEl=document.getElementById('pinSetupErr');
+      if(errEl)errEl.style.display='none';
+      const pop=document.getElementById('pinSetupPromptPopup');
+      if(pop)pop.classList.add('open');
+    },600);
+  }
+}
+function submitPinSetup(){
+  const c=_pinSetupPromptChar||currentUser;
+  if(!c)return;
+  const inp=document.getElementById('pinSetupInput');
+  const val=(inp?.value||'').trim();
+  const errEl=document.getElementById('pinSetupErr');
+  if(!/^\d{4}$/.test(val)){
+    if(errEl)errEl.style.display='block';
+    return;
+  }
+  if(errEl)errEl.style.display='none';
+  c.pin=val;
+  c.pinPromptSeen=true;
+  saveCharsToGAS(c);
+  const pop=document.getElementById('pinSetupPromptPopup');
+  if(pop)pop.classList.remove('open');
+  _pinSetupPromptChar=null;
+  showToast('🔒 あんしょうばんごうを設定したよ！');
+}
+function skipPinSetup(){
+  const c=_pinSetupPromptChar||currentUser;
+  if(c){
+    c.pinPromptSeen=true;
+    saveCharsToGAS(c);
+  }
+  const pop=document.getElementById('pinSetupPromptPopup');
+  if(pop)pop.classList.remove('open');
+  _pinSetupPromptChar=null;
+}
+// 保護者ページからPINを設定・変更する
+function setPinFromParent(){
+  const c=currentUser;
+  if(!c)return;
+  const val=(prompt('新しいあんしょうばんごう（4桁の数字）を入れてください')||'').trim();
+  if(!val)return;
+  if(!/^\d{4}$/.test(val)){
+    alert('4桁の数字を入れてね');
+    return;
+  }
+  c.pin=val;
+  c.pinPromptSeen=true;
+  saveCharsToGAS(c);
+  showToast('🔒 あんしょうばんごうを更新したよ！');
+  if(typeof renderParentPage==='function')renderParentPage(c);
 }
 
 // ======== NEW CHAR ========
@@ -396,6 +493,8 @@ async function createNewChar(){
   const name=document.getElementById('newName').value.trim();
   const err=document.getElementById('newCharErr');
   if(!name){err.textContent='なまえを入れてね！';err.style.display='block';return;}
+  const pin=(document.getElementById('newPin')?.value||'').trim();
+  if(!/^\d{4}$/.test(pin)){err.textContent='あんしょうばんごうは4桁の数字で入れてね！';err.style.display='block';return;}
 
   // GASから最新データを取得して重複チェック
   try{
@@ -426,6 +525,8 @@ async function createNewChar(){
     joinYear,
     joinMonth,
     email,
+    pin,
+    pinPromptSeen:true,
     classroom:document.getElementById('newClass').value,
     stats:{power:1,flex:1,speed:1,balance:1,beauty:1,focus:1},
     skills:[],skillRecords:{},messages:[]};
@@ -449,6 +550,9 @@ async function createNewChar(){
   showToast('✨ ようこそ、'+name+'！');
   setTimeout(()=>enterRoom(newChar),800);
 }
+// 後方互換：既存呼び出しがenterRoomのままでも動くよう、finishLoginは
+// loginAs()経由（loginSearchからのボタン）でのみ使う。createNewCharは
+// PIN設定済みなのでプロンプト不要のためenterRoom直呼びのままでよい。
 
 // ======== ENTER STATUS (formerly enterRoom) ========
 function enterRoom(c){ enterStatus(c); } // 後方互換
@@ -1584,6 +1688,8 @@ function loadAdminChar(){
   const totalPt=calcCharTotalPt(recs);
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
   document.getElementById('aTotalPt').textContent=`総${totalPt}pt　🏆マスター${masterCnt}技`;
+  const pinStatusEl=document.getElementById('aPinStatus');
+  if(pinStatusEl)pinStatusEl.textContent=c.pin?'🔒 PIN設定済み':'🔓 PIN未設定';
   document.getElementById('adminSkillList').innerHTML='';
 
   // 前回挑戦した技を自動表示（未マスター・pt>0の技を最大3件）
@@ -1597,6 +1703,16 @@ function loadAdminChar(){
   } else {
     addSkillRow();
   }
+}
+function resetCharPin(){
+  const id=document.getElementById('adminSel').value;const c=chars.find(x=>x.id===id);if(!c)return;
+  if(!c.pin){showToast('この生徒はPIN未設定だよ');return;}
+  if(!confirm(`${c.name}さんのあんしょうばんごうをリセットしますか？\n次回ログイン時、名前検索でログイン→あらためて設定できるようになります。`))return;
+  c.pin='';
+  c.pinPromptSeen=false;
+  saveCharsToGAS(c);
+  loadAdminChar();
+  showToast('🔓 PINをリセットしたよ');
 }
 function addSkillRow(preselect=null){
   const id=document.getElementById('adminSel').value;const c=chars.find(x=>x.id===id);if(!c)return;
@@ -2485,6 +2601,10 @@ function renderParentPage(c){
   document.getElementById('parentClass').textContent='📍 '+c.classroom;
   const masterCnt=Object.values(recs).filter(r=>r.mastered).length;
   document.getElementById('parentMasterCnt').textContent=masterCnt+'技';
+  const pinStatusEl=document.getElementById('parentPinStatus');
+  if(pinStatusEl)pinStatusEl.textContent=c.pin
+    ?'設定済みです。次回ログインからは名前を選んだあと、あんしょうばんごうの入力が必要です。'
+    :'まだ設定されていません。設定すると、次回ログインからあんしょうばんごうでログインできます。';
 
   // 最近の取り組み
   const thisMonthEl=document.getElementById('parentThisMonth');
