@@ -182,6 +182,9 @@
       <div class="form-lbl">保護者のメールアドレス（任意）</div>
       <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);margin-bottom:.4rem;line-height:1.6;">マスター達成や先生からのメッセージをメールでお知らせします</div>
       <input class="pinput" id="newEmail" type="email" placeholder="例：parent@example.com" style="width:100%;margin-bottom:1.2rem;">
+      <div class="form-lbl">🔒 あんしょうばんごう（4桁）</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.78rem;color:var(--text2);margin-bottom:.4rem;line-height:1.6;">次からログインするときに使うよ。忘れないようにメモしておいてね</div>
+      <input class="pinput" id="newPin" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例：1234" style="width:100%;margin-bottom:1.2rem;text-align:center;letter-spacing:.5rem;font-size:1.2rem;" maxlength="4">
       <button class="pbtn btn-green" onclick="createNewChar()" style="width:100%;height:56px;font-size:.58rem;">▶ ぼうけんを始める！</button>
       <div id="newCharErr" style="display:none;color:var(--pink);font-family:'Press Start 2P';font-size:.38rem;margin-top:.6rem;text-align:center;"></div>
     </div>
@@ -395,6 +398,13 @@
       </div>
     </div>
 
+    <!-- PIN管理 -->
+    <div class="pp">
+      <div class="sec-ttl">🔒 あんしょうばんごう</div>
+      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;" id="parentPinStatus"></div>
+      <button class="pbtn btn-outline" onclick="setPinFromParent()" style="width:100%;font-size:.48rem;">🔒 あんしょうばんごうを設定・変更する</button>
+    </div>
+
   </div>
 </div>
 
@@ -523,6 +533,10 @@
               <div style="margin-left:auto;text-align:right;">
                 <div style="font-family:'Press Start 2P';font-size:.38rem;color:var(--teal);margin-top:.3rem;" id="aTotalPt"></div>
               </div>
+            </div>
+            <div style="background:var(--bg);border:2px solid var(--border);border-top:none;padding:.6rem .75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+              <div style="font-family:'Press Start 2P',monospace;font-size:.36rem;color:var(--text2);" id="aPinStatus"></div>
+              <button class="pbtn btn-outline" onclick="resetCharPin()" style="font-size:.34rem;padding:.35rem .7rem;width:auto;">🔓 PINをリセット</button>
             </div>
           </div>
           <div id="adminSkillSec" style="display:none;">
@@ -737,6 +751,30 @@
 
 <!-- メッセージオーバーレイ（RPGポスト） -->
 
+<!-- PINログインポップアップ -->
+<div class="popup-overlay" id="pinLoginPopup" onclick="closePinLoginPopup(event)">
+  <div class="popup-box" style="max-width:340px;" onclick="event.stopPropagation()">
+    <button class="popup-close" onclick="closePinLoginPopup()" style="font-size:1.3rem;width:2.2rem;height:2.2rem;min-width:2.2rem;">✕</button>
+    <div style="font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--teal);margin-bottom:.5rem;text-align:center;">🔒 あんしょうばんごう</div>
+    <div id="pinLoginName" style="font-weight:900;font-size:1rem;text-align:center;margin-bottom:.8rem;color:var(--text2);"></div>
+    <input class="pinput" id="pinLoginInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="4桁のばんごう" maxlength="4" style="width:100%;margin-bottom:.6rem;text-align:center;letter-spacing:.5rem;font-size:1.2rem;" onkeydown="if(event.key==='Enter')submitPinLogin()">
+    <div id="pinLoginErr" style="display:none;color:var(--danger,#e74c3c);font-size:.78rem;text-align:center;margin-bottom:.6rem;font-family:'Zen Maru Gothic',sans-serif;">ばんごうがちがうよ！もう一度ためしてね</div>
+    <button class="pbtn btn-green" onclick="submitPinLogin()" style="width:100%;height:48px;font-size:.55rem;">▶ ログイン</button>
+    <div style="text-align:center;margin-top:.7rem;font-family:'Zen Maru Gothic',sans-serif;font-size:.72rem;color:var(--text2);">忘れちゃったときは先生に聞いてね</div>
+  </div>
+</div>
+
+<!-- PIN設定プロンプトポップアップ（既存会員向け・スキップ可） -->
+<div class="popup-overlay" id="pinSetupPromptPopup">
+  <div class="popup-box" style="max-width:360px;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:.55rem;color:var(--teal);margin-bottom:.6rem;text-align:center;">🔒 あんしょうばんごうを<br>つくろう！</div>
+    <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.8rem;color:var(--text2);line-height:1.7;margin-bottom:.8rem;text-align:center;">次からログインするときに使う、4桁のあんしょうばんごうを設定できます（あとからでも設定できます）</div>
+    <input class="pinput" id="pinSetupInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例：1234" maxlength="4" style="width:100%;margin-bottom:.4rem;text-align:center;letter-spacing:.5rem;font-size:1.2rem;">
+    <div id="pinSetupErr" style="display:none;color:var(--danger,#e74c3c);font-size:.78rem;text-align:center;margin-bottom:.4rem;font-family:'Zen Maru Gothic',sans-serif;">4桁の数字を入れてね</div>
+    <button class="pbtn btn-green" onclick="submitPinSetup()" style="width:100%;height:48px;font-size:.55rem;margin-bottom:.5rem;">▶ せっていする</button>
+    <button class="pbtn" onclick="skipPinSetup()" style="width:100%;height:40px;font-size:.5rem;background:transparent;color:var(--text2);border:2px solid var(--border);">あとで（スキップ）</button>
+  </div>
+</div>
 
 <!-- 管理者へのリンク（隠し） -->
 <div style="position:fixed;bottom:.5rem;left:.5rem;z-index:50;">
