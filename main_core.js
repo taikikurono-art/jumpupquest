@@ -2581,7 +2581,6 @@ function goParentPage(){
   if(!currentUser){showToast('❌ ログインしてね');return;}
   renderParentPage(currentUser);
   goPage('pg-parent');
-  loadMyStamps();
 }
 
 function renderParentPage(c){
@@ -2614,32 +2613,23 @@ function renderParentPage(c){
     ?'設定済みです。次回ログインからは名前を選んだあと、あんしょうばんごうの入力が必要です。'
     :'まだ設定されていません。設定すると、次回ログインからあんしょうばんごうでログインできます。';
 
-  // 最近の取り組み
+  // 最近のテストで行った技
   const thisMonthEl=document.getElementById('parentThisMonth');
-  const challenged=Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
-  const mastered=Object.entries(recs).filter(([,r])=>r.mastered);
-  const trainingSkills=Object.entries(recs).filter(([,r])=>r.training&&!r.mastered);
+  const lastTestDate=c.lastTestDate||null;
+  const triedThisTime=lastTestDate
+    ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===lastTestDate)
+    : [];
+  const starStr=r=>r.mastered?'🏆':r.lastResult===3?'⭐⭐⭐':r.lastResult===1?'⭐⭐':r.lastResult===0?'🌱':'－';
   let monthHTML='';
-  if(mastered.length>0){
-    monthHTML+=`<div style="background:rgba(255,215,0,.08);border:2px solid var(--gold);border-radius:4px;padding:.6rem .8rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--gold);margin-bottom:.4rem;">🏆 できるようになったこと</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${mastered.map(([sk])=>`「${sk}」`).join('　')}</div>
-    </div>`;
+  if(triedThisTime.length>0){
+    monthHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.5rem;">📅 ${lastTestDate} のテスト結果</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;">${triedThisTime.map(([sk,r])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;background:var(--bg);border:2px solid var(--border);border-radius:4px;">
+        <span style="font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.9rem;">${sk}</span>
+        <span style="font-size:1rem;">${starStr(r)}</span>
+      </div>`).join('')}</div>`;
+  } else {
+    monthHTML='<div style="color:var(--text2);font-size:.85rem;">次回のテストから表示されます。</div>';
   }
-  if(challenged.length>0){
-    monthHTML+=`<div style="background:rgba(0,229,255,.06);border:2px solid var(--teal);border-radius:4px;padding:.6rem .8rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:var(--teal);margin-bottom:.4rem;">⚔️ 今まさに挑戦中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${challenged.map(([sk,r])=>`「${sk}」（${r.pts}pt）`).join('　')}</div>
-    </div>`;
-  }
-  if(trainingSkills.length>0){
-    monthHTML+=`<div style="background:rgba(136,136,255,.08);border:2px solid #8888ff;border-radius:4px;padding:.6rem .8rem;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:.3rem;color:#8888ff;margin-bottom:.4rem;">🌱 土台づくり中の技</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.9rem;line-height:1.8;">${trainingSkills.map(([sk])=>`「${sk}」`).join('　')}</div>
-      <div style="font-size:.8rem;color:var(--text2);margin-top:.4rem;">焦らず一歩一歩、基礎を大切に積み上げています。</div>
-    </div>`;
-  }
-  if(!monthHTML)monthHTML='<div style="color:var(--text2);font-size:.85rem;">まだ記録がありません。一緒に応援しよう！</div>';
   thisMonthEl.innerHTML=monthHTML;
 
   // 技ごとの成長段階
@@ -2695,15 +2685,6 @@ function renderParentPage(c){
         <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;line-height:1.7;color:var(--text2);">${(m.body||'').slice(0,80)}${(m.body||'').length>80?'…':''}</div>
       </div>`).join('');
   }
-
-  // おうちサポート
-  const supportEl=document.getElementById('parentHomeSupport');
-  const supportMsgs=[];
-  if(trainingSkills.length>0)supportMsgs.push(`🌱 「${trainingSkills[0][0]}」の練習を見守ってあげてください。できたときは思いっきり褒めてあげましょう！`);
-  if(challenged.length>0){const best=challenged.sort((a,b)=>(b[1].pts||0)-(a[1].pts||0))[0];supportMsgs.push(`⭐ 「${best[0]}」はもう少しでマスターです。おうちでも「がんばってるね！」の一言が力になります。`);}
-  if(masterCnt>0)supportMsgs.push(`🏆 ${masterCnt}個の技をマスターしました！ぜひ「見せて！」と声をかけてあげてください。`);
-  if(supportMsgs.length===0)supportMsgs.push('🌟 これからどんどん技を覚えていきます。焦らず、楽しみながら応援してあげてください！');
-  supportEl.innerHTML=supportMsgs.join('<br><br>');
 }
 
 // ======== 月間成長レポート ========
@@ -3074,6 +3055,18 @@ function openBulkPDFReport(){
   setTimeout(()=>URL.revokeObjectURL(url), 15000);
   showToast('📄 新しいタブでPDFレポートが開きます（'+list.length+'名分）。印刷→PDFで保存できます');
   postAdminLog('pdf_bulk_export',{classroom:targetClassroom,count:list.length});
+}
+
+function openMyQuestLogPDF(){
+  const c=currentUser;
+  if(!c){showToast('❌ ログイン情報が見つかりません');return;}
+  const ranking=computeGlobalRanking();
+  const html=buildQuestLogBulkDocument([c], ranking, c.classroom);
+  const blob=new Blob([html], {type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  showToast('📄 新しいタブでPDFレポートが開きます。印刷→PDFで保存できます');
 }
 
 // ======== 全国リアルタイム進捗ログ ========
