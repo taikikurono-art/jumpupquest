@@ -346,13 +346,13 @@
 
     <!-- 最近の取り組み -->
     <div class="pp" style="margin-bottom:1rem;">
-      <div class="sec-ttl">📋 最近の取り組み</div>
+      <div class="sec-ttl">📋 最近のテストで行った技</div>
       <div id="parentThisMonth"></div>
     </div>
 
     <!-- 技ごとの成長段階 -->
     <div class="pp" style="margin-bottom:1rem;">
-      <div class="sec-ttl">📈 技の成長ステージ</div>
+      <div class="sec-ttl">📈 成長ステータス（今の頑張り度）</div>
       <div style="display:flex;flex-direction:column;gap:.5rem;" id="parentSkillStages"></div>
     </div>
 
@@ -368,33 +368,11 @@
       <div id="parentMessages"></div>
     </div>
 
-    <!-- おうちサポート -->
-    <div class="pp" style="margin-bottom:1rem;">
-      <div class="sec-ttl">🏠 おうちでできるサポート</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.88rem;line-height:1.9;color:var(--text2);" id="parentHomeSupport"></div>
-    </div>
-
     <!-- レポートDL・LINEコピー -->
     <div class="pp">
       <div class="sec-ttl">📊 レポート</div>
       <div style="display:flex;flex-direction:column;gap:.6rem;">
-        <button class="pbtn btn-teal" onclick="openMonthlyReport()" style="width:100%;font-size:.45rem;">📊 成長レポートをDL（HTMLファイル）</button>
-        <button class="pbtn btn-outline" onclick="copyLINEReport()" style="width:100%;font-size:.45rem;">📋 LINE用レポートをコピー</button>
-      </div>
-    </div>
-
-    <!-- スタンプ -->
-    <div class="pp">
-      <div class="sec-ttl">💬 JUMP CLASSROOMに気持ちを投稿</div>
-      <div style="font-family:'Zen Maru Gothic',sans-serif;font-size:.85rem;color:var(--text2);margin-bottom:.8rem;line-height:1.7;">今の気持ちをスタンプで伝えよう！クラスメートに届きます。</div>
-      <button class="pbtn btn-outline" onclick="openStampPopupSelf()" style="width:100%;font-size:.48rem;border-color:var(--teal);color:var(--teal);">💬 スタンプを押す</button>
-    </div>
-
-    <!-- 届いたスタンプ -->
-    <div class="pp">
-      <div class="sec-ttl">📬 届いたスタンプ</div>
-      <div id="myStampsList" style="display:flex;flex-direction:column;gap:.4rem;">
-        <div style="color:var(--text2);font-size:.85rem;">読み込み中...</div>
+        <button class="pbtn btn-teal" onclick="openMyQuestLogPDF()" style="width:100%;font-size:.45rem;">📄 レポートをPDFで保存</button>
       </div>
     </div>
 
