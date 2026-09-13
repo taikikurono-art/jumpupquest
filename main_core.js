@@ -1345,18 +1345,14 @@ function dk(h){return'#'+[1,3,5].map(i=>Math.max(0,parseInt(h.slice(i,i+2),16)-5
 // ======== バッジ・称号システム ========
 const BADGES = [
   // 継続バッジ
-  { id:'continue_3m',  icon:'🗓️', name:'3ヶ月の冒険者',   desc:'3ヶ月以上活動している',   type:'continue', check: c => monthsSinceJoin(c) >= 3 },
   { id:'continue_6m',  icon:'🌟', name:'半年の勇者',       desc:'6ヶ月以上活動している',   type:'continue', check: c => monthsSinceJoin(c) >= 6 },
   { id:'continue_12m', icon:'👑', name:'1年の伝説',        desc:'1年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 12 },
-  { id:'continue_24m', icon:'💫', name:'2年の探究者',      desc:'2年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 24 },
   { id:'continue_36m', icon:'🔥', name:'3年の猛者',        desc:'3年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 36 },
   { id:'continue_60m', icon:'🐉', name:'5年の覇者',        desc:'5年以上活動している',     type:'continue', check: c => monthsSinceJoin(c) >= 60 },
 
   // 挑戦バッジ
-  { id:'try_3skills',  icon:'⚔️', name:'チャレンジャー',   desc:'3つの技に挑戦した',            type:'challenge', check: c => countChallenged(c) >= 3 },
   { id:'try_10skills', icon:'🔥', name:'技コレクター',     desc:'10の技に挑戦した',             type:'challenge', check: c => countChallenged(c) >= 10 },
   { id:'master_1',     icon:'🏅', name:'初マスター',       desc:'はじめて技をマスターした',      type:'challenge', check: c => countMastered(c) >= 1 },
-  { id:'master_5',     icon:'🎖️', name:'技の達人',        desc:'5つの技をマスターした',        type:'challenge', check: c => countMastered(c) >= 5 },
   { id:'master_10',    icon:'💎', name:'レジェンド',       desc:'10の技をマスターした',         type:'challenge', check: c => countMastered(c) >= 10 },
   { id:'multi_job',    icon:'🌈', name:'マルチプレイヤー', desc:'2つ以上のジョブで技をマスター', type:'challenge', check: c => masteredJobCount(c) >= 2 },
   { id:'instant_master', icon:'⚡', name:'一発マスター！', desc:'3回全部⭐⭐⭐でマスターした',  type:'challenge', check: c => hasInstantMaster(c) },
