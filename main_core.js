@@ -2906,9 +2906,11 @@ function getRankingWindowHTML(c, ranking){
 // 1人分のA4クエストログページ（フラグメント）を生成
 function generateQuestLogPageHTML(c, ranking){
   const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const CAP = 10;
   const recs = c.skillRecords || {};
   const masteredEntries = Object.entries(recs).filter(([,r])=>r.mastered);
   const challenged = Object.entries(recs).filter(([,r])=>!r.mastered&&(r.pts||0)>0);
+  challenged.sort((a,b)=>(b[1].pts||0)-(a[1].pts||0));
   const totalPt = calcCharTotalPt(recs);
   const j = JOBS[c.job]||JOBS.rookie;
   const titleData = calcTitle(c);
@@ -2919,16 +2921,18 @@ function generateQuestLogPageHTML(c, ranking){
     ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===lastTestDate)
     : [];
 
-  // 最近クリアした技（直近3ヶ月のみ）
+  // 最近クリアした技（直近3ヶ月のみ、新しい順）
   const d3 = new Date(); d3.setMonth(d3.getMonth()-3);
   const d3Str = d3.toISOString().slice(0,10);
   const recentMastered = masteredEntries.filter(([,r])=>r.masterDate && r.masterDate>=d3Str);
+  recentMastered.sort((a,b)=>(b[1].masterDate||'').localeCompare(a[1].masterDate||''));
 
   const latestMsg = (c.messages||[]).slice(-1)[0];
   const starStr = r => r.mastered?'🏆':r.lastResult===3?'⭐⭐⭐':r.lastResult===1?'⭐⭐':r.lastResult===0?'🌱':'－';
+  const moreNote = arr => arr.length>CAP ? '<li class="more-note">他 '+(arr.length-CAP)+' 件</li>' : '';
 
   const triedHTML = triedThisTime.length>0
-    ? '<ul class="quest-list">'+triedThisTime.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="star">'+starStr(r)+'</span></li>').join('')+'</ul>'
+    ? '<ul class="quest-list">'+triedThisTime.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="star">'+starStr(r)+'</span></li>').join('')+moreNote(triedThisTime)+'</ul>'
     : '<p class="empty-note">次回のテストから表示されます。</p>';
 
   const msgHTML = latestMsg
@@ -2936,14 +2940,12 @@ function generateQuestLogPageHTML(c, ranking){
     : '<p class="empty-note">まだメッセージはありません。</p>';
 
   const recentMasteredHTML = recentMastered.length>0
-    ? '<ul class="quest-list">'+recentMastered.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+'</span></li>').join('')+'</ul>'
+    ? '<ul class="quest-list">'+recentMastered.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+'</span></li>').join('')+moreNote(recentMastered)+'</ul>'
     : '<p class="empty-note">直近3ヶ月にクリアした技はまだありません。</p>';
 
   const challengedHTML = challenged.length>0
-    ? '<ul class="quest-list">'+challenged.map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="pt-tag">'+(r.pts||0)+'pt</span></li>').join('')+'</ul>'
+    ? '<ul class="quest-list">'+challenged.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="pt-tag">'+(r.pts||0)+'pt</span></li>').join('')+moreNote(challenged)+'</ul>'
     : '<p class="empty-note">新しい技への挑戦が始まります！</p>';
-
-  const rankingHTML = getRankingWindowHTML(c, ranking);
 
   return '<div class="qlog-page">'+
     '<div class="ql-header"><div class="ql-logo">⚔️ QUEST LOG</div><div class="ql-date">発行日：'+new Date().toISOString().slice(0,10)+'</div></div>'+
@@ -2959,7 +2961,6 @@ function generateQuestLogPageHTML(c, ranking){
     '<div class="q-card pattern-b"><div class="q-ttl">💬 先生からのメッセージ</div>'+msgHTML+'</div>'+
     '<div class="q-card pattern-c"><div class="q-ttl">🏆 最近クリアした技（直近3ヶ月）</div>'+recentMasteredHTML+'</div>'+
     '<div class="q-card pattern-d"><div class="q-ttl">📈 挑戦中の技</div>'+challengedHTML+'</div>'+
-    '<div class="q-card"><div class="q-ttl">🌍 全体ランキング</div>'+rankingHTML+'</div>'+
     '<div class="ql-footer">JUMPUPクエスト QUEST LOG ・ '+esc(c.name)+'さんの挑戦を、これからも応援しています！</div>'+
     '</div>';
 }
@@ -2998,9 +2999,11 @@ body{background:var(--bg);color:var(--text);font-family:'Zen Maru Gothic',sans-s
 .pattern-b{border:2px dashed var(--pink);}
 .pattern-c{border:3px double var(--green);}
 .pattern-d{border:2px dotted var(--teal);background-image:repeating-linear-gradient(45deg,rgba(69,194,189,.06) 0 4px,transparent 4px 8px);}
-.quest-list{list-style:none;display:flex;flex-direction:column;gap:.3rem;}
+.quest-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:.3rem .7rem;}
 .quest-list li{font-size:.82rem;line-height:1.6;padding-left:1em;position:relative;display:flex;justify-content:space-between;gap:.6rem;color:var(--text);}
 .quest-list li::before{content:'▶';position:absolute;left:0;color:var(--teal-dim);font-size:.5em;top:.5em;}
+.quest-list li.more-note{grid-column:1/-1;text-align:right;padding-left:0;color:var(--text3);font-size:.68rem;}
+.quest-list li.more-note::before{content:none;}
 .star{color:var(--gold-shadow);font-size:.8rem;white-space:nowrap;}
 .date-tag,.pt-tag{color:var(--text2);font-size:.7rem;white-space:nowrap;}
 .empty-note{color:var(--text2);font-size:.78rem;}
