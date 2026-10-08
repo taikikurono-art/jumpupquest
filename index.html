@@ -581,7 +581,12 @@
           </div>
           <div style="margin-bottom:.75rem;">
             <label class="form-lbl">対象月（欠席した子は自動で除外されます）</label>
-            <input class="pinput" type="month" id="pdfMonthSel" style="width:100%;">
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <button type="button" class="pbtn" onclick="changePdfMonth(-1)" style="padding:.5rem .8rem;flex-shrink:0;">←</button>
+              <div id="pdfMonthLabel" style="flex:1;text-align:center;font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:.95rem;background:var(--panel2,#fff);border:1px solid var(--border);border-radius:8px;padding:.5rem .4rem;"></div>
+              <button type="button" class="pbtn" onclick="changePdfMonth(1)" style="padding:.5rem .8rem;flex-shrink:0;">→</button>
+            </div>
+            <input type="hidden" id="pdfMonthSel">
           </div>
           <button class="pbtn btn-gold" onclick="openBulkPDFReport()" style="width:100%;">📄 PDFレポートを出力する</button>
         </div>
