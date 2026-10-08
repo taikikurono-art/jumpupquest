@@ -2919,9 +2919,12 @@ function generateQuestLogPageHTML(c, ranking){
 
   // 今回挑戦した技（直近のテスト日 = lastTestedDate が一致する技のみ）
   const lastTestDate = c.lastTestDate || null;
-  const triedThisTime = lastTestDate
+  let triedThisTime = lastTestDate
     ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===lastTestDate)
     : [];
+  if(triedThisTime.length===0 && Object.keys(recs).length>0){
+    triedThisTime = Object.entries(recs);
+  }
 
   // 最近クリアした技（直近3ヶ月のみ、新しい順）
   const d3 = new Date(); d3.setMonth(d3.getMonth()-3);
