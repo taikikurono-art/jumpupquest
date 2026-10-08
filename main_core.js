@@ -1570,6 +1570,9 @@ function adminLogin(){
     // スーパー管理者はPDF出力対象の教室を選べるようにする
     const pdfSelWrap=document.getElementById('pdfClassroomSelWrap');
     if(pdfSelWrap) pdfSelWrap.style.display=adminClassroom?'none':'block';
+    // PDF出力の対象月を当月で初期化
+    const pdfMonthEl=document.getElementById('pdfMonthSel');
+    if(pdfMonthEl && !pdfMonthEl.value) pdfMonthEl.value=new Date().toISOString().slice(0,7);
     if(!adminClassroom){
       renderHQDashboard();
       const bulkEl=document.getElementById('bulkVideoPanel');
@@ -3047,17 +3050,20 @@ function openBulkPDFReport(){
     targetClassroom = sel ? sel.value : '';
     if(!targetClassroom){showToast('❌ 教室を選んでね');return;}
   }
-  const list = chars.filter(c=>c.classroom===targetClassroom && (c.status||'active')==='active')
+  const monthSel = document.getElementById('pdfMonthSel');
+  const targetMonth = (monthSel && monthSel.value) ? monthSel.value : new Date().toISOString().slice(0,7);
+  // 対象月に最終テストをした子のみ対象（欠席した子は自動的に除外）
+  const list = chars.filter(c=>c.classroom===targetClassroom && (c.status||'active')==='active' && (c.lastTestDate||'').slice(0,7)===targetMonth)
     .sort((a,b)=>a.name.localeCompare(b.name,'ja'));
-  if(list.length===0){showToast('❌ 対象の冒険者がいません');return;}
+  if(list.length===0){showToast('❌ その月にテストした子がいません');return;}
   const ranking = computeGlobalRanking();
   const html = buildQuestLogBulkDocument(list, ranking, targetClassroom);
   const blob = new Blob([html], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
   setTimeout(()=>URL.revokeObjectURL(url), 15000);
-  showToast('📄 新しいタブでPDFレポートが開きます（'+list.length+'名分）。印刷→PDFで保存できます');
-  postAdminLog('pdf_bulk_export',{classroom:targetClassroom,count:list.length});
+  showToast('📄 新しいタブでPDFレポートが開きます（'+targetMonth+'・'+list.length+'名分）。印刷→PDFで保存できます');
+  postAdminLog('pdf_bulk_export',{classroom:targetClassroom,month:targetMonth,count:list.length});
 }
 
 function openMyQuestLogPDF(){
