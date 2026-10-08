@@ -2942,7 +2942,7 @@ function generateQuestLogPageHTML(c, ranking){
     : '<p class="empty-note">まだメッセージはありません。</p>';
 
   const recentMasteredHTML = recentMastered.length>0
-    ? '<ul class="quest-list">'+recentMastered.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+'</span></li>').join('')+moreNote(recentMastered)+'</ul>'
+    ? '<ul class="quest-list">'+recentMastered.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+(r.masterDate&&r.masterDate===c.lastTestDate?' <span class="new-badge">NEW</span>':'')+'</span></li>').join('')+moreNote(recentMastered)+'</ul>'
     : '<p class="empty-note">直近3ヶ月にクリアした技はまだありません。</p>';
 
   const rankingHTML = getRankingWindowHTML(c, ranking);
@@ -3014,6 +3014,7 @@ body{background:var(--bg);color:var(--text);font-family:'Zen Maru Gothic',sans-s
 .rk-num{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.5rem;color:var(--gold-shadow);width:2.6em;}
 .rk-name{font-weight:700;}
 .rk-you{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.32rem;color:#fff;background:var(--teal-dim);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;}
+.new-badge{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.32rem;color:#fff;background:var(--pink);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;}
 .rk-cls{color:var(--text3);font-size:.68rem;}
 .rk-pt{text-align:right;color:var(--teal-dim);font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.48rem;}
 .self-row{background:var(--bg3);}
