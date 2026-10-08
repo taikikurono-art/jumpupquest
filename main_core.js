@@ -1573,6 +1573,7 @@ function adminLogin(){
     // PDF出力の対象月を当月で初期化
     const pdfMonthEl=document.getElementById('pdfMonthSel');
     if(pdfMonthEl && !pdfMonthEl.value) pdfMonthEl.value=new Date().toISOString().slice(0,7);
+    renderPdfMonthLabel();
     if(!adminClassroom){
       renderHQDashboard();
       const bulkEl=document.getElementById('bulkVideoPanel');
@@ -3043,6 +3044,27 @@ function buildQuestLogBulkDocument(charList, ranking, classroomLabel){
 }
 
 // 管理者パネルの「PDFを一括出力」ボタンから呼ばれる
+// 対象月ラベルの表示を更新（例: 2026年9月）
+function renderPdfMonthLabel(){
+  const el=document.getElementById('pdfMonthSel');
+  const label=document.getElementById('pdfMonthLabel');
+  if(!el||!label) return;
+  const v = el.value||new Date().toISOString().slice(0,7);
+  const [y,m] = v.split('-').map(Number);
+  label.textContent = y+'年'+m+'月';
+}
+// PDF出力の対象月を矢印で前後に切り替える
+function changePdfMonth(delta){
+  const el=document.getElementById('pdfMonthSel');
+  if(!el) return;
+  const v = el.value||new Date().toISOString().slice(0,7);
+  let [y,m] = v.split('-').map(Number);
+  m += delta;
+  if(m<1){ m=12; y--; }
+  if(m>12){ m=1; y++; }
+  el.value = y+'-'+String(m).padStart(2,'0');
+  renderPdfMonthLabel();
+}
 function openBulkPDFReport(){
   let targetClassroom = adminClassroom;
   if(!targetClassroom){
