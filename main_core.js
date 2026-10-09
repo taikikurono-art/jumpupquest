@@ -2911,129 +2911,261 @@ function getRankingWindowHTML(c, ranking){
   return '<table class="rk-table"><tbody>'+rowsHTML+'</tbody></table>';
 }
 
-// 1人分のA4クエストログページ（フラグメント）を生成
-function generateQuestLogPageHTML(c, ranking){
+// 1人分のA4テストレポート（A案：リザルト画面デザイン）を生成
+// ※ PDFは html2canvas + jsPDF で画像化して直接ダウンロードする（印刷画面を経由しない）
+//   html2canvasが描けないCSS（conic-gradient / clip-path / text-stroke）は使わず、SVGとtext-shadowで表現している
+const QLOG_RAYS_SVG = (function(){
+  let p='';
+  for(let i=0;i<36;i++){
+    const a1=(i*10-90)*Math.PI/180, a2=((i*10+5)-90)*Math.PI/180, R=900;
+    p+='<polygon points="400,560 '+(400+R*Math.cos(a1)).toFixed(1)+','+(560+R*Math.sin(a1)).toFixed(1)+' '+(400+R*Math.cos(a2)).toFixed(1)+','+(560+R*Math.sin(a2)).toFixed(1)+'" fill="#ff9a1f"/>';
+  }
+  return '<svg class="hero-bg" viewBox="0 0 800 210" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="210" fill="#ffb02e"/>'+p+
+    '<polygon points="0,210 0,178 64,198 128,172 200,194 272,168 344,192 416,166 488,190 560,170 632,195 704,172 800,188 800,210" fill="#fff8ec"/></svg>';
+})();
+const QLOG_ICON = {
+  sword:'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M14.5 3H21v6.5L10 20.5 8.5 19 7 20.5 3.5 17 5 15.5 3.5 14z" fill="#fff"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" fill="#fff"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 3h10v2h4v3a5 5 0 0 1-5 5h-.3A5 5 0 0 1 13 15.9V19h4v2H7v-2h4v-3.1A5 5 0 0 1 8.3 13H8a5 5 0 0 1-5-5V5h4zm0 4H5v1a3 3 0 0 0 2 2.8zm10 0v3.8A3 3 0 0 0 19 8V7z" fill="#fff"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M5 2h2v20H5zm3 1h12l-3 5 3 5H8z" fill="#fff"/></svg>',
+};
+function generateQuestLogPageHTML(c, ranking, opt){
+  opt = opt || {};
   const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const CAP = 6;
+  const CAP = opt.cap||8, CAP_R = opt.capR||5;
   const recs = c.skillRecords || {};
-  const masteredEntries = Object.entries(recs).filter(([,r])=>r.mastered);
+  const mastered = Object.entries(recs).filter(([,r])=>r.mastered);
   const totalPt = calcCharTotalPt(recs);
   const j = JOBS[c.job]||JOBS.rookie;
   const titleData = calcTitle(c);
+  const last = c.lastTestDate || null;
 
-  // 今回挑戦した技（直近のテスト日 = lastTestedDate が一致する技のみ）
-  const lastTestDate = c.lastTestDate || null;
-  let triedThisTime = lastTestDate
-    ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===lastTestDate)
-    : [];
-  if(triedThisTime.length===0 && Object.keys(recs).length>0){
-    triedThisTime = Object.entries(recs);
+  // 今回挑戦した技（直近のテスト日 = lastTestedDate が一致する技。記録が無い古いデータは全件）
+  let tried = last ? Object.entries(recs).filter(([,r])=>r.lastTestedDate===last) : [];
+  if(tried.length===0 && Object.keys(recs).length>0) tried = Object.entries(recs);
+  tried.sort((a,b)=>(b[1].mastered?1:0)-(a[1].mastered?1:0) || (b[1].lastResult||0)-(a[1].lastResult||0));
+  // 最近クリアした技（直近3ヶ月、新しい順）
+  const d3 = new Date(); d3.setMonth(d3.getMonth()-3);
+  const d3s = d3.toISOString().slice(0,10);
+  const recent = mastered.filter(([,r])=>r.masterDate && r.masterDate>=d3s)
+    .sort((a,b)=>(b[1].masterDate||'').localeCompare(a[1].masterDate||''));
+  const newCount = last ? mastered.filter(([,r])=>r.masterDate===last).length : 0;
+  const msg = (c.messages||[]).slice(-1)[0] || null;
+  const ymSrc = (last||new Date().toISOString().slice(0,10));
+  const year = Number(ymSrc.slice(0,4)), month = Number(ymSrc.slice(5,7));
+  const issue = new Date().toISOString().slice(0,10).replace(/-/g,'.');
+
+  // 技名：（ ）内の補足は小さく2行目に
+  const skName = sk => {
+    const m = String(sk).match(/^(.+?)[（(](.+)[）)]\s*$/);
+    return m ? '<span class="n">'+esc(m[1])+'<small>'+esc(m[2])+'</small></span>' : '<span class="n">'+esc(sk)+'</span>';
+  };
+  const stars = n => { let s=''; for(let i=0;i<3;i++) s+='<i class="st'+(i<n?' on':'')+'">★</i>'; return s; };
+  const grade = r => r.mastered ? 'm' : r.lastResult===3 ? 3 : r.lastResult===1 ? 2 : r.lastResult===0 ? 1 : 0;
+  const more = (arr,cap) => arr.length>cap ? '<div class="more">ほか '+(arr.length-cap)+' 件</div>' : '';
+
+  const triedHTML = tried.length
+    ? '<div class="legend"><span class="mst">MASTER</span>合格<i class="st on">★★★</i>よくできた<i class="st on">★★</i>できてきた<i class="st on">★</i>これから</div>'+
+      '<div class="grid">'+tried.slice(0,CAP).map(([sk,r])=>{
+        const g = grade(r);
+        return '<div class="it'+(g==='m'?' m':'')+'">'+skName(sk)+(g==='m'?'<span class="mst">MASTER</span>':'<span class="sts">'+stars(g)+'</span>')+'</div>';
+      }).join('')+more(tried,CAP)+'</div>'
+    : '<p class="empty">次回のテストから表示されます。</p>';
+  const msgHTML = msg
+    ? '<p class="msg">'+esc(msg.body||'')+'</p><p class="msg-d">'+esc(msg.date||'')+'　先生より</p>'
+    : '<p class="empty">まだメッセージはありません。</p>';
+  const recentHTML = recent.length
+    ? '<div class="grid one">'+recent.slice(0,CAP_R).map(([sk,r])=>
+        '<div class="it">'+skName(sk)+'<span class="dt">'+(r.masterDate===last?'<span class="new">NEW</span>':'')+esc((r.masterDate||'').slice(5).replace('-','/'))+'</span></div>').join('')+more(recent,CAP_R)+'</div>'
+    : '<p class="empty">直近3ヶ月にクリアした技はまだありません。</p>';
+
+  // ランキング（自分含め5名。上位50%のみ順位表示、窓内に見える順位があれば全員表示）
+  let rkHTML = '<p class="empty">ランキングデータがありません。</p>';
+  const {rows,N,top50Cutoff} = ranking;
+  const self = rows.find(r=>r.id===c.id);
+  if(self){
+    let s=self.rank-2, e=self.rank+2;
+    if(s<1){e+=1-s;s=1;} if(e>N){s-=e-N;e=N;} s=Math.max(1,s);
+    const w = rows.filter(r=>r.rank>=s&&r.rank<=e);
+    const vis = w.some(r=>r.rank<=top50Cutoff);
+    rkHTML = '<div class="rk">'+w.map(r=>{
+      const me = r.id===c.id;
+      return '<div class="rr'+(me?' me':'')+'"><span class="p">'+((r.rank<=top50Cutoff||vis)?r.rank+'位':'－')+'</span>'+
+        '<span class="nmc">'+esc(r.name)+'<small>'+esc(r.classroom||'')+(me?'<span class="you">YOU</span>':'')+'</small></span>'+
+        '<span class="pt">'+r.totalPt+'pt</span></div>';
+    }).join('')+'</div>';
   }
 
-  // 最近クリアした技（直近3ヶ月のみ、新しい順）
-  const d3 = new Date(); d3.setMonth(d3.getMonth()-3);
-  const d3Str = d3.toISOString().slice(0,10);
-  const recentMastered = masteredEntries.filter(([,r])=>r.masterDate && r.masterDate>=d3Str);
-  recentMastered.sort((a,b)=>(b[1].masterDate||'').localeCompare(a[1].masterDate||''));
-
-  const latestMsg = (c.messages||[]).slice(-1)[0];
-  const starStr = r => r.mastered?'🏆':r.lastResult===3?'⭐⭐⭐':r.lastResult===1?'⭐⭐':r.lastResult===0?'🌱':'－';
-  const moreNote = arr => arr.length>CAP ? '<li class="more-note">他 '+(arr.length-CAP)+' 件</li>' : '';
-
-  const triedHTML = triedThisTime.length>0
-    ? '<ul class="quest-list">'+triedThisTime.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="star">'+starStr(r)+'</span></li>').join('')+moreNote(triedThisTime)+'</ul>'
-    : '<p class="empty-note">次回のテストから表示されます。</p>';
-
-  const msgHTML = latestMsg
-    ? '<div class="msg-date">📅 '+esc(latestMsg.date||'')+'</div><div class="msg-body">'+esc(latestMsg.body||'')+'</div>'
-    : '<p class="empty-note">まだメッセージはありません。</p>';
-
-  const recentMasteredHTML = recentMastered.length>0
-    ? '<ul class="quest-list">'+recentMastered.slice(0,CAP).map(([sk,r])=>'<li><span>'+esc(sk)+'</span><span class="date-tag">'+esc(r.masterDate||'')+(r.masterDate&&r.masterDate===c.lastTestDate?' <span class="new-badge">NEW</span>':'')+'</span></li>').join('')+moreNote(recentMastered)+'</ul>'
-    : '<p class="empty-note">直近3ヶ月にクリアした技はまだありません。</p>';
-
-  const rankingHTML = getRankingWindowHTML(c, ranking);
-
-  return '<div class="qlog-page">'+
-    '<div class="ql-header"><div class="ql-logo">⚔️ QUEST LOG</div><div class="ql-date">発行日：'+new Date().toISOString().slice(0,10)+'</div></div>'+
-    '<div class="ql-student"><div class="ql-sprite">'+(j.emoji||'🎮')+'</div><div>'+
-    '<div class="ql-name">'+esc(c.name)+'さん</div>'+
-    '<div class="ql-sub">'+esc(c.classroom||'')+'　／　'+esc(j.name||'')+(titleData?'　👑 '+esc(titleData.title):'')+'</div>'+
-    '</div></div>'+
-    '<div class="kpi-grid">'+
-      '<div class="kpi-box"><div class="kpi-label">マスター数</div><div class="kpi-val">'+masteredEntries.length+'</div></div>'+
-      '<div class="kpi-box"><div class="kpi-label">合計PT</div><div class="kpi-val">'+totalPt+'</div></div>'+
+  return '<div class="qlog-page'+(opt.tight?' tight':'')+'" style="--jc:'+(j.color||'#ffe066')+'">'+
+    '<div class="hero">'+QLOG_RAYS_SVG+
+      '<div class="eyebrow"><span>JUMP UP 体操教室</span><span class="mon">'+year+'年'+month+'月テスト</span></div>'+
+      '<div class="h1"><div class="l1">JUMP UPクエスト</div><div class="l2">テストレポート</div></div></div>'+
+    '<div class="card"><div class="ava">'+(j.emoji||'🎮')+'</div><div class="who"><div class="nm'+(String(c.name||'').length>8?' long':'')+'">'+esc(c.name)+'<small>さん</small></div>'+
+      '<div class="tags"><span class="tag">'+esc(c.classroom||'')+'</span><span class="tag job">'+esc(j.name||'')+'</span>'+(titleData?'<span class="tag ttl">'+esc(titleData.title)+'</span>':'')+'</div></div>'+
+      '<div class="kpis"><div class="kpi c"><b>'+newCount+'</b><span>今回合格</span></div><div class="kpi"><b>'+mastered.length+'</b><span>マスター数</span></div><div class="kpi b"><b>'+totalPt+'</b><span>合計PT</span></div></div></div>'+
+    '<div class="body">'+
+      '<section class="sec s-try"><div class="h2">'+QLOG_ICON.sword+'今回挑戦した技</div>'+triedHTML+'</section>'+
+      '<section class="sec s-msg"><div class="h2">'+QLOG_ICON.chat+'先生からのメッセージ</div>'+msgHTML+'</section>'+
+      '<div class="duo"><section class="sec s-new"><div class="h2">'+QLOG_ICON.trophy+'最近クリアした技<em>直近3ヶ月</em></div>'+recentHTML+'</section>'+
+      '<section class="sec s-rk"><div class="h2">'+QLOG_ICON.flag+'全体ランキング</div>'+rkHTML+'</section></div>'+
     '</div>'+
-    '<div class="q-card pattern-a"><div class="q-ttl">⚔️ 今回挑戦した技</div>'+triedHTML+'</div>'+
-    '<div class="q-card pattern-b"><div class="q-ttl">💬 先生からのメッセージ</div>'+msgHTML+'</div>'+
-    '<div class="q-card pattern-c"><div class="q-ttl">🏆 最近クリアした技（直近3ヶ月）</div>'+recentMasteredHTML+'</div>'+
-    '<div class="q-card"><div class="q-ttl">🌍 全体ランキング</div>'+rankingHTML+'</div>'+
-    '<div class="ql-footer">JUMPUPクエスト QUEST LOG ・ '+esc(c.name)+'さんの挑戦を、これからも応援しています！</div>'+
-    '</div>';
+    '<div class="foot"><b>JUMP UP QUEST</b><span>'+esc(c.name)+'さんの挑戦を、これからも応援しています！</span><span>発行 '+issue+'</span></div>'+
+  '</div>';
 }
 
 const QLOG_STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700;900&display=swap');
-:root{
-  --bg:#fff8ef;--bg2:#fdedd8;--bg3:#f7deb9;--panel:#fffcf6;--border:#dcb87f;
-  --gold:#ffc736;--gold2:#ff9f1c;--gold-shadow:#8a4b12;
-  --teal:#45c2bd;--teal-dim:#0e6f68;
-  --pink:#ff6f91;--green:#6fcf52;
-  --text:#4a3728;--text2:#8a6b50;--text3:#b8987a;
-  --radius:12px;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Zen Maru Gothic',sans-serif;}
-.ql-toolbar{padding:1rem;text-align:center;}
-.print-btn{padding:.9rem 2rem;background:var(--gold);color:var(--gold-shadow);font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.6rem;border:2px solid var(--gold-shadow);border-radius:var(--radius);cursor:pointer;letter-spacing:1px;}
-@page{size:A4;margin:10mm;}
-.qlog-page{background:var(--panel);color:var(--text);border:2px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(74,55,40,.08);width:190mm;min-height:270mm;margin:1.5rem auto;padding:8mm 9mm;position:relative;page-break-after:always;}
-.qlog-page:last-child{page-break-after:auto;}
-.ql-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);padding-bottom:.5rem;margin-bottom:.7rem;}
-.ql-logo{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.85rem;color:var(--gold-shadow);letter-spacing:2px;}
-.ql-date{font-size:.7rem;color:var(--text3);}
-.ql-student{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;}
-.ql-sprite{font-size:2.2rem;}
-.ql-name{font-weight:900;font-size:1.25rem;color:var(--text);}
-.ql-sub{font-size:.75rem;color:var(--teal-dim);margin-top:.15rem;}
-.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:.9rem;}
-.kpi-box{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:.5rem .4rem;text-align:center;}
-.kpi-label{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.3rem;color:var(--teal-dim);margin-bottom:.35rem;}
-.kpi-val{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.72rem;color:var(--gold-shadow);}
-.q-card{background:var(--panel);border-radius:8px;padding:.55rem .7rem;margin-bottom:.45rem;}
-.q-ttl{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.45rem;color:var(--gold-shadow);margin-bottom:.55rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem;}
-.pattern-a{border:3px solid var(--gold2);}
-.pattern-b{border:2px dashed var(--pink);}
-.pattern-c{border:3px double var(--green);}
-.pattern-d{border:2px dotted var(--teal);background-image:repeating-linear-gradient(45deg,rgba(69,194,189,.06) 0 4px,transparent 4px 8px);}
-.quest-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:.3rem .7rem;}
-.quest-list li{font-size:.82rem;line-height:1.6;padding-left:1em;position:relative;display:flex;justify-content:space-between;gap:.6rem;color:var(--text);}
-.quest-list li::before{content:'▶';position:absolute;left:0;color:var(--teal-dim);font-size:.5em;top:.5em;}
-.quest-list li.more-note{grid-column:1/-1;text-align:right;padding-left:0;color:var(--text3);font-size:.68rem;}
-.quest-list li.more-note::before{content:none;}
-.star{color:var(--gold-shadow);font-size:.8rem;white-space:nowrap;}
-.date-tag,.pt-tag{color:var(--text2);font-size:.7rem;white-space:nowrap;}
-.empty-note{color:var(--text2);font-size:.78rem;}
-.msg-date{font-size:.68rem;color:var(--text2);margin-bottom:.35rem;}
-.msg-body{font-size:1rem;line-height:1.7;white-space:pre-wrap;color:var(--text);background:var(--bg2);border-left:3px solid var(--gold2);padding:.4rem .55rem;border-radius:0 6px 6px 0;}
-.rk-table{width:100%;border-collapse:collapse;font-size:.78rem;}
-.rk-table td{padding:.25rem .35rem;border-bottom:1px solid var(--border);color:var(--text);}
-.rk-num{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.5rem;color:var(--gold-shadow);width:2.6em;}
-.rk-name{font-weight:700;}
-.rk-you{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.32rem;color:#fff;background:var(--teal-dim);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;}
-.new-badge{font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.32rem;color:#fff;background:var(--pink);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;}
-.rk-cls{color:var(--text3);font-size:.68rem;}
-.rk-pt{text-align:right;color:var(--teal-dim);font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.48rem;}
-.self-row{background:var(--bg3);}
-.self-row .rk-name{color:var(--gold-shadow);}
-.ql-footer{text-align:center;font-family:'Press Start 2P','Zen Maru Gothic',sans-serif;font-size:.28rem;color:var(--text3);margin-top:.8rem;}
-@media print{
-  .ql-toolbar{display:none;}
-  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .qlog-page{box-shadow:none;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .kpi-box,.q-card,.msg-body,.pattern-d,.self-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-}
+.qlog-page{--o1:#ff8a1f;--o2:#ffc736;--br:#4a2a12;--cream:#fff8ec;--teal:#16a39b;--pink:#ff5d87;--ink:#3b2616;--mute:#9a7a5c;
+  width:210mm;height:297mm;background:#fff8ec;color:#3b2616;font-family:'M PLUS Rounded 1c','Zen Maru Gothic',sans-serif;position:relative;overflow:hidden;box-sizing:border-box;}
+.qlog-page *{box-sizing:border-box;margin:0;padding:0;}
+.qlog-page .hero{position:relative;height:49mm;padding:7.5mm 12mm 0;color:#fff;}
+.qlog-page .hero-bg{position:absolute;left:0;top:0;width:100%;height:100%;display:block;}
+.qlog-page .eyebrow,.qlog-page .h1{position:relative;}
+.qlog-page .eyebrow{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:11pt;letter-spacing:.08em;text-shadow:0 1px 0 rgba(74,42,18,.35);}
+.qlog-page .eyebrow .mon{background:#4a2a12;color:#ffc736;border-radius:99px;padding:1.2mm 4mm;font-size:11pt;text-shadow:none;}
+.qlog-page .h1{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;line-height:1.08;margin-top:1.5mm;color:#fff;
+  text-shadow:2px 0 0 #4a2a12,-2px 0 0 #4a2a12,0 2px 0 #4a2a12,0 -2px 0 #4a2a12,1.5px 1.5px 0 #4a2a12,-1.5px 1.5px 0 #4a2a12,1.5px -1.5px 0 #4a2a12,-1.5px -1.5px 0 #4a2a12,0 5px 0 #4a2a12;}
+.qlog-page .h1 .l1{font-size:28pt;letter-spacing:.02em;}
+.qlog-page .h1 .l2{font-size:42pt;letter-spacing:.06em;color:#ffc736;}
+.qlog-page .card{position:relative;margin:-4mm 12mm 0;background:#fff;border:3px solid #4a2a12;border-radius:16px;box-shadow:0 5px 0 #4a2a12;display:flex;align-items:center;gap:4mm;padding:3mm 4.5mm;}
+.qlog-page .ava{width:20mm;height:20mm;border-radius:50%;background:var(--jc);border:3px solid #4a2a12;display:flex;align-items:center;justify-content:center;font-size:27pt;line-height:1;flex-shrink:0;}
+.qlog-page .who{flex:1;min-width:0;}
+.qlog-page .nm{font-weight:900;font-size:20pt;line-height:1.2;white-space:nowrap;}
+.qlog-page .nm.long{font-size:16pt;}
+.qlog-page .nm small{font-size:11pt;margin-left:1mm;}
+.qlog-page .tags{display:flex;flex-wrap:wrap;gap:1.5mm;margin-top:1.5mm;}
+.qlog-page .tag{font-size:9pt;font-weight:700;border-radius:99px;padding:.5mm 2.5mm;white-space:nowrap;background:#fff4dc;border:1.5px solid #e8c88f;}
+.qlog-page .tag.job{background:#16a39b;color:#fff;border-color:#16a39b;}
+.qlog-page .tag.ttl{background:#ffc736;border-color:#e0a400;}
+.qlog-page .kpis{display:flex;gap:2.5mm;flex-shrink:0;}
+.qlog-page .kpi{width:21mm;height:21mm;border-radius:50%;border:3px solid #4a2a12;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff7d1,#ffc736);}
+.qlog-page .kpi.b{background:radial-gradient(circle at 35% 30%,#d9fffb,#5fd6cf);}
+.qlog-page .kpi.c{background:radial-gradient(circle at 35% 30%,#ffe0ea,#ff8fae);}
+.qlog-page .kpi b{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;font-size:17pt;line-height:1;}
+.qlog-page .kpi span{font-size:7pt;font-weight:900;margin-top:1mm;}
+.qlog-page .body{padding:6.5mm 12mm 0;display:flex;flex-direction:column;gap:5.5mm;}
+.qlog-page .duo{display:flex;gap:4mm;align-items:flex-start;}
+.qlog-page .duo .sec{flex:1;min-width:0;}
+.qlog-page .sec{border:2.5px solid #4a2a12;border-radius:14px;background:#fff;padding:6.5mm 4mm 3.5mm;position:relative;}
+.qlog-page .h2{position:absolute;top:-4.6mm;left:4mm;display:flex;align-items:center;gap:2mm;font-weight:900;font-size:15pt;line-height:1.1;
+  color:#fff;background:var(--sc);border:2.5px solid #4a2a12;border-radius:10px;padding:1.4mm 4mm 1.4mm 3mm;box-shadow:0 3px 0 #4a2a12;white-space:nowrap;}
+.qlog-page .h2 svg{width:5.5mm;height:5.5mm;flex-shrink:0;}
+.qlog-page .h2 em{font-style:normal;font-size:9.5pt;font-weight:700;margin-left:1mm;}
+.qlog-page .s-try{--sc:#ff8a1f;} .qlog-page .s-msg{--sc:#ff5d87;} .qlog-page .s-new{--sc:#16a39b;} .qlog-page .s-rk{--sc:#7a5bd6;}
+.qlog-page .grid{display:flex;flex-wrap:wrap;gap:1.8mm 3mm;}
+.qlog-page .grid .it{width:calc(50% - 1.5mm);}
+.qlog-page .grid.one .it{width:100%;}
+.qlog-page .it{display:flex;align-items:center;justify-content:space-between;gap:2mm;background:#fff8ec;border:1.5px solid #f0d9b5;border-radius:9px;padding:1.1mm 3mm;font-size:11.5pt;font-weight:700;line-height:1.3;min-height:8.2mm;}
+.qlog-page .it.m{background:#fff2c4;border-color:#f2c14e;}
+.qlog-page .it .n{min-width:0;}
+.qlog-page .it .n small{display:block;font-size:7.5pt;font-weight:500;color:#9a7a5c;line-height:1.25;}
+.qlog-page .st{color:#e4d3bc;font-style:normal;font-size:12pt;}
+.qlog-page .st.on{color:#ffa600;}
+.qlog-page .sts{white-space:nowrap;flex-shrink:0;}
+.qlog-page .mst{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-size:8pt;font-weight:400;color:#fff;background:#ff8a1f;border:1.5px solid #4a2a12;border-radius:6px;padding:.4mm 1.8mm;white-space:nowrap;flex-shrink:0;}
+.qlog-page .dt{font-size:9pt;color:#9a7a5c;white-space:nowrap;display:flex;align-items:center;gap:1.5mm;flex-shrink:0;}
+.qlog-page .new{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;font-size:8pt;color:#fff;background:#ff5d87;border-radius:5px;padding:.3mm 1.6mm;}
+.qlog-page .more{width:100%;text-align:right;font-size:9pt;color:#9a7a5c;}
+.qlog-page .legend{position:absolute;top:1.6mm;right:4mm;display:flex;align-items:center;gap:1.2mm;font-size:7.5pt;color:#9a7a5c;font-weight:700;white-space:nowrap;}
+.qlog-page .legend .mst{font-size:6.5pt;}
+.qlog-page .legend .st{font-size:8pt;margin-left:1.8mm;}
+.qlog-page .msg{font-size:13pt;line-height:1.7;font-weight:700;white-space:pre-wrap;}
+.qlog-page .msg-d{font-size:9pt;color:#9a7a5c;margin-top:1.5mm;text-align:right;}
+.qlog-page .empty{font-size:10.5pt;color:#9a7a5c;}
+.qlog-page .rk{display:flex;flex-direction:column;gap:1.3mm;}
+.qlog-page .rr{display:flex;align-items:center;gap:2.5mm;border-radius:9px;padding:.8mm 3mm;font-size:11pt;background:#f7f2ff;border:2px solid #f7f2ff;}
+.qlog-page .rr.me{background:#ffc736;border-color:#4a2a12;font-weight:900;}
+.qlog-page .rr .p{width:11mm;flex-shrink:0;font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;font-size:12pt;}
+.qlog-page .rr .nmc{flex:1;min-width:0;line-height:1.3;white-space:nowrap;}
+.qlog-page .rr .nmc small{display:block;font-size:7.5pt;line-height:1.2;font-weight:500;color:#9a7a5c;}
+.qlog-page .rr.me .nmc small{color:#4a2a12;}
+.qlog-page .rr .pt{flex-shrink:0;text-align:right;font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;font-size:11pt;}
+.qlog-page .you{font-size:7pt;font-weight:900;background:#4a2a12;color:#fff;border-radius:4px;padding:0 1.4mm;margin-left:1.5mm;}
+.qlog-page.tight .msg{font-size:11.5pt;line-height:1.6;}
+.qlog-page.tight .body{gap:5mm;}
+.qlog-page .foot{position:absolute;left:0;right:0;bottom:0;height:11mm;background:#4a2a12;color:#ffc736;display:flex;align-items:center;justify-content:space-between;padding:0 12mm;font-size:9pt;font-weight:700;}
+.qlog-page .foot b{font-family:'Dela Gothic One','M PLUS Rounded 1c',sans-serif;font-weight:400;letter-spacing:.08em;font-size:10pt;}
 `;
+const QLOG_FONT_URL = 'https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap';
+
+// 外部スクリプトを1回だけ読み込む
+function _qlogLoadScript(src){
+  return new Promise((resolve,reject)=>{
+    if(document.querySelector('script[data-qlog-src="'+src+'"]')){ resolve(); return; }
+    const s=document.createElement('script'); s.src=src; s.async=true; s.dataset.qlogSrc=src;
+    s.onload=()=>resolve(); s.onerror=()=>reject(new Error('load failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+async function _qlogPrepare(){
+  if(!document.getElementById('qlogFontLink')){
+    const l=document.createElement('link'); l.id='qlogFontLink'; l.rel='stylesheet'; l.href=QLOG_FONT_URL; document.head.appendChild(l);
+  }
+  if(!document.getElementById('qlogStyleTag')){
+    const st=document.createElement('style'); st.id='qlogStyleTag'; st.textContent=QLOG_STYLE; document.head.appendChild(st);
+  }
+  if(!window.html2canvas) await _qlogLoadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  if(!(window.jspdf && window.jspdf.jsPDF)) await _qlogLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+}
+
+// ページ内の文字に使うWebフォントの読み込みを待つ（文字幅が確定してから収まり具合を測る）
+async function _qlogWaitFonts(el){
+  try{
+    const txt = el.textContent;
+    await Promise.all([
+      document.fonts.load('400 30px "Dela Gothic One"', txt),
+      document.fonts.load('500 16px "M PLUS Rounded 1c"', txt),
+      document.fonts.load('700 16px "M PLUS Rounded 1c"', txt),
+      document.fonts.load('900 16px "M PLUS Rounded 1c"', txt),
+    ]);
+    await document.fonts.ready;
+  }catch(e){}
+}
+// A4の枠に収まるまで表示件数を減らしながら1ページ分を描画する
+const QLOG_FIT_STEPS = [{cap:8,capR:5},{cap:8,capR:4},{cap:6,capR:4},{cap:6,capR:3},{cap:6,capR:3,tight:true},{cap:4,capR:3,tight:true},{cap:4,capR:2,tight:true},{cap:2,capR:2,tight:true}];
+async function _qlogRenderFit(holder, c, ranking){
+  let pageEl = null;
+  for(const step of QLOG_FIT_STEPS){
+    holder.innerHTML = generateQuestLogPageHTML(c, ranking, step);
+    pageEl = holder.firstElementChild;
+    await _qlogWaitFonts(pageEl);
+    const foot = pageEl.querySelector('.foot').getBoundingClientRect().top;
+    const bottom = Math.max(...Array.from(pageEl.querySelectorAll('.sec')).map(x=>x.getBoundingClientRect().bottom));
+    if(bottom <= foot - 8) break;  // フッターとの間に少し余白を残す
+  }
+  return pageEl;
+}
+
+// テストレポートをPDFファイルとして直接ダウンロード（1人1ページ）
+let _qlogBusy = false;
+async function downloadQuestLogPDF(charList, fileName){
+  if(_qlogBusy){ showToast('⏳ PDFを作成中です。少し待ってね'); return; }
+  _qlogBusy = true;
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;z-index:-1;pointer-events:none;';
+  document.body.appendChild(holder);
+  try{
+    showToast('⏳ PDFを作成中…（'+charList.length+'名分）');
+    await _qlogPrepare();
+    const ranking = computeGlobalRanking();
+    const pdf = new window.jspdf.jsPDF({orientation:'portrait', unit:'mm', format:'a4', compress:true});
+    for(let i=0;i<charList.length;i++){
+      const pageEl = await _qlogRenderFit(holder, charList[i], ranking);
+      const canvas = await window.html2canvas(pageEl, {scale:2, backgroundColor:'#fff8ec', useCORS:true, logging:false, scrollX:0, scrollY:0, windowWidth:1200});
+      if(i>0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297);
+    }
+    pdf.save(fileName);
+    showToast('📄 PDFをダウンロードしました（'+charList.length+'名分）');
+    return true;
+  }catch(err){
+    console.error(err);
+    showToast('❌ PDFの作成に失敗しました。通信環境を確認してもう一度お試しください');
+    return false;
+  }finally{
+    holder.remove();
+    _qlogBusy = false;
+  }
+}
 
 function buildQuestLogBulkDocument(charList, ranking, classroomLabel){
   const pages = charList.map(c=>generateQuestLogPageHTML(c, ranking)).join('\n');
@@ -3078,28 +3210,16 @@ function openBulkPDFReport(){
   const list = chars.filter(c=>c.classroom===targetClassroom && (c.status||'active')==='active' && (c.lastTestDate||'').slice(0,7)===targetMonth)
     .sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   if(list.length===0){showToast('❌ その月にテストした子がいません');return;}
-  const ranking = computeGlobalRanking();
-  const html = buildQuestLogBulkDocument(list, ranking, targetClassroom);
-  const win = window.open('', '_blank');
-  if(!win){showToast('❌ ポップアップがブロックされました。設定を確認してください');return;}
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  showToast('📄 新しいタブでPDFレポートが開きます（'+targetMonth+'・'+list.length+'名分）。印刷→PDFで保存できます');
+  // 印刷画面を経由せず、PDFファイルを直接ダウンロードする（スマホで白紙になる問題の対策）
+  downloadQuestLogPDF(list, 'JUMPUPクエスト_テストレポート_'+targetClassroom+'_'+targetMonth+'.pdf');
   postAdminLog('pdf_bulk_export',{classroom:targetClassroom,month:targetMonth,count:list.length});
 }
 
 function openMyQuestLogPDF(){
   const c=currentUser;
   if(!c){showToast('❌ ログイン情報が見つかりません');return;}
-  const ranking=computeGlobalRanking();
-  const html=buildQuestLogBulkDocument([c], ranking, c.classroom);
-  const win = window.open('', '_blank');
-  if(!win){showToast('❌ ポップアップがブロックされました。設定を確認してください');return;}
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  showToast('📄 新しいタブでPDFレポートが開きます。印刷→PDFで保存できます');
+  // 印刷画面を経由せず、PDFファイルを直接ダウンロードする
+  downloadQuestLogPDF([c], 'JUMPUPクエスト_テストレポート_'+c.name+'_'+((c.lastTestDate||'').slice(0,7)||new Date().toISOString().slice(0,7))+'.pdf');
 }
 
 // ======== 全国リアルタイム進捗ログ ========
