@@ -2788,11 +2788,11 @@ function generateMonthlyReport(c, targetMonth){
 function openMonthlyReport(){
   if(!currentUser){showToast('❌ ログインしてね');return;}
   const html = generateMonthlyReport(currentUser);
-  const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
-  // 新しいタブが開いたらPDF保存のガイドを表示
-  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  const win = window.open('', '_blank');
+  if(!win){showToast('❌ ポップアップがブロックされました。設定を確認してください');return;}
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
   showToast('📊 新しいタブでレポートが開きます。印刷→PDFで保存できます');
 }
 
@@ -3080,10 +3080,11 @@ function openBulkPDFReport(){
   if(list.length===0){showToast('❌ その月にテストした子がいません');return;}
   const ranking = computeGlobalRanking();
   const html = buildQuestLogBulkDocument(list, ranking, targetClassroom);
-  const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  const win = window.open('', '_blank');
+  if(!win){showToast('❌ ポップアップがブロックされました。設定を確認してください');return;}
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
   showToast('📄 新しいタブでPDFレポートが開きます（'+targetMonth+'・'+list.length+'名分）。印刷→PDFで保存できます');
   postAdminLog('pdf_bulk_export',{classroom:targetClassroom,month:targetMonth,count:list.length});
 }
@@ -3093,10 +3094,11 @@ function openMyQuestLogPDF(){
   if(!c){showToast('❌ ログイン情報が見つかりません');return;}
   const ranking=computeGlobalRanking();
   const html=buildQuestLogBulkDocument([c], ranking, c.classroom);
-  const blob=new Blob([html], {type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  const win = window.open('', '_blank');
+  if(!win){showToast('❌ ポップアップがブロックされました。設定を確認してください');return;}
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
   showToast('📄 新しいタブでPDFレポートが開きます。印刷→PDFで保存できます');
 }
 
